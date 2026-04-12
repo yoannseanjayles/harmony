@@ -3,12 +3,18 @@
 namespace App\Slide;
 
 use App\Entity\Slide;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Twig\Environment;
 
 final class SlideBuilder
 {
-    public function __construct(private readonly Environment $twig)
-    {
+    public function __construct(
+        private readonly Environment $twig,
+        private readonly SlideHtmlSanitizer $sanitizer,
+        #[Autowire(service: 'monolog.logger.ai')]
+        private readonly LoggerInterface $logger,
+    ) {
     }
 
     public function buildSlide(Slide $slide): string
@@ -19,9 +25,18 @@ final class SlideBuilder
         return $this->twig->render($template, $context);
     }
 
+    /**
+     * Resolve the Twig template path for a given slide type.
+     *
+     * T155/T156: If the type is not in the supported list the attempt is logged and an
+     * exception is thrown — the render is blocked so that no unrecognised template path
+     * (or a silent fallback) reaches the output.
+     *
+     * @throws UnsupportedSlideTypeException
+     */
     private function resolveTemplate(string $type): string
     {
-        return match ($type) {
+        $template = match ($type) {
             Slide::TYPE_TITLE => 'slides/title.html.twig',
             Slide::TYPE_CLOSING => 'slides/closing.html.twig',
             Slide::TYPE_SPLIT => 'slides/split.html.twig',
@@ -30,8 +45,20 @@ final class SlideBuilder
             Slide::TYPE_TIMELINE => 'slides/timeline.html.twig',
             Slide::TYPE_STATS => 'slides/stats.html.twig',
             Slide::TYPE_COMPARISON => 'slides/comparison.html.twig',
-            default => 'slides/content.html.twig',
+            Slide::TYPE_CONTENT => 'slides/content.html.twig',
+            default => null,
         };
+
+        if ($template === null) {
+            $this->logger->warning('slide_builder_unsupported_type', [
+                'type' => $type,
+                'supported_types' => Slide::supportedTypes(),
+            ]);
+
+            throw new UnsupportedSlideTypeException($type);
+        }
+
+        return $template;
     }
 
     /**
@@ -62,9 +89,9 @@ final class SlideBuilder
     private function buildTitleContext(array $content): array
     {
         return [
-            'label' => trim((string) ($content['label'] ?? '')),
-            'title' => trim((string) ($content['title'] ?? '')),
-            'subtitle' => trim((string) ($content['subtitle'] ?? '')),
+            'label' => $this->sanitizer->sanitizeText(trim((string) ($content['label'] ?? ''))),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
+            'subtitle' => $this->sanitizer->sanitizeText(trim((string) ($content['subtitle'] ?? ''))),
         ];
     }
 
@@ -77,13 +104,13 @@ final class SlideBuilder
     {
         $rawItems = is_array($content['items'] ?? null) ? $content['items'] : [];
         $items = array_values(array_filter(
-            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
+            array_map(fn (mixed $item): string => $this->sanitizer->sanitizeText(trim((string) $item)), $rawItems),
             static fn (string $item): bool => $item !== '',
         ));
 
         return [
-            'title' => trim((string) ($content['title'] ?? '')),
-            'body' => trim((string) ($content['body'] ?? '')),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
+            'body' => $this->sanitizer->sanitizeText(trim((string) ($content['body'] ?? ''))),
             'items' => $items,
         ];
     }
@@ -98,8 +125,8 @@ final class SlideBuilder
         $ctaUrl = trim((string) ($content['cta_url'] ?? ''));
 
         return [
-            'message' => trim((string) ($content['message'] ?? '')),
-            'cta_label' => trim((string) ($content['cta_label'] ?? '')),
+            'message' => $this->sanitizer->sanitizeText(trim((string) ($content['message'] ?? ''))),
+            'cta_label' => $this->sanitizer->sanitizeText(trim((string) ($content['cta_label'] ?? ''))),
             'cta_url' => $this->sanitizeUrl($ctaUrl),
         ];
     }
@@ -113,7 +140,7 @@ final class SlideBuilder
     {
         $rawItems = is_array($content['items'] ?? null) ? $content['items'] : [];
         $items = array_values(array_filter(
-            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
+            array_map(fn (mixed $item): string => $this->sanitizer->sanitizeText(trim((string) $item)), $rawItems),
             static fn (string $item): bool => $item !== '',
         ));
 
@@ -123,11 +150,11 @@ final class SlideBuilder
         }
 
         return [
-            'title' => trim((string) ($content['title'] ?? '')),
-            'body' => trim((string) ($content['body'] ?? '')),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
+            'body' => $this->sanitizer->sanitizeText(trim((string) ($content['body'] ?? ''))),
             'items' => $items,
             'image_url' => $this->sanitizeUrl(trim((string) ($content['image_url'] ?? ''))),
-            'image_alt' => trim((string) ($content['image_alt'] ?? '')),
+            'image_alt' => $this->sanitizer->sanitizeText(trim((string) ($content['image_alt'] ?? ''))),
             'layout' => $layout,
         ];
     }
@@ -141,9 +168,9 @@ final class SlideBuilder
     {
         return [
             'image_url' => $this->sanitizeUrl(trim((string) ($content['image_url'] ?? ''))),
-            'image_alt' => trim((string) ($content['image_alt'] ?? '')),
-            'overlay_text' => trim((string) ($content['overlay_text'] ?? '')),
-            'caption' => trim((string) ($content['caption'] ?? '')),
+            'image_alt' => $this->sanitizer->sanitizeText(trim((string) ($content['image_alt'] ?? ''))),
+            'overlay_text' => $this->sanitizer->sanitizeText(trim((string) ($content['overlay_text'] ?? ''))),
+            'caption' => $this->sanitizer->sanitizeText(trim((string) ($content['caption'] ?? ''))),
         ];
     }
 
@@ -155,10 +182,10 @@ final class SlideBuilder
     private function buildQuoteContext(array $content): array
     {
         return [
-            'quote' => trim((string) ($content['quote'] ?? '')),
-            'author' => trim((string) ($content['author'] ?? '')),
-            'role' => trim((string) ($content['role'] ?? '')),
-            'source' => trim((string) ($content['source'] ?? '')),
+            'quote' => $this->sanitizer->sanitizeText(trim((string) ($content['quote'] ?? ''))),
+            'author' => $this->sanitizer->sanitizeText(trim((string) ($content['author'] ?? ''))),
+            'role' => $this->sanitizer->sanitizeText(trim((string) ($content['role'] ?? ''))),
+            'source' => $this->sanitizer->sanitizeText(trim((string) ($content['source'] ?? ''))),
         ];
     }
 
@@ -189,14 +216,14 @@ final class SlideBuilder
             if (!is_array($item)) {
                 continue;
             }
-            $label = trim((string) ($item['label'] ?? ''));
+            $label = $this->sanitizer->sanitizeText(trim((string) ($item['label'] ?? '')));
             if ($label === '') {
                 continue;
             }
             $items[] = [
-                'year' => trim((string) ($item['year'] ?? '')),
+                'year' => $this->sanitizer->sanitizeText(trim((string) ($item['year'] ?? ''))),
                 'label' => $label,
-                'description' => trim((string) ($item['description'] ?? '')),
+                'description' => $this->sanitizer->sanitizeText(trim((string) ($item['description'] ?? ''))),
             ];
         }
 
@@ -206,7 +233,7 @@ final class SlideBuilder
         }
 
         return [
-            'title' => trim((string) ($content['title'] ?? '')),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
             'items' => $items,
         ];
     }
@@ -225,15 +252,15 @@ final class SlideBuilder
             if (!is_array($stat)) {
                 continue;
             }
-            $value = trim((string) ($stat['value'] ?? ''));
-            $label = trim((string) ($stat['label'] ?? ''));
+            $value = $this->sanitizer->sanitizeText(trim((string) ($stat['value'] ?? '')));
+            $label = $this->sanitizer->sanitizeText(trim((string) ($stat['label'] ?? '')));
             if ($value === '' || $label === '') {
                 continue;
             }
             $stats[] = [
                 'value' => $value,
                 'label' => $label,
-                'detail' => trim((string) ($stat['detail'] ?? '')),
+                'detail' => $this->sanitizer->sanitizeText(trim((string) ($stat['detail'] ?? ''))),
             ];
         }
 
@@ -243,7 +270,7 @@ final class SlideBuilder
         }
 
         return [
-            'title' => trim((string) ($content['title'] ?? '')),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
             'stats' => $stats,
         ];
     }
@@ -256,7 +283,7 @@ final class SlideBuilder
     private function buildComparisonContext(array $content): array
     {
         return [
-            'title' => trim((string) ($content['title'] ?? '')),
+            'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
             'left' => $this->buildComparisonColumn($content['left'] ?? []),
             'right' => $this->buildComparisonColumn($content['right'] ?? []),
         ];
@@ -275,7 +302,7 @@ final class SlideBuilder
 
         $rawItems = is_array($column['items'] ?? null) ? $column['items'] : [];
         $items = array_values(array_filter(
-            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
+            array_map(fn (mixed $item): string => $this->sanitizer->sanitizeText(trim((string) $item)), $rawItems),
             static fn (string $item): bool => $item !== '',
         ));
 
@@ -285,9 +312,9 @@ final class SlideBuilder
         }
 
         return [
-            'heading' => trim((string) ($column['heading'] ?? '')),
+            'heading' => $this->sanitizer->sanitizeText(trim((string) ($column['heading'] ?? ''))),
             'items' => $items,
-            'highlight' => trim((string) ($column['highlight'] ?? '')),
+            'highlight' => $this->sanitizer->sanitizeText(trim((string) ($column['highlight'] ?? ''))),
         ];
     }
 }

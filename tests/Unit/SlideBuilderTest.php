@@ -5,7 +5,10 @@ namespace App\Tests\Unit;
 use App\Entity\Project;
 use App\Entity\Slide;
 use App\Slide\SlideBuilder;
+use App\Slide\SlideHtmlSanitizer;
+use App\Slide\UnsupportedSlideTypeException;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -17,7 +20,8 @@ final class SlideBuilderTest extends TestCase
     {
         $loader = new FilesystemLoader(dirname(__DIR__, 2).'/templates');
         $twig = new Environment($loader, ['autoescape' => 'html']);
-        $this->builder = new SlideBuilder($twig);
+        $logger = $this->createStub(LoggerInterface::class);
+        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), $logger);
     }
 
     // ── title slide ──────────────────────────────────────────────────────────
@@ -62,9 +66,11 @@ final class SlideBuilderTest extends TestCase
 
         $html = $this->builder->buildSlide($slide);
 
+        // The sanitizer strips HTML tags before Twig rendering — no tags survive.
         self::assertStringNotContainsString('<script>', $html);
-        self::assertStringNotContainsString('<b>Bold', $html);
-        self::assertStringContainsString('&lt;b&gt;Bold', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        // Text content is preserved.
+        self::assertStringContainsString('Bold &amp; safe', $html);
     }
 
     // ── content slide ─────────────────────────────────────────────────────────
@@ -110,8 +116,11 @@ final class SlideBuilderTest extends TestCase
 
         $html = $this->builder->buildSlide($slide);
 
+        // The sanitizer strips the script tag — no escaped or raw tag appears.
         self::assertStringNotContainsString('<script>', $html);
-        self::assertStringContainsString('&lt;script&gt;', $html);
+        self::assertStringNotContainsString('&lt;script&gt;', $html);
+        // The text node content is gone too since the tag wraps no visible text.
+        self::assertStringContainsString('Normal item', $html);
     }
 
     public function testContentSlideFiltersEmptyItems(): void
@@ -204,15 +213,16 @@ final class SlideBuilderTest extends TestCase
 
     // ── fallback ──────────────────────────────────────────────────────────────
 
-    public function testUnknownTypeRendersContentTemplate(): void
+    public function testUnknownTypeThrowsUnsupportedSlideTypeException(): void
     {
         $slide = $this->makeSlide('unknown_type', [
-            'title' => 'Fallback',
+            'title' => 'Bad type',
         ]);
 
-        $html = $this->builder->buildSlide($slide);
+        $this->expectException(UnsupportedSlideTypeException::class);
+        $this->expectExceptionMessage('unknown_type');
 
-        self::assertStringContainsString('hm-slide--content', $html);
+        $this->builder->buildSlide($slide);
     }
 
     // ── CSS tokens ────────────────────────────────────────────────────────────
@@ -826,6 +836,158 @@ final class SlideBuilderTest extends TestCase
         $html = $this->builder->buildSlide($slide);
 
         self::assertStringContainsString('--hm-', $html);
+    }
+
+    // ── T156 — unsupported slide type (block and log) ─────────────────────────
+
+    public function testBuilderThrowsOnUnsupportedSlideType(): void
+    {
+        $loader = new FilesystemLoader(dirname(__DIR__, 2).'/templates');
+        $twig = new Environment($loader, ['autoescape' => 'html']);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with(
+                'slide_builder_unsupported_type',
+                self::callback(static fn (array $ctx): bool => $ctx['type'] === 'injected_type'),
+            );
+
+        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), $logger);
+
+        $slide = $this->makeSlide('injected_type', ['title' => 'Bad']);
+
+        $this->expectException(UnsupportedSlideTypeException::class);
+        $this->expectExceptionMessage('injected_type');
+
+        $builder->buildSlide($slide);
+    }
+
+    // ── T158 — no free LLM HTML reaches the rendered output ──────────────────
+
+    public function testSlideBuilderStripsHtmlTagsFromTitleSlide(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, [
+            'label' => '<script>alert("xss")</script>',
+            'title' => '<b>Title with bold</b>',
+            'subtitle' => '<em>Subtitle</em>',
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringNotContainsString('<em>', $html);
+        // Text content is preserved
+        self::assertStringContainsString('Title with bold', $html);
+        self::assertStringContainsString('Subtitle', $html);
+    }
+
+    public function testSlideBuilderStripsHtmlTagsFromContentSlide(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_CONTENT, [
+            'title' => '<img src=x onerror=alert(1)>Clean Title',
+            'body' => '<b onclick="evil()">Body text</b>',
+            'items' => ['<script>bad()</script>Clean item', 'Normal item'],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<img', $html);
+        self::assertStringNotContainsString('<b ', $html);
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('onclick', $html);
+        self::assertStringContainsString('Clean Title', $html);
+        self::assertStringContainsString('Body text', $html);
+        self::assertStringContainsString('Clean item', $html);
+        self::assertStringContainsString('Normal item', $html);
+    }
+
+    public function testSlideBuilderStripsHtmlTagsFromQuoteSlide(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_QUOTE, [
+            'quote' => '<script>xss()</script>Great quote',
+            'author' => '<b>Author Name</b>',
+            'role' => '<em>CEO</em>',
+            'source' => '<a href="javascript:evil()">Source</a>',
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringNotContainsString('<em>', $html);
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertStringContainsString('Great quote', $html);
+        self::assertStringContainsString('Author Name', $html);
+    }
+
+    public function testSlideBuilderStripsHtmlTagsFromTimelineItems(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => '<script>bad()</script>Timeline',
+            'items' => [
+                ['year' => '<b>2020</b>', 'label' => '<em>Founded</em>', 'description' => '<script>evil()</script>Started.'],
+                ['label' => 'Second event'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringNotContainsString('<em>', $html);
+        self::assertStringContainsString('2020', $html);
+        self::assertStringContainsString('Founded', $html);
+        self::assertStringContainsString('Started.', $html);
+    }
+
+    public function testSlideBuilderStripsHtmlTagsFromStatsSlide(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => '<h1>Numbers</h1>',
+            'stats' => [
+                ['value' => '<strong>98%</strong>', 'label' => '<em>Score</em>', 'detail' => '<script>evil()</script>Detail'],
+                ['value' => '10M', 'label' => 'Users'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<h1>', $html);
+        self::assertStringNotContainsString('<strong>', $html);
+        self::assertStringNotContainsString('<em>', $html);
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringContainsString('98%', $html);
+        self::assertStringContainsString('Score', $html);
+        self::assertStringContainsString('Detail', $html);
+    }
+
+    public function testSlideBuilderStripsHtmlTagsFromComparisonSlide(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => '<b>Comparison</b>',
+            'left' => [
+                'heading' => '<script>bad()</script>Before',
+                'items' => ['<em>Manual</em>'],
+                'highlight' => '<b>Slow</b>',
+            ],
+            'right' => [
+                'heading' => 'After',
+                'items' => ['Fast'],
+                'highlight' => 'Quick',
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<b>', $html);
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<em>', $html);
+        self::assertStringContainsString('Comparison', $html);
+        self::assertStringContainsString('Before', $html);
+        self::assertStringContainsString('Manual', $html);
+        self::assertStringContainsString('Slow', $html);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
