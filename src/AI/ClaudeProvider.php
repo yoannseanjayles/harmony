@@ -77,7 +77,7 @@ final class ClaudeProvider implements AIProviderInterface
     public function getModelList(): array
     {
         return [
-            'claude-3-7-sonnet',
+            'claude-sonnet-4-6',
             'claude-3-5-sonnet',
         ];
     }

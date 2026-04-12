@@ -123,3 +123,13 @@ services:
     App\Export\ExportService:
         arguments:
             $harmonyCssPath: '%harmony.export.harmony_css_path%'
+    # HRM-T267 — Gotenberg PDF client wiring.
+    harmony.gotenberg.timeout: 30.0
+
+    App\Export\NativeGotenbergClient:
+        arguments:
+            $baseUrl: '%env(HARMONY_GOTENBERG_URL)%'
+            $timeoutSeconds: '%harmony.gotenberg.timeout%'
+
+    App\Export\GotenbergClientInterface:
+        alias: App\Export\NativeGotenbergClient

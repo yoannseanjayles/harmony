@@ -195,6 +195,7 @@ project.share.public_expiry: Expiration du lien
 project.share.slides_badge: Apercu des slides
 project.share.slide_fallback: Slide %number%
 project.share.slide_identifier: "Identifiant : %id%"
+project.export.html: Exporter en HTML
 project.preview.badge: Preview live
 project.preview.title: Panneau preview
 project.preview.subtitle: "%count% slide(s) synchronisee(s) en direct."
@@ -232,7 +233,7 @@ project.provider.openai: OpenAI
 project.provider.anthropic: Anthropic
 project.model.gpt41mini: GPT-4.1 mini
 project.model.gpt41: GPT-4.1
-project.model.claude37: Claude 3.7 Sonnet
+project.model.claudesonnet46: Claude Sonnet 4.6
 project.model.claude35: Claude 3.5 Sonnet
 project.status.draft: Brouillon
 project.status.active: Actif
@@ -311,3 +312,34 @@ project.theme.anim.speed.fast: Rapide
 project.theme.anim.intensity.reduced: "Réduit"
 project.theme.anim.intensity.normal: Normal
 project.theme.anim.intensity.max: Maximal
+
+# T241–T247 — Media management drawer
+project.media.badge: "Médias du projet"
+project.media.title: "Gestion des médias"
+project.media.subtitle: "Gérez les images du projet : remplacez, recadrez et ajustez l'apparence en temps réel."
+project.media.empty_title: "Aucun média pour le moment."
+project.media.empty_copy: "Les images ajoutées via le chat apparaîtront ici et pourront être modifiées."
+project.media.asset_count: "%count% image(s) dans ce projet."
+project.media.label.filename: "Fichier"
+project.media.label.size: "Taille"
+project.media.label.slide_refs: "Utilisé dans %count% slide(s)"
+project.media.replace.button: "Remplacer l'image"
+project.media.replace.label: "Choisir un fichier de remplacement"
+project.media.replace.uploading: "Remplacement en cours…"
+project.media.replace.success: "Image remplacée avec succès."
+project.media.replace.error: "Erreur lors du remplacement."
+project.media.crop.title: "Recadrage interactif"
+project.media.crop.apply: "Appliquer le recadrage"
+project.media.crop.cancel: "Annuler"
+project.media.overlay.title: "Couleur et opacité"
+project.media.overlay.section.color: "Couleur d'overlay"
+project.media.overlay.section.color_opacity: "Opacité de la couleur (%)"
+project.media.overlay.section.img_opacity: "Opacité de l'image (%)"
+project.media.overlay.slide_label: "Slide cible"
+project.media.overlay.slide_placeholder: "Sélectionnez une slide…"
+project.media.overlay.save: "Appliquer l'overlay"
+project.media.overlay.saving: "Sauvegarde en cours…"
+project.media.overlay.success: "Paramètres d'overlay sauvegardés."
+project.media.overlay.error: "Erreur lors de la sauvegarde."
+project.media.overlay.no_slide: "Sélectionnez d'abord une slide."
+

@@ -274,6 +274,33 @@
                 width: 100%;
             }
         }
+
+        /* HRM-T270 — PDF failure notice */
+        .hm-pdf-failure {
+            padding: 14px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(239, 68, 68, 0.22);
+            background: rgba(239, 68, 68, 0.07);
+            color: var(--hm-danger);
+        }
+
+        .hm-pdf-failure__body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hm-pdf-failure__message {
+            margin: 0;
+            line-height: 1.55;
+        }
+
+        .hm-pdf-failure__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
     </style>
 {% endblock %}
 
@@ -311,6 +338,25 @@
                 {% for flash in app.flashes('error') %}
                     <div class="hm-alert hm-alert--danger">{{ flash }}</div>
                 {% endfor %}
+
+                {# HRM-T270 — PDF failure notification (shown by JS when Gotenberg fails) #}
+                <div
+                    class="hm-pdf-failure"
+                    data-pdf-failure-notice
+                    hidden
+                    data-msg-timeout="{{ 'project.export.pdf_error.timeout'|trans }}"
+                    data-msg-server="{{ 'project.export.pdf_error.server'|trans }}"
+                    data-msg-connection="{{ 'project.export.pdf_error.connection'|trans }}"
+                    data-msg-generic="{{ 'project.export.pdf_error.generic'|trans }}"
+                >
+                    <div class="hm-pdf-failure__body">
+                        <p class="hm-pdf-failure__message" data-pdf-failure-message></p>
+                        <div class="hm-pdf-failure__actions">
+                            <a class="hm-link" data-pdf-fallback-link href="#">{{ 'project.export.pdf_fallback_html'|trans }}</a>
+                            <button type="button" class="hm-link" data-pdf-retry-btn>{{ 'project.export.pdf_retry'|trans }}</button>
+                        </div>
+                    </div>
+                </div>
 
                 <section class="hm-dashboard-grid">
                     <article class="hm-dashboard-card">
@@ -370,7 +416,23 @@
                     project: project
                 } %}
 
+                {% include 'project/_media_drawer.html.twig' with {
+                    project:     project,
+                    mediaAssets: mediaAssets,
+                    slides:      slides
+                } %}
+
                 <div class="hm-actions">
+                    <a class="hm-link" href="{{ path('app_export_html_download', { id: project.id }) }}">{{ 'project.export.html'|trans }}</a>
+                    <button
+                        type="button"
+                        class="hm-link"
+                        data-pdf-export-btn
+                        data-pdf-url="{{ path('app_export_pdf_download', { id: project.id }) }}"
+                        data-html-fallback-url="{{ path('app_export_html_download', { id: project.id }) }}"
+                        data-retry-label="{{ 'project.export.pdf_retry'|trans }}"
+                        data-html-label="{{ 'project.export.pdf_fallback_html'|trans }}"
+                    >{{ 'project.export.pdf'|trans }}</button>
                     <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
                         <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
@@ -797,6 +859,83 @@
                     input.focus();
                 }
             });
+        })();
+    </script>
+
+    {# HRM-T270/T271 — PDF export with Gotenberg fallback #}
+    <script>
+        (() => {
+            const btn = document.querySelector('[data-pdf-export-btn]');
+            if (!btn) return;
+
+            const notice       = document.querySelector('[data-pdf-failure-notice]');
+            const msgEl        = notice ? notice.querySelector('[data-pdf-failure-message]') : null;
+            const fallbackLink = notice ? notice.querySelector('[data-pdf-fallback-link]') : null;
+            const retryBtn     = notice ? notice.querySelector('[data-pdf-retry-btn]') : null;
+
+            const msgMap = {
+                gotenberg_timeout:            notice ? notice.dataset.msgTimeout    : '',
+                gotenberg_server_error:       notice ? notice.dataset.msgServer     : '',
+                gotenberg_connection_refused: notice ? notice.dataset.msgConnection : '',
+            };
+            const msgGeneric = notice ? notice.dataset.msgGeneric : '';
+
+            async function triggerPdfExport() {
+                const pdfUrl      = btn.dataset.pdfUrl;
+                const htmlFallback = btn.dataset.htmlFallbackUrl;
+
+                if (notice) notice.hidden = true;
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch(pdfUrl, { headers: { Accept: 'application/pdf,application/json' } });
+
+                    if (res.ok) {
+                        // Trigger download via blob
+                        const blob     = await res.blob();
+                        const blobUrl  = URL.createObjectURL(blob);
+                        const anchor   = document.createElement('a');
+                        const cd       = res.headers.get('Content-Disposition') || '';
+                        const match    = cd.match(/filename="([^"]+)"/);
+                        anchor.href     = blobUrl;
+                        anchor.download = match ? match[1] : 'export.pdf';
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        document.body.removeChild(anchor);
+                        URL.revokeObjectURL(blobUrl);
+                    } else {
+                        // Gotenberg failure — show inline notice
+                        let errorCode = '';
+                        let computedFallback = htmlFallback;
+                        try {
+                            const data    = await res.json();
+                            errorCode     = data.errorCode || '';
+                            if (data.htmlFallbackUrl) computedFallback = data.htmlFallbackUrl;
+                        } catch (_) {}
+
+                        if (notice && msgEl) {
+                            msgEl.textContent = msgMap[errorCode] || msgGeneric;
+                            if (fallbackLink) fallbackLink.href = computedFallback;
+                            notice.hidden = false;
+                        }
+                    }
+                } catch (_) {
+                    if (notice && msgEl) {
+                        msgEl.textContent = msgGeneric;
+                        if (fallbackLink) fallbackLink.href = htmlFallback;
+                        notice.hidden = false;
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            btn.addEventListener('click', () => triggerPdfExport());
+
+            // HRM-T271 — retry button triggers a new call without page reload
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => triggerPdfExport());
+            }
         })();
     </script>
 {% endblock %}
