@@ -103,3 +103,14 @@ services:
     # T220 — The active adapter is resolved at boot time by StorageAdapterFactory.
     App\Storage\StorageAdapterInterface:
         factory: ['@App\Storage\StorageAdapterFactory', 'create']
+
+    # HRM-T267 — Gotenberg PDF client wiring.
+    harmony.gotenberg.timeout: 30.0
+
+    App\Export\NativeGotenbergClient:
+        arguments:
+            $baseUrl: '%env(HARMONY_GOTENBERG_URL)%'
+            $timeoutSeconds: '%harmony.gotenberg.timeout%'
+
+    App\Export\GotenbergClientInterface:
+        alias: App\Export\NativeGotenbergClient
