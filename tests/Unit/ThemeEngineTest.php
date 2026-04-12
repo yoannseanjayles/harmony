@@ -213,4 +213,72 @@ final class ThemeEngineTest extends TestCase
     {
         self::assertSame(['cinematic', 'corporate', 'epure'], ThemeEngine::presetNames());
     }
+
+    // ── Animation settings (T193–T200) ───────────────────────────────────────
+
+    public function testToCssBlockOmitsNonHmKeyForAnimationsEnabled(): void
+    {
+        $json = json_encode([
+            '--hm-bg'          => '#0c0c14',
+            'animationsEnabled' => '1',
+        ]);
+        $css = $this->engine->toCssBlock((string) $json);
+
+        self::assertStringContainsString('--hm-bg:#0c0c14', $css);
+        self::assertStringNotContainsString('animationsEnabled', $css);
+    }
+
+    public function testToCssBlockEmitsAnimationSuppressionWhenDisabled(): void
+    {
+        $json = json_encode([
+            '--hm-bg'          => '#0c0c14',
+            'animationsEnabled' => '0',
+        ]);
+        $css = $this->engine->toCssBlock((string) $json);
+
+        self::assertStringContainsString('animation:none!important', $css);
+        self::assertStringNotContainsString('animationsEnabled', $css);
+    }
+
+    public function testToCssBlockDoesNotEmitSuppressionWhenEnabled(): void
+    {
+        $json = json_encode([
+            '--hm-bg'          => '#0c0c14',
+            'animationsEnabled' => '1',
+        ]);
+        $css = $this->engine->toCssBlock((string) $json);
+
+        self::assertStringNotContainsString('animation:none', $css);
+    }
+
+    public function testToCssBlockDoesNotEmitSuppressionWhenKeyAbsent(): void
+    {
+        $json = json_encode(['--hm-bg' => '#0c0c14']);
+        $css  = $this->engine->toCssBlock((string) $json);
+
+        self::assertStringNotContainsString('animation:none', $css);
+    }
+
+    public function testMergeTokenOverridesPersistsAnimationSettings(): void
+    {
+        $validator = new \App\Theme\ThemeTokenValidator();
+        $project   = new Project();
+        $project->setTitle('Test');
+
+        $this->engine->mergeTokenOverrides(
+            [
+                '--hm-anim-duration'  => '0.9s',
+                '--hm-anim-intensity' => '0.4',
+                'animationsEnabled'   => '0',
+            ],
+            $project,
+            [],
+            $validator,
+        );
+
+        $config = $project->getThemeConfig();
+        self::assertSame('0.9s',  $config['--hm-anim-duration']);
+        self::assertSame('0.4',   $config['--hm-anim-intensity']);
+        self::assertSame('0',     $config['animationsEnabled']);
+    }
 }

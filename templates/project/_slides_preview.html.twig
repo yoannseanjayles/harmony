@@ -16,7 +16,13 @@
         <p class="hm-muted">{{ 'project.preview.empty_copy'|trans }}</p>
     </div>
 
-    <div class="hm-preview-grid" data-preview-list>
+    {# T196 — data-anim-container is targeted by the animation-control JS.
+       The .hm-no-animation class is applied here when animations are disabled in the project theme. #}
+    <div
+        class="hm-preview-grid{{ (project.themeConfig['animationsEnabled'] ?? '1') == '0' ? ' hm-no-animation' : '' }}"
+        data-preview-list
+        data-anim-container
+    >
         {% include 'project/_preview_list.html.twig' with {
             slides: project.slides
         } %}

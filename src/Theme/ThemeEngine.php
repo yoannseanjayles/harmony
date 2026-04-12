@@ -28,6 +28,10 @@ final class ThemeEngine
      * Returns an empty string when the token map is empty or contains no valid --hm- keys,
      * so callers can safely concatenate without adding empty style tags.
      *
+     * When the map contains `animationsEnabled = '0'` the output includes an additional
+     * CSS rule that suppresses all decorative animation classes, ensuring that HTML exports
+     * produced from the cached slide HTML also honour the "no animations" setting (T200).
+     *
      * @param string $tokensJson Raw JSON string — e.g. Project::getThemeConfigJson()
      */
     public function toCssBlock(string $tokensJson): string
@@ -61,7 +65,20 @@ final class ThemeEngine
             return '';
         }
 
-        return sprintf('<style>:root{%s}</style>', $declarations);
+        $css = sprintf('<style>:root{%s}', $declarations);
+
+        // T200 — When animations are globally disabled, append class-based suppression rules so
+        // that exported slide HTML snippets (which contain their own style block) also respect the
+        // setting, regardless of the presence of the .hm-no-animation container class.
+        if (isset($tokens[ThemeTokenValidator::ANIM_ENABLED_KEY]) && $tokens[ThemeTokenValidator::ANIM_ENABLED_KEY] === '0') {
+            $css .= '.hm-anim-fade-in,.hm-anim-slide-up,.hm-anim-phone-in,'
+                  . '.hm-anim-float,.hm-anim-text-in,.hm-anim-line-pop{animation:none!important}'
+                  . '.hm-anim-glint{animation:none!important;background:none!important}';
+        }
+
+        $css .= '</style>';
+
+        return $css;
     }
 
     /**
