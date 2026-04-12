@@ -74,7 +74,7 @@ JSON);
             ->with(
                 'ai_response_validation_failed',
                 self::callback(static function (array $context): bool {
-                    return str_contains((string) ($context['payload'] ?? ''), '"timeline"')
+                    return str_contains((string) ($context['payload'] ?? ''), '"unknown_type"')
                         && in_array('actions[0].slide.type is not supported.', $context['errors'] ?? [], true);
                 }),
             );
@@ -90,7 +90,7 @@ JSON);
                 'action' => 'add_slide',
                 'slide' => [
                     'title' => 'Roadmap',
-                    'type' => 'timeline',
+                    'type' => 'unknown_type',
                     'body' => 'Non supporte',
                 ],
             ]],

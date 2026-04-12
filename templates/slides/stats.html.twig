@@ -1,0 +1,104 @@
+{#
+  Template for slide type "stats"
+  Expected content keys:
+    - title  (string, required): slide headline
+    - stats  (list<object>, required, 2..6): key figures
+        - value  (string, required): the metric value (e.g. "98%", "10M+")
+        - label  (string, required): short metric name
+        - detail (string, optional): supporting context text
+#}
+<section class="hm-slide hm-slide--stats" data-slide-type="stats">
+    <div class="hm-slide__inner">
+        <h2 class="hm-slide__title">{{ title }}</h2>
+        {% if stats is defined and stats is not empty %}
+            <div class="hm-stats-grid hm-stats-grid--{{ stats|length }}">
+                {% for stat in stats %}
+                    <div class="hm-stats-grid__cell">
+                        <span class="hm-stats__value">{{ stat.value }}</span>
+                        <span class="hm-stats__label">{{ stat.label }}</span>
+                        {% if stat.detail is defined and stat.detail is not empty %}
+                            <span class="hm-stats__detail">{{ stat.detail }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+<style>
+    .hm-slide--stats {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-ink, #173f35));
+        color: var(--hm-slide-fg, #f8f4ea);
+        padding: var(--hm-slide-padding, 3rem 4rem);
+    }
+
+    .hm-slide--stats .hm-slide__inner {
+        max-width: 960px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2.5rem;
+    }
+
+    .hm-slide--stats .hm-slide__title {
+        margin: 0;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-heading, clamp(1.8rem, 3.5vw, 2.8rem));
+        line-height: 1.1;
+        color: var(--hm-slide-fg, #f8f4ea);
+        text-align: center;
+    }
+
+    .hm-stats-grid {
+        display: grid;
+        gap: 1.5rem;
+        width: 100%;
+    }
+
+    .hm-stats-grid--2 { grid-template-columns: repeat(2, 1fr); }
+    .hm-stats-grid--3 { grid-template-columns: repeat(3, 1fr); }
+    .hm-stats-grid--4 { grid-template-columns: repeat(4, 1fr); }
+    .hm-stats-grid--5 { grid-template-columns: repeat(3, 1fr); }
+    .hm-stats-grid--6 { grid-template-columns: repeat(3, 1fr); }
+
+    .hm-stats-grid__cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 1.5rem 1rem;
+        background: var(--hm-surface-invert-muted, rgba(248, 244, 234, 0.08));
+        border-radius: 0.5rem;
+        border: 1px solid var(--hm-surface-invert-border, rgba(248, 244, 234, 0.12));
+        text-align: center;
+    }
+
+    .hm-stats__value {
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-stat, clamp(2rem, 4vw, 3.2rem));
+        font-weight: 700;
+        line-height: 1;
+        color: var(--hm-accent, #bf6a3d);
+    }
+
+    .hm-stats__label {
+        font-size: var(--hm-font-size-body, 1rem);
+        font-weight: 600;
+        color: var(--hm-slide-fg, #f8f4ea);
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .hm-stats__detail {
+        font-size: var(--hm-font-size-label, 0.82rem);
+        color: var(--hm-slide-fg-soft, rgba(248, 244, 234, 0.6));
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        line-height: 1.4;
+    }
+</style>

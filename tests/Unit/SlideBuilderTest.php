@@ -497,6 +497,337 @@ final class SlideBuilderTest extends TestCase
         self::assertStringContainsString('--hm-', $html);
     }
 
+    // ── timeline slide ────────────────────────────────────────────────────────
+
+    public function testBuildsTimelineSlideWithAllFields(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => 'Our Journey',
+            'items' => [
+                ['year' => '2020', 'label' => 'Founded', 'description' => 'Started in a garage.'],
+                ['year' => '2021', 'label' => 'Seed Round', 'description' => 'Raised $2M.'],
+                ['year' => '2022', 'label' => 'Launch', 'description' => 'Product shipped.'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Our Journey', $html);
+        self::assertStringContainsString('2020', $html);
+        self::assertStringContainsString('Founded', $html);
+        self::assertStringContainsString('Started in a garage.', $html);
+        self::assertStringContainsString('Seed Round', $html);
+        self::assertStringContainsString('Launch', $html);
+        self::assertStringContainsString('hm-slide--timeline', $html);
+        self::assertStringContainsString('data-slide-type="timeline"', $html);
+    }
+
+    public function testBuildsTimelineSlideWithoutOptionalFields(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => 'Milestones',
+            'items' => [
+                ['label' => 'Kickoff'],
+                ['label' => 'Launch'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Kickoff', $html);
+        self::assertStringContainsString('Launch', $html);
+        self::assertStringNotContainsString('class="hm-timeline__year"', $html);
+        self::assertStringNotContainsString('class="hm-timeline__description"', $html);
+    }
+
+    public function testTimelineSlideIgnoresItemsWithoutLabel(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => 'Filtered',
+            'items' => [
+                ['year' => '2020', 'label' => 'Good item'],
+                ['year' => '2021', 'label' => ''],
+                ['year' => '2022', 'description' => 'No label here'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Good item', $html);
+        $count = substr_count($html, 'class="hm-timeline__label"');
+        self::assertSame(1, $count);
+    }
+
+    public function testTimelineSlideClampsMoreThan6Items(): void
+    {
+        $items = [];
+        for ($i = 1; $i <= 8; ++$i) {
+            $items[] = ['label' => "Item {$i}"];
+        }
+
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, ['title' => 'T', 'items' => $items]);
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Item 6', $html);
+        self::assertStringNotContainsString('Item 7', $html);
+        self::assertStringNotContainsString('Item 8', $html);
+    }
+
+    public function testTimelineSlideEscapesHtml(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => '<script>bad()</script>',
+            'items' => [
+                ['year' => '<b>2020</b>', 'label' => '<em>Event</em>', 'description' => '<script>evil()</script>'],
+                ['label' => 'Normal'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>2020', $html);
+        self::assertStringNotContainsString('<em>Event', $html);
+    }
+
+    public function testTimelineSlideUsesHmCssTokens(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TIMELINE, [
+            'title' => 'T',
+            'items' => [['label' => 'A'], ['label' => 'B']],
+        ]);
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('--hm-', $html);
+    }
+
+    // ── stats slide ───────────────────────────────────────────────────────────
+
+    public function testBuildsStatsSlideWithAllFields(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => 'Impact in Numbers',
+            'stats' => [
+                ['value' => '10M+', 'label' => 'Users', 'detail' => 'Worldwide'],
+                ['value' => '98%', 'label' => 'Satisfaction', 'detail' => 'NPS score'],
+                ['value' => '$2B', 'label' => 'Revenue', 'detail' => 'ARR 2025'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Impact in Numbers', $html);
+        self::assertStringContainsString('10M+', $html);
+        self::assertStringContainsString('Users', $html);
+        self::assertStringContainsString('Worldwide', $html);
+        self::assertStringContainsString('98%', $html);
+        self::assertStringContainsString('hm-slide--stats', $html);
+        self::assertStringContainsString('data-slide-type="stats"', $html);
+    }
+
+    public function testBuildsStatsSlideWithoutOptionalDetail(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => 'Metrics',
+            'stats' => [
+                ['value' => '3×', 'label' => 'Faster'],
+                ['value' => '99.9%', 'label' => 'Uptime'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('3×', $html);
+        self::assertStringNotContainsString('class="hm-stats__detail"', $html);
+    }
+
+    public function testStatsSlideIgnoresEntriesWithMissingValueOrLabel(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => 'Filtered',
+            'stats' => [
+                ['value' => '100', 'label' => 'Complete'],
+                ['value' => '', 'label' => 'Missing value'],
+                ['value' => '50', 'label' => ''],
+                'not-an-array',
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('100', $html);
+        $count = substr_count($html, 'class="hm-stats__value"');
+        self::assertSame(1, $count);
+    }
+
+    public function testStatsSlideClampsMoreThan6Stats(): void
+    {
+        $stats = [];
+        for ($i = 1; $i <= 8; ++$i) {
+            $stats[] = ['value' => "{$i}", 'label' => "Stat {$i}"];
+        }
+
+        $slide = $this->makeSlide(Slide::TYPE_STATS, ['title' => 'T', 'stats' => $stats]);
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Stat 6', $html);
+        self::assertStringNotContainsString('Stat 7', $html);
+        self::assertStringNotContainsString('Stat 8', $html);
+    }
+
+    public function testStatsSlideEscapesHtml(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => '<script>xss()</script>',
+            'stats' => [
+                ['value' => '<b>100</b>', 'label' => '<em>Label</em>', 'detail' => '<script>evil()</script>'],
+                ['value' => '2', 'label' => 'OK'],
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>100', $html);
+        self::assertStringNotContainsString('<em>Label', $html);
+    }
+
+    public function testStatsSlideUsesHmCssTokens(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_STATS, [
+            'title' => 'T',
+            'stats' => [['value' => '1', 'label' => 'A'], ['value' => '2', 'label' => 'B']],
+        ]);
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('--hm-', $html);
+    }
+
+    // ── comparison slide ──────────────────────────────────────────────────────
+
+    public function testBuildsComparisonSlideWithAllFields(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'Us vs. Them',
+            'left' => [
+                'heading' => 'Before Harmony',
+                'items' => ['Manual design', 'Hours of work'],
+                'highlight' => 'Slow & Costly',
+            ],
+            'right' => [
+                'heading' => 'After Harmony',
+                'items' => ['AI-powered', 'Minutes not hours'],
+                'highlight' => 'Fast & Beautiful',
+            ],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Us vs. Them', $html);
+        self::assertStringContainsString('Before Harmony', $html);
+        self::assertStringContainsString('Manual design', $html);
+        self::assertStringContainsString('Slow &amp; Costly', $html);
+        self::assertStringContainsString('After Harmony', $html);
+        self::assertStringContainsString('AI-powered', $html);
+        self::assertStringContainsString('Fast &amp; Beautiful', $html);
+        self::assertStringContainsString('hm-slide--comparison', $html);
+        self::assertStringContainsString('data-slide-type="comparison"', $html);
+    }
+
+    public function testBuildsComparisonSlideWithoutOptionalHighlights(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'Before & After',
+            'left' => ['heading' => 'Before', 'items' => ['Old way']],
+            'right' => ['heading' => 'After', 'items' => ['New way']],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Before', $html);
+        self::assertStringContainsString('After', $html);
+        self::assertStringNotContainsString('class="hm-comparison__highlight', $html);
+    }
+
+    public function testComparisonSlideFiltersEmptyItems(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'Filtered',
+            'left' => ['heading' => 'Left', 'items' => ['Good', '', '  ', 'Also good']],
+            'right' => ['heading' => 'Right', 'items' => ['Item']],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Good', $html);
+        self::assertStringContainsString('Also good', $html);
+        $leftItemCount = substr_count($html, 'class="hm-comparison__item"');
+        self::assertSame(3, $leftItemCount);
+    }
+
+    public function testComparisonSlideClampsMoreThan6ItemsPerColumn(): void
+    {
+        $items = [];
+        for ($i = 1; $i <= 8; ++$i) {
+            $items[] = "Item {$i}";
+        }
+
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'T',
+            'left' => ['heading' => 'L', 'items' => $items],
+            'right' => ['heading' => 'R', 'items' => ['X']],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('Item 6', $html);
+        self::assertStringNotContainsString('Item 7', $html);
+        self::assertStringNotContainsString('Item 8', $html);
+    }
+
+    public function testComparisonSlideEscapesHtml(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => '<script>bad()</script>',
+            'left' => [
+                'heading' => '<b>Left</b>',
+                'items' => ['<em>item</em>'],
+                'highlight' => '<script>evil()</script>',
+            ],
+            'right' => ['heading' => 'Right', 'items' => ['OK']],
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('<script>', $html);
+        self::assertStringNotContainsString('<b>Left', $html);
+        self::assertStringNotContainsString('<em>item', $html);
+    }
+
+    public function testComparisonSlideHandlesMissingColumns(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'No columns',
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('hm-slide--comparison', $html);
+        self::assertStringContainsString('No columns', $html);
+    }
+
+    public function testComparisonSlideUsesHmCssTokens(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_COMPARISON, [
+            'title' => 'T',
+            'left' => ['heading' => 'L', 'items' => ['A']],
+            'right' => ['heading' => 'R', 'items' => ['B']],
+        ]);
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringContainsString('--hm-', $html);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
