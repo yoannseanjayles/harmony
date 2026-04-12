@@ -79,7 +79,7 @@
     --hm-radius-md:  16px;
     --hm-radius-lg:  24px;
     --hm-radius-xl:  32px;
-    --hm-radius-full: 9999px;
+    --hm-radius-full: 999px;
 
     /* ── Slide-level overrides (set per project/theme) ─────── */
     --hm-slide-bg:              var(--hm-bg);

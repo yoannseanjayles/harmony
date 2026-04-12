@@ -119,7 +119,7 @@
 | `--hm-radius-md` | `16px` | Inputs, boutons, champs de formulaire |
 | `--hm-radius-lg` | `24px` | Cards moyennes, panneaux |
 | `--hm-radius-xl` | `32px` | Cards larges, conteneurs principaux |
-| `--hm-radius-full` | `9999px` | Éléments circulaires / pills |
+| `--hm-radius-full` | `999px` | Éléments circulaires / pills |
 
 ---
 
