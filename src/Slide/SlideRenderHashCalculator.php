@@ -70,7 +70,10 @@ final class SlideRenderHashCalculator
      */
     private function sortRecursively(array &$array): void
     {
-        ksort($array);
+        // Only sort associative arrays (JSON objects); preserve order of sequential lists.
+        if (!array_is_list($array)) {
+            ksort($array);
+        }
         foreach ($array as &$value) {
             if (is_array($value)) {
                 $this->sortRecursively($value);

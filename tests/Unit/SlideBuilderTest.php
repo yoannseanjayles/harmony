@@ -1096,7 +1096,7 @@ final class SlideBuilderTest extends TestCase
         self::assertNull($slide->getHtmlCache());
     }
 
-// ── helpers ───────────────────────────────────────────────────────────────
+    // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
      * @param array<string, mixed> $content

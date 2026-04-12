@@ -162,6 +162,14 @@ final class SlideRenderHashCalculatorTest extends TestCase
         self::assertSame('{"items":["b","a"]}', $normalized);
     }
 
+    public function testNormalizeJson_PreservesArrayOrderInsideObjects(): void
+    {
+        // Inner array [3,1,2] must stay in original order even though it's inside an object
+        $normalized = $this->calculator->normalizeJson('{"z":{"list":[3,1,2]},"a":1}');
+
+        self::assertSame('{"a":1,"z":{"list":[3,1,2]}}', $normalized);
+    }
+
     public function testNormalizeJson_HandlesEmptyObject(): void
     {
         self::assertSame('{}', $this->calculator->normalizeJson('{}'));
