@@ -59,7 +59,7 @@
             </label>
         </div>
 
-        <div class="hm-actions" style="margin-top: 16px">
+        <div class="hm-theme-drawer__actions">
             <button class="hm-button" type="submit">{{ 'project.theme.apply'|trans }}</button>
         </div>
     </form>
@@ -81,6 +81,14 @@
         margin: 10px 0 6px;
         font-family: var(--hm-font-title);
         font-size: clamp(1.4rem, 2vw, 1.8rem);
+    }
+
+    .hm-theme-drawer__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-top: 16px;
     }
 
     .hm-theme-preset-grid {

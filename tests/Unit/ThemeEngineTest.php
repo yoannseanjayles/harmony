@@ -102,9 +102,8 @@ final class ThemeEngineTest extends TestCase
         $tokens = $theme->getTokens();
         // Corporate uses neutral slate tones
         self::assertStringContainsString('334155', $tokens['--hm-accent-primary'] ?? '');
-        // Reduced (but not zero) animation duration
-        $duration = $tokens['--hm-anim-duration'] ?? '';
-        self::assertNotSame('0.55s', $duration, 'Corporate should have reduced animation duration vs cinematic');
+        // Reduced animation duration (0.30s vs cinematic's 0.55s)
+        self::assertSame('0.30s', $tokens['--hm-anim-duration'] ?? '');
     }
 
     public function testEpurePresetLoads(): void
