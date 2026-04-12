@@ -292,6 +292,10 @@ project.theme.tokens.saving: Sauvegarde en cours...
 project.theme.tokens.flash.saved: Les personnalisations ont ete sauvegardees.
 project.theme.tokens.error.generic: Une erreur est survenue lors de la sauvegarde du theme.
 
+# T205 — Reset overrides
+project.theme.reset.button: Reinitialiser au preset
+project.theme.reset.flash.done: Les personnalisations ont ete reinitalisees vers le preset de base.
+
 # T193–T198 — Animation control panel
 project.theme.anim.badge: Animations
 project.theme.anim.title: "Contrôle des animations"

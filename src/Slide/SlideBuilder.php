@@ -38,8 +38,12 @@ final class SlideBuilder
      */
     public function buildSlide(Slide $slide): string
     {
-        $themeJson = $slide->getProject()?->getThemeConfigJson() ?? '{}';
-        $hash = $this->hashCalculator->compute($slide->getContentJson(), $themeJson);
+        $project   = $slide->getProject();
+        // T202 — use the effective theme (preset base + user overrides merged)
+        $themeJson = $project?->getEffectiveThemeConfigJson() ?? '{}';
+        // T204 — include themeVersion so theme-only changes bust the render cache
+        $themeVersion = (string) ($project?->getThemeVersion() ?? 1);
+        $hash = $this->hashCalculator->compute($slide->getContentJson(), $themeJson, $themeVersion);
 
         // 1. Entity cache hit (T162) — cheapest check, no I/O
         if ($slide->getRenderHash() === $hash && $slide->getHtmlCache() !== null) {

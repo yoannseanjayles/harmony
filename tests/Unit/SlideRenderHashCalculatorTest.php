@@ -174,4 +174,39 @@ final class SlideRenderHashCalculatorTest extends TestCase
     {
         self::assertSame('{}', $this->calculator->normalizeJson('{}'));
     }
+
+    // ── T204 — themeVersion parameter ────────────────────────────────────────
+
+    public function testCompute_ChangesWhenThemeVersionChanges(): void
+    {
+        $hash1 = $this->calculator->compute('{"title":"Same"}', '{}', '1');
+        $hash2 = $this->calculator->compute('{"title":"Same"}', '{}', '2');
+
+        self::assertNotSame($hash1, $hash2,
+            'Different themeVersions must produce different hashes to bust the render cache');
+    }
+
+    public function testCompute_IsStableForSameThemeVersion(): void
+    {
+        $hash1 = $this->calculator->compute('{"title":"Same"}', '{}', '3');
+        $hash2 = $this->calculator->compute('{"title":"Same"}', '{}', '3');
+
+        self::assertSame($hash1, $hash2);
+    }
+
+    public function testCompute_OmittedThemeVersionProducesValidHash(): void
+    {
+        // Calling without themeVersion (default '') must not throw and still return a 64-char hash
+        $hash = $this->calculator->compute('{"title":"T"}', '{}');
+
+        self::assertSame(64, strlen($hash));
+    }
+
+    public function testCompute_ThemeVersionAndEmptyStringProduceDifferentHashes(): void
+    {
+        $hash1 = $this->calculator->compute('{}', '{}', '');
+        $hash2 = $this->calculator->compute('{}', '{}', '1');
+
+        self::assertNotSame($hash1, $hash2);
+    }
 }
