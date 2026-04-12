@@ -6,13 +6,15 @@ use App\Storage\LocalStorageAdapter;
 use PHPUnit\Framework\TestCase;
 
 /**
- * T222 — Unit tests for LocalStorageAdapter using a temporary filesystem.
+ * T222 / T233 — Unit tests for LocalStorageAdapter using a temporary filesystem.
  *
  * Covers:
- *   - put()          : file is written to the upload directory
- *   - get()          : file contents are returned correctly
- *   - delete()       : file is removed (T221); absent key is silently ignored
- *   - getSignedUrl() : returns a plain public URL (no signing needed locally)
+ *   - put()               : file is written to the upload directory
+ *   - get()               : file contents are returned correctly
+ *   - delete()            : file is removed (T221); absent key is silently ignored
+ *   - getSignedUrl()      : returns a plain public URL when no HMAC secret is set
+ *   - getSignedUrl() T233 : returns an HMAC-signed /media/serve/… URL when a secret is set
+ *   - verifySignature()   : validates HMAC signature and expiry
  */
 final class LocalStorageAdapterTest extends TestCase
 {
@@ -141,6 +143,89 @@ final class LocalStorageAdapterTest extends TestCase
 
         // Local URLs are not time-limited — both must be identical.
         self::assertSame($urlShort, $urlLong);
+    }
+
+    // ── T233 — HMAC-signed URLs ───────────────────────────────────────────────
+
+    public function testGetSignedUrlWithSecretReturnsServePath(): void
+    {
+        $adapter = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+
+        $url = $adapter->getSignedUrl('abc123.jpg', 3600);
+
+        self::assertStringStartsWith('/media/serve/', $url);
+        self::assertStringContainsString('expires=', $url);
+        self::assertStringContainsString('sig=', $url);
+    }
+
+    public function testGetSignedUrlWithSecretEncodesStorageKey(): void
+    {
+        $adapter = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+
+        $url = $adapter->getSignedUrl('abc 123.jpg', 3600);
+
+        self::assertStringContainsString('abc%20123.jpg', $url);
+    }
+
+    public function testGetSignedUrlWithSecretVariesByExpiresIn(): void
+    {
+        $adapter = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+
+        $urlShort = $adapter->getSignedUrl('file.jpg', 60);
+        $urlLong  = $adapter->getSignedUrl('file.jpg', 86400);
+
+        // TTL affects expires param and therefore the HMAC — the two URLs differ.
+        self::assertNotSame($urlShort, $urlLong);
+    }
+
+    // ── T233 — verifySignature() ──────────────────────────────────────────────
+
+    public function testVerifySignatureReturnsTrueForValidSignature(): void
+    {
+        $adapter = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+        $url     = $adapter->getSignedUrl('file.jpg', 3600);
+
+        parse_str((string) parse_url($url, \PHP_URL_QUERY), $params);
+
+        self::assertTrue($adapter->verifySignature('file.jpg', (int) $params['expires'], $params['sig']));
+    }
+
+    public function testVerifySignatureReturnsFalseWhenExpired(): void
+    {
+        $adapter  = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+        $expires  = time() - 1; // already expired
+        $sig      = hash_hmac('sha256', 'file.jpg.'.$expires, 'my-secret');
+
+        self::assertFalse($adapter->verifySignature('file.jpg', $expires, $sig));
+    }
+
+    public function testVerifySignatureReturnsFalseForTamperedKey(): void
+    {
+        $adapter = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'my-secret');
+        $url     = $adapter->getSignedUrl('original.jpg', 3600);
+
+        parse_str((string) parse_url($url, \PHP_URL_QUERY), $params);
+
+        // The signature belongs to 'original.jpg' but we ask for 'other.jpg'.
+        self::assertFalse($adapter->verifySignature('other.jpg', (int) $params['expires'], $params['sig']));
+    }
+
+    public function testVerifySignatureReturnsFalseForWrongSecret(): void
+    {
+        $adapterA = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'secret-a');
+        $adapterB = new LocalStorageAdapter($this->tmpDir, '/uploads/media', 'secret-b');
+
+        $url = $adapterA->getSignedUrl('file.jpg', 3600);
+        parse_str((string) parse_url($url, \PHP_URL_QUERY), $params);
+
+        // A signature produced with secret-a must not validate with secret-b.
+        self::assertFalse($adapterB->verifySignature('file.jpg', (int) $params['expires'], $params['sig']));
+    }
+
+    public function testVerifySignatureReturnsFalseWithoutSecret(): void
+    {
+        // Adapter without a secret — verifySignature must always return false.
+        self::assertFalse($this->adapter->verifySignature('file.jpg', time() + 3600, 'any-sig'));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

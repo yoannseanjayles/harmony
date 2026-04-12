@@ -43,6 +43,13 @@ class Slide
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $htmlCache = null;
 
+    /**
+     * T235 — JSON-encoded list of MediaAsset IDs referenced by this slide.
+     * Updated by MediaSlideLinker when assets are added or removed.
+     */
+    #[ORM\Column(type: Types::TEXT, options: ['default' => '[]'])]
+    private string $mediaRefsJson = '[]';
+
     public function getId(): ?int
     {
         return $this->id;
@@ -160,6 +167,45 @@ class Slide
     {
         $this->renderHash = null;
         $this->htmlCache = null;
+
+        return $this;
+    }
+
+    /**
+     * T235 — Return the list of MediaAsset IDs referenced by this slide.
+     *
+     * @return list<int>
+     */
+    public function getMediaRefs(): array
+    {
+        try {
+            $decoded = json_decode($this->mediaRefsJson, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return [];
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $v): int => (int) $v, $decoded),
+            static fn (int $v): bool => $v > 0,
+        ));
+    }
+
+    /**
+     * T235 — Replace the full list of MediaAsset IDs for this slide.
+     *
+     * @param list<int> $mediaRefs
+     */
+    public function setMediaRefs(array $mediaRefs): self
+    {
+        try {
+            $this->mediaRefsJson = (string) json_encode(array_values($mediaRefs), JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $this->mediaRefsJson = '[]';
+        }
 
         return $this;
     }

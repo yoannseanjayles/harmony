@@ -3,6 +3,7 @@
 namespace App\Slide;
 
 use App\Entity\Slide;
+use App\Media\MediaUrlResolver;
 use App\Theme\ThemeEngine;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -21,6 +22,7 @@ final class SlideBuilder
         #[Autowire(service: 'monolog.logger.ai')]
         private readonly LoggerInterface $logger,
         private readonly ThemeEngine $themeEngine,
+        private readonly MediaUrlResolver $mediaUrlResolver,
     ) {
     }
 
@@ -45,8 +47,12 @@ final class SlideBuilder
         $themeVersion = (string) ($project?->getThemeVersion() ?? 1);
         $hash = $this->hashCalculator->compute($slide->getContentJson(), $themeJson, $themeVersion);
 
+        // T237 — Slides with media references contain signed URLs that expire; skip both
+        // the entity cache and the Symfony pool so every render uses fresh signed URLs.
+        $hasMediaRefs = $slide->getMediaRefs() !== [];
+
         // 1. Entity cache hit (T162) — cheapest check, no I/O
-        if ($slide->getRenderHash() === $hash && $slide->getHtmlCache() !== null) {
+        if (!$hasMediaRefs && $slide->getRenderHash() === $hash && $slide->getHtmlCache() !== null) {
             $this->logger->debug('slide_cache_hit', [
                 'hash' => substr($hash, 0, 8),
                 'source' => 'entity',
@@ -61,18 +67,26 @@ final class SlideBuilder
         $template = $this->resolveTemplate($slide->getType());
 
         // 2. Symfony cache pool (T163/T164) — fast I/O-backed check
+        // T237 — bypass for slides with media refs (signed URLs must stay fresh)
         $renderStart = microtime(true);
         $cacheHit = true;
 
-        $html = $this->slideCache->get(
-            'slide_' . $hash,
-            function (ItemInterface $item) use ($slide, $template, &$cacheHit): string {
-                $cacheHit = false;
-                $context = $this->buildContext($slide);
+        if ($hasMediaRefs) {
+            // Always do a full render so signed URLs are freshly generated.
+            $cacheHit = false;
+            $context  = $this->buildContext($slide);
+            $html     = $this->twig->render($template, $context);
+        } else {
+            $html = $this->slideCache->get(
+                'slide_' . $hash,
+                function (ItemInterface $item) use ($slide, $template, &$cacheHit): string {
+                    $cacheHit = false;
+                    $context = $this->buildContext($slide);
 
-                return $this->twig->render($template, $context);
-            },
-        );
+                    return $this->twig->render($template, $context);
+                },
+            );
+        }
 
         // T168 — log render duration and cache outcome for performance monitoring
         $durationMs = (int) round((microtime(true) - $renderStart) * 1000);
@@ -91,8 +105,11 @@ final class SlideBuilder
         }
 
         // T161 — back-fill entity fields so the entity check is a hit on the next call
-        $slide->setRenderHash($hash);
-        $slide->setHtmlCache($html);
+        // T237 — do not cache slides with media refs (signed URLs expire)
+        if (!$hasMediaRefs) {
+            $slide->setRenderHash($hash);
+            $slide->setHtmlCache($html);
+        }
 
         return $html;
     }
@@ -225,7 +242,7 @@ final class SlideBuilder
             'title' => $this->sanitizer->sanitizeText(trim((string) ($content['title'] ?? ''))),
             'body' => $this->sanitizer->sanitizeText(trim((string) ($content['body'] ?? ''))),
             'items' => $items,
-            'image_url' => $this->sanitizeUrl(trim((string) ($content['image_url'] ?? ''))),
+            'image_url' => $this->resolveImageUrl(trim((string) ($content['image_url'] ?? ''))),
             'image_alt' => $this->sanitizer->sanitizeText(trim((string) ($content['image_alt'] ?? ''))),
             'layout' => $layout,
         ];
@@ -239,7 +256,7 @@ final class SlideBuilder
     private function buildImageContext(array $content): array
     {
         return [
-            'image_url' => $this->sanitizeUrl(trim((string) ($content['image_url'] ?? ''))),
+            'image_url' => $this->resolveImageUrl(trim((string) ($content['image_url'] ?? ''))),
             'image_alt' => $this->sanitizer->sanitizeText(trim((string) ($content['image_alt'] ?? ''))),
             'overlay_text' => $this->sanitizer->sanitizeText(trim((string) ($content['overlay_text'] ?? ''))),
             'caption' => $this->sanitizer->sanitizeText(trim((string) ($content['caption'] ?? ''))),
@@ -267,11 +284,32 @@ final class SlideBuilder
             return '';
         }
 
+        // Allow absolute HTTPS/HTTP URLs.
         if (preg_match('#^https?://#i', $url)) {
             return $url;
         }
 
+        // Allow relative paths (e.g. /media/serve/... for local signed URLs).
+        if (str_starts_with($url, '/')) {
+            return $url;
+        }
+
         return '';
+    }
+
+    /**
+     * T237 — Resolve a content URL to a usable URL.
+     *
+     * "media:{id}" references are resolved to fresh signed URLs via MediaUrlResolver.
+     * All other URLs are passed through sanitizeUrl for safety.
+     */
+    private function resolveImageUrl(string $url): string
+    {
+        if ($this->mediaUrlResolver->isMediaRef($url)) {
+            return $this->mediaUrlResolver->resolve($url);
+        }
+
+        return $this->sanitizeUrl($url);
     }
 
     /**

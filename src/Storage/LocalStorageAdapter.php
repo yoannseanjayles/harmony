@@ -3,16 +3,20 @@
 namespace App\Storage;
 
 /**
- * T218 / T221 — Filesystem storage adapter for local development.
+ * T218 / T221 / T233 — Filesystem storage adapter for local development.
  *
  * Files are stored under $uploadDirectory and served from $publicBasePath.
- * No signing is required: getSignedUrl() returns a plain public URL.
+ *
+ * Signed URLs (T233): when $hmacSecret is provided, getSignedUrl() generates a
+ * HMAC-SHA256-signed URL served by MediaController::serveMedia().
+ * When no secret is configured, a plain public path is returned (dev-only fallback).
  */
 final class LocalStorageAdapter implements StorageAdapterInterface
 {
     public function __construct(
         private readonly string $uploadDirectory,
         private readonly string $publicBasePath = '/uploads/media',
+        private readonly ?string $hmacSecret = null,
     ) {
     }
 
@@ -81,10 +85,47 @@ final class LocalStorageAdapter implements StorageAdapterInterface
     }
 
     /**
-     * Return a plain public URL — no signing is required for local development.
+     * T233 — Return a signed URL granting temporary access to the local file.
+     *
+     * If no HMAC secret is configured (dev/CI without signing), a plain public
+     * path ("/uploads/media/{key}") is returned for backward compatibility.
+     *
+     * With a secret the URL has the form:
+     *   /media/serve/{storageKey}?expires={unix_timestamp}&sig={hmac_sha256_hex}
+     * where HMAC is computed over "{storageKey}.{expires}" with the configured secret.
      */
     public function getSignedUrl(string $storageKey, int $expiresIn = 3600): string
     {
-        return rtrim($this->publicBasePath, '/').'/'.$storageKey;
+        if ($this->hmacSecret === null) {
+            return rtrim($this->publicBasePath, '/').'/'.$storageKey;
+        }
+
+        $expires = time() + $expiresIn;
+        $sig     = hash_hmac('sha256', $storageKey.'.'.$expires, $this->hmacSecret);
+
+        return '/media/serve/'.rawurlencode($storageKey).'?expires='.$expires.'&sig='.$sig;
+    }
+
+    /**
+     * T233 — Verify the HMAC signature and expiry for a local signed URL.
+     *
+     * Returns true only when:
+     *   - an HMAC secret is configured,
+     *   - the URL has not expired, and
+     *   - the signature is cryptographically valid (constant-time comparison).
+     */
+    public function verifySignature(string $storageKey, int $expires, string $sig): bool
+    {
+        if ($this->hmacSecret === null) {
+            return false;
+        }
+
+        if ($expires < time()) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $storageKey.'.'.$expires, $this->hmacSecret);
+
+        return hash_equals($expected, $sig);
     }
 }

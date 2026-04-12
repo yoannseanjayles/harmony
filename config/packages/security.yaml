@@ -47,6 +47,8 @@ security:
         - { path: ^/ai, roles: ROLE_USER }
         - { path: ^/export, roles: ROLE_USER }
         - { path: ^/dashboard, roles: ROLE_USER }
+        # T233 — /media/serve/ is protected by HMAC signature, not by session auth.
+        - { path: ^/media/serve/, roles: PUBLIC_ACCESS }
         - { path: ^/media, roles: ROLE_USER }
 
 when@test:
