@@ -1,0 +1,28 @@
+<section
+    class="hm-preview-panel"
+    data-preview-panel
+    data-summary-template="{{ 'project.preview.subtitle'|trans({ '%count%': '__COUNT__' }) }}"
+>
+    <header class="hm-preview-panel__header">
+        <div>
+            <span class="hm-badge">{{ 'project.preview.badge'|trans }}</span>
+            <h2 class="hm-preview-panel__title">{{ 'project.preview.title'|trans }}</h2>
+            <p class="hm-muted" data-preview-summary>{{ 'project.preview.subtitle'|trans({ '%count%': project.slidesCount }) }}</p>
+        </div>
+    </header>
+
+    <div class="hm-preview-empty" data-preview-empty {{ project.slides is not empty ? 'hidden' }}>
+        <strong>{{ 'project.preview.empty_title'|trans }}</strong>
+        <p class="hm-muted">{{ 'project.preview.empty_copy'|trans }}</p>
+    </div>
+
+    <div class="hm-preview-grid" data-preview-list>
+        {% for slide in project.slides %}
+            {% include 'project/_preview_slide.html.twig' with {
+                slide: slide|merge({
+                    position: loop.index
+                })
+            } %}
+        {% endfor %}
+    </div>
+</section>

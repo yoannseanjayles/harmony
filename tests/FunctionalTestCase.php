@@ -26,6 +26,8 @@ abstract class FunctionalTestCase extends WebTestCase
             unlink($this->databasePath);
         }
 
+        self::cleanupChatStreams();
+
         $this->client = static::createClient();
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
         static::getContainer()->get('cache.rate_limiter')->clear();
@@ -54,6 +56,8 @@ abstract class FunctionalTestCase extends WebTestCase
             unlink($this->databasePath);
         }
 
+        self::cleanupChatStreams();
+
         unset($this->entityManager, $this->client);
 
         parent::tearDown();
@@ -71,5 +75,19 @@ abstract class FunctionalTestCase extends WebTestCase
         $_ENV['DATABASE_URL'] = $databaseUrl;
         $_SERVER['DATABASE_URL'] = $databaseUrl;
         putenv('DATABASE_URL='.$databaseUrl);
+    }
+
+    private static function cleanupChatStreams(): void
+    {
+        $streamDirectory = dirname(__DIR__).'/var/chat_streams';
+        if (!is_dir($streamDirectory)) {
+            return;
+        }
+
+        foreach (glob($streamDirectory.'/*') ?: [] as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
     }
 }

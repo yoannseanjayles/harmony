@@ -67,6 +67,25 @@ final class PromptRequest
         return $this->temperature;
     }
 
+    public function withAdditionalSystemPrompt(string $instruction): self
+    {
+        $normalizedInstruction = trim($instruction);
+        if ($normalizedInstruction === '') {
+            return $this;
+        }
+
+        return new self(
+            $this->provider,
+            $this->model,
+            trim($this->systemPrompt."\n\n".$normalizedInstruction),
+            $this->userMessage,
+            $this->conversationHistory,
+            $this->projectContext,
+            $this->maxTokens,
+            $this->temperature,
+        );
+    }
+
     /**
      * @return list<array{role: string, content: string}>
      */

@@ -1,0 +1,14 @@
+<article
+    class="hm-preview-card"
+    data-preview-slide
+    data-preview-slide-id="{{ slide.id|default('') }}"
+    data-preview-slide-position="{{ slide.position|default(1) }}"
+>
+    <div class="hm-preview-card__meta">
+        <span class="hm-badge">{{ 'project.preview.slide_badge'|trans({ '%number%': slide.position|default(1) }) }}</span>
+        <span class="hm-muted">{{ slide.id|default('n/a') }}</span>
+    </div>
+    <h3 class="hm-preview-card__title">{{ slide.title|default('Slide') }}</h3>
+    {% set previewBody = slide.body|default(slide.content|default('project.preview.slide_empty'|trans)) %}
+    <p class="hm-muted">{{ previewBody|length > 180 ? previewBody|slice(0, 180) ~ '...' : previewBody }}</p>
+</article>

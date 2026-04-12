@@ -195,6 +195,13 @@ project.share.public_expiry: Expiration du lien
 project.share.slides_badge: Apercu des slides
 project.share.slide_fallback: Slide %number%
 project.share.slide_identifier: "Identifiant : %id%"
+project.preview.badge: Preview live
+project.preview.title: Panneau preview
+project.preview.subtitle: "%count% slide(s) synchronisee(s) en direct."
+project.preview.empty_title: Aucun slide synchronise pour le moment.
+project.preview.empty_copy: Les slides ajoutes ou modifies pendant la generation IA apparaitront ici en temps reel.
+project.preview.slide_badge: Slide %number%
+project.preview.slide_empty: Aucun contenu synchronise pour l'instant.
 chat.panel.badge: Conversation projet
 chat.panel.title: Panneau de chat
 chat.panel.subtitle: "%count% message(s) dans cette conversation."
@@ -207,6 +214,7 @@ chat.panel.placeholder: Donnez une instruction, un retour ou un besoin de modifi
 chat.panel.submit: Envoyer
 chat.panel.help: Entree pour envoyer, Shift + Entree pour une nouvelle ligne.
 chat.panel.error_generic: Impossible de charger le chat pour le moment.
+chat.panel.error_stream: Impossible de poursuivre la generation en streaming pour le moment.
 chat.role.user: Vous
 chat.role.assistant: Assistant
 chat.role.invalid: Le role du message est invalide.

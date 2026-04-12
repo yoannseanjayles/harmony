@@ -7,6 +7,10 @@ use App\Entity\Project;
 
 final class PromptBuilder
 {
+    public function __construct(private readonly ResponseSchema $responseSchema)
+    {
+    }
+
     /**
      * @param list<ChatMessage> $conversationHistory
      */
@@ -34,6 +38,7 @@ final class PromptBuilder
             'You are Harmony, an AI copilot for presentation projects.',
             'Reply in concise French unless the user explicitly asks for another language.',
             'Stay grounded in the current project context and propose practical slide-oriented help.',
+            'When changing the deck, return structured JSON actions that Harmony can validate and apply automatically.',
             'Project title: '.$project->getTitle(),
             'Project status: '.$project->getStatus(),
             'Configured provider: '.$project->getProvider(),
@@ -49,6 +54,8 @@ final class PromptBuilder
         if ($metadata !== []) {
             $lines[] = 'Project metadata: '.json_encode($metadata, JSON_THROW_ON_ERROR);
         }
+
+        $lines[] = $this->responseSchema->promptInstructions();
 
         return implode("\n", $lines);
     }

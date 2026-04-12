@@ -10,13 +10,14 @@ final class FakeAIHttpClient implements AIHttpClientInterface
 
         if (str_contains($url, 'anthropic')) {
             $userMessage = $this->extractAnthropicUserMessage($payload);
+            $responseContent = $this->buildResponsePayload('Anthropic', $userMessage);
 
             return new HttpResponse(200, json_encode([
                 'id' => 'msg_fake_123',
                 'model' => $model,
                 'content' => [[
                     'type' => 'text',
-                    'text' => 'Reponse Harmony mock (Anthropic): '.$userMessage,
+                    'text' => json_encode($responseContent, JSON_THROW_ON_ERROR),
                 ]],
                 'usage' => [
                     'input_tokens' => 40,
@@ -26,6 +27,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
         }
 
         $userMessage = $this->extractOpenAIUserMessage($payload);
+        $responseContent = $this->buildResponsePayload('OpenAI', $userMessage);
 
         return new HttpResponse(200, json_encode([
             'id' => 'chatcmpl_fake_123',
@@ -34,7 +36,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                 'index' => 0,
                 'message' => [
                     'role' => 'assistant',
-                    'content' => 'Reponse Harmony mock (OpenAI): '.$userMessage,
+                    'content' => json_encode($responseContent, JSON_THROW_ON_ERROR),
                 ],
                 'finish_reason' => 'stop',
             ]],
@@ -43,6 +45,80 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                 'completion_tokens' => 20,
             ],
         ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildResponsePayload(string $providerLabel, string $userMessage): array
+    {
+        if ($this->requestsDeckGeneration($userMessage)) {
+            return [
+                'assistant_message' => sprintf('Reponse Harmony mock (%s): %s', $providerLabel, $userMessage),
+                'actions' => [
+                    [
+                        'action' => 'add_slide',
+                        'position' => 1,
+                        'slide' => [
+                            'id' => 'slide-vision-du-lancement',
+                            'title' => 'Vision du lancement',
+                            'type' => 'bullet_list',
+                            'items' => ['Promesse centrale du produit', 'Impact attendu sur le marche'],
+                        ],
+                    ],
+                    [
+                        'action' => 'add_slide',
+                        'position' => 2,
+                        'slide' => [
+                            'id' => 'slide-probleme-client',
+                            'title' => 'Probleme client',
+                            'type' => 'bullet_list',
+                            'items' => ['Douleur principale traitee', "Exemple concret d'usage"],
+                        ],
+                    ],
+                    [
+                        'action' => 'add_slide',
+                        'position' => 3,
+                        'slide' => [
+                            'id' => 'slide-proposition-de-valeur',
+                            'title' => 'Proposition de valeur',
+                            'type' => 'bullet_list',
+                            'items' => ['Benefice cle', 'Differenciation immediate'],
+                        ],
+                    ],
+                    [
+                        'action' => 'add_slide',
+                        'position' => 4,
+                        'slide' => [
+                            'id' => 'slide-plan-go-to-market',
+                            'title' => 'Plan go-to-market',
+                            'type' => 'bullet_list',
+                            'items' => ['Canaux prioritaires', 'Cadence de lancement'],
+                        ],
+                    ],
+                    [
+                        'action' => 'add_slide',
+                        'position' => 5,
+                        'slide' => [
+                            'id' => 'slide-prochaines-etapes',
+                            'title' => 'Prochaines etapes',
+                            'type' => 'bullet_list',
+                            'items' => ['Decisons a prendre', 'Actions sur 30 jours'],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        return [
+            'assistant_message' => sprintf('Reponse Harmony mock (%s): %s', $providerLabel, $userMessage),
+            'actions' => [],
+        ];
+    }
+
+    private function requestsDeckGeneration(string $userMessage): bool
+    {
+        return preg_match('/\b(?:5|cinq)\s+slides?\b/i', $userMessage) === 1;
     }
 
     /**

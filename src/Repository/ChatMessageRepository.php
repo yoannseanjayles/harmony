@@ -73,4 +73,42 @@ class ChatMessageRepository extends ServiceEntityRepository
 
         return array_reverse($messages);
     }
+
+    public function findProjectMessage(Project $project, int $messageId): ?ChatMessage
+    {
+        $message = $this->findOneBy([
+            'id' => $messageId,
+            'project' => $project,
+        ]);
+
+        return $message instanceof ChatMessage ? $message : null;
+    }
+
+    /**
+     * @return list<ChatMessage>
+     */
+    public function findConversationBeforeMessage(Project $project, ChatMessage $message, int $limit = 8): array
+    {
+        /** @var list<ChatMessage> $messages */
+        $messages = $this->createQueryBuilder('chatMessage')
+            ->andWhere('chatMessage.project = :project')
+            ->andWhere('(chatMessage.createdAt < :createdAt OR (chatMessage.createdAt = :createdAt AND chatMessage.id < :messageId))')
+            ->setParameter('project', $project)
+            ->setParameter('createdAt', $message->getCreatedAt())
+            ->setParameter('messageId', $message->getId())
+            ->orderBy('chatMessage.createdAt', 'DESC')
+            ->addOrderBy('chatMessage.id', 'DESC')
+            ->setMaxResults(max(1, $limit))
+            ->getQuery()
+            ->getResult();
+
+        return array_reverse($messages);
+    }
+
+    public function countByProject(Project $project): int
+    {
+        return $this->count([
+            'project' => $project,
+        ]);
+    }
 }

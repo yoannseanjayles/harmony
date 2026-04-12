@@ -12,19 +12,15 @@ final class ChatCompletionService
      * @param list<ChatMessage> $conversationHistory
      */
     public function __construct(
-        private readonly ProviderFactory $providerFactory,
-        private readonly PromptBuilder $promptBuilder,
+        private readonly ChatEngine $chatEngine,
     ) {
     }
 
     /**
      * @param list<ChatMessage> $conversationHistory
      */
-    public function generateAssistantReply(Project $project, User $user, string $userMessage, array $conversationHistory = []): ProviderResponse
+    public function generateAssistantReply(Project $project, User $user, string $userMessage, array $conversationHistory = []): ChatGenerationResult
     {
-        $provider = $this->providerFactory->createForProject($project, $user);
-        $promptRequest = $this->promptBuilder->build($project, $userMessage, $conversationHistory);
-
-        return $provider->sendPrompt($promptRequest);
+        return $this->chatEngine->generateAssistantReply($project, $user, $userMessage, $conversationHistory);
     }
 }
