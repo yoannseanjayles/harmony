@@ -40,7 +40,12 @@ final class MediaUrlResolver
             return $url;
         }
 
-        $id    = (int) substr($url, strlen(self::SCHEME));
+        $rawId = substr($url, strlen(self::SCHEME));
+        if ($rawId === '' || !ctype_digit($rawId)) {
+            return '';
+        }
+
+        $id    = (int) $rawId;
         $asset = $this->mediaAssetRepository->find($id);
 
         if ($asset === null) {
