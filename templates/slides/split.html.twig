@@ -1,0 +1,115 @@
+{#
+  Template for slide type "split"
+  Expected content keys:
+    - title      (string, required): slide headline
+    - body       (string, optional): paragraph text in the text column
+    - items      (list<string>, optional): bullet points in the text column
+    - image_url  (string, optional): URL of the media asset for the media column
+    - image_alt  (string, optional): alt text for the media asset
+    - layout     (string, optional): column order — "text-left" (default) or "text-right"
+#}
+{% set layout_class = (layout is defined and layout == 'text-right') ? 'hm-slide--split--text-right' : 'hm-slide--split--text-left' %}
+<section class="hm-slide hm-slide--split {{ layout_class }}" data-slide-type="split">
+    <div class="hm-slide__col hm-slide__col--text">
+        <h2 class="hm-slide__title">{{ title }}</h2>
+        {% if body is defined and body is not empty %}
+            <p class="hm-slide__body">{{ body }}</p>
+        {% endif %}
+        {% if items is defined and items is not empty %}
+            <ul class="hm-slide__list">
+                {% for item in items %}
+                    {% if item is not empty %}
+                        <li class="hm-slide__list-item">{{ item }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+    <div class="hm-slide__col hm-slide__col--media">
+        {% if image_url is defined and image_url is not empty %}
+            <img
+                class="hm-slide__image"
+                src="{{ image_url }}"
+                alt="{{ image_alt is defined ? image_alt : '' }}"
+                loading="lazy"
+            >
+        {% else %}
+            <div class="hm-slide__image-placeholder" aria-hidden="true"></div>
+        {% endif %}
+    </div>
+</section>
+<style>
+    .hm-slide--split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-surface-strong, #fffdf8));
+        color: var(--hm-slide-fg, var(--hm-ink, #173f35));
+    }
+
+    .hm-slide--split--text-right {
+        direction: rtl;
+    }
+
+    .hm-slide--split--text-right > * {
+        direction: ltr;
+    }
+
+    .hm-slide__col--text {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: var(--hm-slide-padding, 3rem 4rem);
+    }
+
+    .hm-slide__col--media {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--hm-surface-muted, #f0ece4);
+    }
+
+    .hm-slide--split .hm-slide__title {
+        margin: 0 0 1.25rem;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-heading, clamp(1.6rem, 3vw, 2.4rem));
+        line-height: 1.1;
+        color: var(--hm-slide-fg, var(--hm-ink, #173f35));
+    }
+
+    .hm-slide--split .hm-slide__body {
+        margin: 0 0 1.25rem;
+        font-size: var(--hm-font-size-body, 1.05rem);
+        line-height: 1.7;
+        color: var(--hm-slide-fg-soft, var(--hm-ink-soft, #41655d));
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+
+    .hm-slide--split .hm-slide__list {
+        margin: 0;
+        padding-left: 1.4em;
+        display: grid;
+        gap: 0.55rem;
+    }
+
+    .hm-slide--split .hm-slide__list-item {
+        font-size: var(--hm-font-size-body, 1.05rem);
+        line-height: 1.55;
+        color: var(--hm-slide-fg-soft, var(--hm-ink-soft, #41655d));
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+
+    .hm-slide__image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .hm-slide__image-placeholder {
+        width: 100%;
+        height: 100%;
+        background: var(--hm-surface-muted, #e8e2d8);
+    }
+</style>

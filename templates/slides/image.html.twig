@@ -1,0 +1,84 @@
+{#
+  Template for slide type "image"
+  Expected content keys:
+    - image_url     (string, optional): URL of the full-bleed media asset
+    - image_alt     (string, optional): alt text for the media asset
+    - overlay_text  (string, optional): text displayed over the image
+    - caption       (string, optional): caption displayed below the image
+#}
+<section class="hm-slide hm-slide--image" data-slide-type="image">
+    <div class="hm-slide__media-wrap">
+        {% if image_url is defined and image_url is not empty %}
+            <img
+                class="hm-slide__image"
+                src="{{ image_url }}"
+                alt="{{ image_alt is defined ? image_alt : '' }}"
+                loading="lazy"
+            >
+        {% else %}
+            <div class="hm-slide__image-placeholder" aria-hidden="true"></div>
+        {% endif %}
+        {% if overlay_text is defined and overlay_text is not empty %}
+            <div class="hm-slide__overlay">
+                <p class="hm-slide__overlay-text">{{ overlay_text }}</p>
+            </div>
+        {% endif %}
+    </div>
+    {% if caption is defined and caption is not empty %}
+        <figcaption class="hm-slide__caption">{{ caption }}</figcaption>
+    {% endif %}
+</section>
+<style>
+    .hm-slide--image {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-ink, #173f35));
+    }
+
+    .hm-slide__media-wrap {
+        position: relative;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .hm-slide--image .hm-slide__image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .hm-slide--image .hm-slide__image-placeholder {
+        width: 100%;
+        height: 100%;
+        min-height: 400px;
+        background: var(--hm-surface-muted, #2a4a40);
+    }
+
+    .hm-slide__overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: flex-end;
+        padding: var(--hm-slide-padding, 3rem 4rem);
+        background: linear-gradient(to top, rgba(23, 63, 53, 0.72) 0%, transparent 60%);
+    }
+
+    .hm-slide__overlay-text {
+        margin: 0;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-heading, clamp(1.8rem, 3.5vw, 2.8rem));
+        line-height: 1.2;
+        color: var(--hm-slide-fg, #f8f4ea);
+    }
+
+    .hm-slide__caption {
+        padding: 0.75rem var(--hm-slide-padding-x, 4rem);
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        font-size: var(--hm-font-size-label, 0.85rem);
+        color: var(--hm-slide-fg-soft, rgba(248, 244, 234, 0.65));
+        background: var(--hm-slide-bg, var(--hm-ink, #173f35));
+        text-align: center;
+    }
+</style>
