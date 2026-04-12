@@ -13,6 +13,9 @@ parameters:
     harmony.ai.timeout.openai: 30.0
     # HTTP timeout (seconds) for Anthropic API requests — Claude models may take longer; 60 s covers p99 latency
     harmony.ai.timeout.anthropic: 60.0
+    # T160 — Slide render cache versioning: increment these when Twig templates or static assets change.
+    harmony.slide_cache.template_version: '1'
+    harmony.slide_cache.assets_version: ''
 
 services:
     # default configuration for services in *this* file
@@ -32,6 +35,12 @@ services:
     App\Project\ProjectShareLinkGenerator:
         arguments:
             $ttlSeconds: '%harmony.project_share.ttl_seconds%'
+
+    # T160 — SlideRenderHashCalculator: version parameters allow cache invalidation when templates/assets change.
+    App\Slide\SlideRenderHashCalculator:
+        arguments:
+            $templateVersion: '%harmony.slide_cache.template_version%'
+            $assetsVersion: '%harmony.slide_cache.assets_version%'
 
     # Per-provider HTTP clients with explicit, documented timeout values (see parameters above)
     harmony.ai.http_client.openai:

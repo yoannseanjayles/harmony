@@ -195,6 +195,11 @@ class Project
         return $this;
     }
 
+    public function getThemeConfigJson(): string
+    {
+        return $this->themeConfigJson;
+    }
+
     /**
      * @return array<string, mixed>
      */
