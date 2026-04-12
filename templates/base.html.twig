@@ -4,27 +4,13 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Harmony{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 120%22><rect width=%22120%22 height=%22120%22 rx=%2228%22 fill=%22%23173f35%22/><path d=%22M24 82V38h12v16h16V38h12v44H52V66H36v16H24zm48 0V38h12v44H72z%22 fill=%22%23f7f4ea%22/></svg>">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 120%22><rect width=%22120%22 height=%22120%22 rx=%2228%22 fill=%22%237c3aed%22/><path d=%22M24 82V38h12v16h16V38h12v44H52V66H36v16H24zm48 0V38h12v44H72z%22 fill=%22%23e8e4ff%22/></svg>">
         {% if app.user %}
             <meta name="hm-csrf-api" content="{{ csrf_token('api_mutation') }}">
         {% endif %}
         {% block stylesheets %}
+            <link rel="stylesheet" href="/theme/harmony.css">
             <style>
-                :root {
-                    --hm-bg: #f4efe3;
-                    --hm-surface: rgba(255, 252, 245, 0.82);
-                    --hm-surface-strong: #fffdf8;
-                    --hm-ink: #173f35;
-                    --hm-ink-soft: #41655d;
-                    --hm-accent: #bf6a3d;
-                    --hm-accent-deep: #8f4c29;
-                    --hm-border: rgba(23, 63, 53, 0.12);
-                    --hm-shadow: 0 24px 70px rgba(34, 55, 48, 0.12);
-                    --hm-danger: #a3362b;
-                    --hm-success: #1d7a5a;
-                    --hm-font-body: "Aptos", "Segoe UI", sans-serif;
-                    --hm-font-title: Georgia, "Times New Roman", serif;
-                }
 
                 * {
                     box-sizing: border-box;
@@ -36,9 +22,9 @@
                     font-family: var(--hm-font-body);
                     color: var(--hm-ink);
                     background:
-                        radial-gradient(circle at top left, rgba(191, 106, 61, 0.16), transparent 28%),
-                        radial-gradient(circle at bottom right, rgba(23, 63, 53, 0.14), transparent 30%),
-                        linear-gradient(135deg, #efe6d7 0%, #f7f4ea 52%, #f2ece0 100%);
+                        radial-gradient(circle at 15% 20%, rgba(124, 58, 237, 0.14), transparent 32%),
+                        radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.10), transparent 28%),
+                        var(--hm-bg);
                 }
 
                 a {
@@ -71,9 +57,9 @@
                 .hm-panel--brand {
                     position: relative;
                     background:
-                        linear-gradient(160deg, rgba(23, 63, 53, 0.92), rgba(40, 89, 78, 0.9)),
-                        var(--hm-ink);
-                    color: #f8f4ea;
+                        linear-gradient(160deg, rgba(124, 58, 237, 0.85), rgba(91, 33, 182, 0.9)),
+                        var(--hm-bg);
+                    color: var(--hm-ink);
                 }
 
                 .hm-panel--brand::after {
@@ -83,7 +69,7 @@
                     width: 220px;
                     height: 220px;
                     border-radius: 999px;
-                    background: rgba(191, 106, 61, 0.18);
+                    background: rgba(16, 185, 129, 0.20);
                     filter: blur(10px);
                 }
 
@@ -124,7 +110,7 @@
 
                 .hm-panel--brand p,
                 .hm-panel--brand .hm-muted {
-                    color: rgba(248, 244, 234, 0.8);
+                    color: rgba(232, 228, 255, 0.72);
                 }
 
                 .hm-metrics {
@@ -148,15 +134,15 @@
                 }
 
                 .hm-form-wrap {
-                    background: rgba(255, 252, 245, 0.78);
+                    background: rgba(240, 238, 255, 0.04);
                 }
 
                 .hm-badge {
                     display: inline-block;
                     padding: 6px 12px;
                     border-radius: 999px;
-                    background: rgba(191, 106, 61, 0.12);
-                    color: var(--hm-accent-deep);
+                    background: var(--hm-accent-soft);
+                    color: var(--hm-accent);
                     font-size: 0.82rem;
                     font-weight: 700;
                 }
@@ -183,8 +169,8 @@
                     width: 100%;
                     padding: 15px 16px;
                     border-radius: 16px;
-                    border: 1px solid rgba(23, 63, 53, 0.18);
-                    background: rgba(255, 255, 255, 0.92);
+                    border: 1px solid var(--hm-border);
+                    background: rgba(240, 238, 255, 0.06);
                     color: var(--hm-ink);
                     font: inherit;
                     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -193,8 +179,8 @@
                 .hm-field input:focus,
                 .hm-field select:focus {
                     outline: none;
-                    border-color: rgba(191, 106, 61, 0.9);
-                    box-shadow: 0 0 0 4px rgba(191, 106, 61, 0.12);
+                    border-color: var(--hm-accent-primary);
+                    box-shadow: 0 0 0 4px var(--hm-accent-soft);
                     transform: translateY(-1px);
                 }
 
@@ -213,14 +199,14 @@
 
                 .hm-alert--danger {
                     color: var(--hm-danger);
-                    background: rgba(163, 54, 43, 0.08);
-                    border-color: rgba(163, 54, 43, 0.14);
+                    background: rgba(239, 68, 68, 0.08);
+                    border-color: rgba(239, 68, 68, 0.18);
                 }
 
                 .hm-alert--success {
                     color: var(--hm-success);
-                    background: rgba(29, 122, 90, 0.08);
-                    border-color: rgba(29, 122, 90, 0.14);
+                    background: rgba(16, 185, 129, 0.08);
+                    border-color: rgba(16, 185, 129, 0.18);
                 }
 
                 .hm-check {
@@ -261,9 +247,9 @@
                 .hm-button {
                     border: 0;
                     cursor: pointer;
-                    color: #fffdf8;
-                    background: linear-gradient(135deg, var(--hm-accent), var(--hm-accent-deep));
-                    box-shadow: 0 18px 40px rgba(191, 106, 61, 0.24);
+                    color: #fff;
+                    background: linear-gradient(135deg, var(--hm-accent-primary), var(--hm-accent-primary-deep));
+                    box-shadow: 0 18px 40px rgba(124, 58, 237, 0.30);
                 }
 
                 .hm-button:hover,
@@ -272,8 +258,8 @@
                 }
 
                 .hm-link {
-                    border: 1px solid rgba(23, 63, 53, 0.12);
-                    background: rgba(255, 255, 255, 0.7);
+                    border: 1px solid var(--hm-border);
+                    background: var(--hm-surface);
                     color: var(--hm-ink);
                 }
 
@@ -292,7 +278,7 @@
                     margin: 0 auto;
                     padding: 24px;
                     border-radius: 30px;
-                    background: rgba(255, 252, 245, 0.82);
+                    background: var(--hm-surface);
                     border: 1px solid var(--hm-border);
                     box-shadow: var(--hm-shadow);
                 }
@@ -315,7 +301,7 @@
                     padding: 20px;
                     border-radius: 22px;
                     background: var(--hm-surface-strong);
-                    border: 1px solid rgba(23, 63, 53, 0.08);
+                    border: 1px solid var(--hm-border);
                 }
 
                 .hm-dashboard-card strong {
