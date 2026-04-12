@@ -9,6 +9,9 @@
 parameters:
     harmony.project_versions.max_keep: 10
     harmony.project_share.ttl_seconds: 604800
+    # T212 — Maximum upload size in bytes (default 10 MiB).  Override via HARMONY_UPLOAD_MAX_SIZE.
+    harmony.media.upload_directory: '%kernel.project_dir%/public/uploads/media'
+    harmony.media.max_upload_size_bytes: 10485760
     # HTTP timeout (seconds) for OpenAI API requests — covers p99 latency at 30 s
     harmony.ai.timeout.openai: 30.0
     # HTTP timeout (seconds) for Anthropic API requests — Claude models may take longer; 60 s covers p99 latency
@@ -55,3 +58,13 @@ services:
         arguments:
             $openAiHttpClient: '@harmony.ai.http_client.openai'
             $anthropicHttpClient: '@harmony.ai.http_client.anthropic'
+
+    # T209 / T210 / T212 / T213 — Media upload service wiring.
+    App\Media\MediaUploadService:
+        arguments:
+            $uploadDirectory: '%harmony.media.upload_directory%'
+            $maxUploadSizeBytes: '%harmony.media.max_upload_size_bytes%'
+
+    # T213 — Default to no-op scanner; replace with a real implementation when ClamAV is available.
+    App\Media\AntivirusScannerInterface:
+        alias: App\Media\NoOpAntivirusScanner

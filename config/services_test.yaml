@@ -12,3 +12,9 @@ services:
     test.response_validator_alias:
         alias: App\AI\ResponseValidator
         public: true
+
+parameters:
+    # T216 — Use a smaller upload limit and a temp dir so tests can validate the size
+    # limit without hitting PHP's upload_max_filesize (2048 KiB in this environment).
+    harmony.media.upload_directory: '%kernel.project_dir%/var/uploads_test'
+    harmony.media.max_upload_size_bytes: 5120

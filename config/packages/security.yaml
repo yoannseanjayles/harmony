@@ -47,6 +47,7 @@ security:
         - { path: ^/ai, roles: ROLE_USER }
         - { path: ^/export, roles: ROLE_USER }
         - { path: ^/dashboard, roles: ROLE_USER }
+        - { path: ^/media, roles: ROLE_USER }
 
 when@test:
     security:
