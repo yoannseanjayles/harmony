@@ -156,11 +156,11 @@
     to   { opacity: 1; }
 }
 
-/* slideUp — upward movement with fade */
+/* slideUp — upward movement with fade; amplitude scales with --hm-anim-intensity */
 @keyframes hm-slideUp {
     from {
         opacity: 0;
-        transform: translateY(28px);
+        transform: translateY(calc(28px * var(--hm-anim-intensity, 1)));
     }
     to {
         opacity: 1;
@@ -168,11 +168,11 @@
     }
 }
 
-/* phoneIn — spring entrance from below (elastic) */
+/* phoneIn — spring entrance from below (elastic); amplitude scales with --hm-anim-intensity */
 @keyframes hm-phoneIn {
-    0%   { opacity: 0; transform: translateY(60px) scale(0.92); }
-    60%  { opacity: 1; transform: translateY(-6px) scale(1.01); }
-    80%  { transform: translateY(3px) scale(0.995); }
+    0%   { opacity: 0; transform: translateY(calc(60px * var(--hm-anim-intensity, 1))) scale(0.92); }
+    60%  { opacity: 1; transform: translateY(calc(-6px * var(--hm-anim-intensity, 1))) scale(1.01); }
+    80%  { transform: translateY(calc(3px * var(--hm-anim-intensity, 1))) scale(0.995); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -207,11 +207,13 @@
 }
 
 /* Animation utility classes — activation and duration
-   controlled via --hm-anim-duration and --hm-anim-delay */
+   controlled via --hm-anim-duration, --hm-anim-delay, and --hm-anim-intensity */
 :root {
     --hm-anim-duration:    0.55s;
     --hm-anim-delay:       0s;
     --hm-anim-easing:      cubic-bezier(0.22, 1, 0.36, 1);
+    /* T195 — intensity scale: 0.4 (reduced) | 1 (normal) | 1.6 (max) */
+    --hm-anim-intensity:   1;
 }
 
 .hm-anim-fade-in {
@@ -271,6 +273,22 @@
         animation: none;
         background: none;
     }
+}
+
+/* T196 — .hm-no-animation: suppress all decorative animations on a container and its
+   descendants.  Applied by the theme customizer when the user disables animations. */
+.hm-no-animation .hm-anim-fade-in,
+.hm-no-animation .hm-anim-slide-up,
+.hm-no-animation .hm-anim-phone-in,
+.hm-no-animation .hm-anim-float,
+.hm-no-animation .hm-anim-text-in,
+.hm-no-animation .hm-anim-line-pop {
+    animation: none !important;
+}
+
+.hm-no-animation .hm-anim-glint {
+    animation: none !important;
+    background: none !important;
 }
 
 /* ─────────────────────────────────────────────────────────────

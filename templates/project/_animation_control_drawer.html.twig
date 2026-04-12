@@ -1,0 +1,297 @@
+{#
+  T193 / T194 / T195 / T196 / T197 / T198 — Animation control panel.
+  Provides a global enable/disable toggle, a speed slider (slow/normal/fast) that drives
+  --hm-anim-duration, and an intensity slider (reduced/normal/max) that drives
+  --hm-anim-intensity.  Changes are previewed in real-time on the slide container (T198)
+  and persisted via the existing AJAX theme-tokens endpoint (T197).
+  Included on project/show.html.twig for non-archived projects.
+#}
+{% if not project.isArchived %}
+{% set tc = project.themeConfig %}
+
+{# Resolve current animation settings with sensible defaults #}
+{% set cur_anim_enabled   = tc['animationsEnabled']    ?? '1' %}
+{% set cur_anim_duration  = tc['--hm-anim-duration']   ?? '0.55s' %}
+{% set cur_anim_intensity = tc['--hm-anim-intensity']  ?? '1' %}
+
+{# Map duration string to slider step index (0=slow, 1=normal, 2=fast) #}
+{% set speed_index = cur_anim_duration == '0.9s' ? 0 : (cur_anim_duration == '0.25s' ? 2 : 1) %}
+{# Map intensity string to slider step index (0=reduced, 1=normal, 2=max) #}
+{% set intensity_index = cur_anim_intensity == '0.4' ? 0 : (cur_anim_intensity == '1.6' ? 2 : 1) %}
+
+<section
+    class="hm-anim-control"
+    data-anim-control
+    data-save-url="{{ path('app_project_theme_tokens', { id: project.id }) }}"
+    data-csrf-token="{{ csrf_token('theme_tokens_' ~ project.id) }}"
+    data-error-generic="{{ 'project.theme.tokens.error.generic'|trans }}"
+    data-label-saving="{{ 'project.theme.tokens.saving'|trans }}"
+    data-label-save="{{ 'project.theme.tokens.save'|trans }}"
+>
+    <header class="hm-anim-control__header">
+        <span class="hm-badge">{{ 'project.theme.anim.badge'|trans }}</span>
+        <h2 class="hm-anim-control__title">{{ 'project.theme.anim.title'|trans }}</h2>
+        <p class="hm-muted">{{ 'project.theme.anim.subtitle'|trans }}</p>
+    </header>
+
+    {# ── T193 — Global toggle ─────────────────────────────────────────────── #}
+    <div class="hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.theme.anim.section.global'|trans }}</h3>
+        <div class="hm-anim-toggle-row">
+            <button
+                class="hm-anim-toggle-btn{{ cur_anim_enabled == '1' ? ' hm-anim-toggle-btn--active' : '' }}"
+                type="button"
+                data-anim-toggle
+                data-anim-enabled="{{ cur_anim_enabled }}"
+                aria-pressed="{{ cur_anim_enabled == '1' ? 'true' : 'false' }}"
+            >
+                <span class="hm-anim-toggle-btn__icon" aria-hidden="true">▶</span>
+                <span data-anim-toggle-label>
+                    {{ cur_anim_enabled == '1'
+                        ? 'project.theme.anim.toggle.enabled'|trans
+                        : 'project.theme.anim.toggle.disabled'|trans }}
+                </span>
+            </button>
+        </div>
+    </div>
+
+    {# ── T194 — Speed slider ──────────────────────────────────────────────── #}
+    <div class="hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.theme.anim.section.speed'|trans }}</h3>
+        <div class="hm-anim-slider-group">
+            <div class="hm-anim-slider-labels">
+                <span>{{ 'project.theme.anim.speed.slow'|trans }}</span>
+                <span>{{ 'project.theme.anim.speed.normal'|trans }}</span>
+                <span>{{ 'project.theme.anim.speed.fast'|trans }}</span>
+            </div>
+            <input
+                class="hm-theme-spacing-input"
+                type="range"
+                data-anim-speed
+                min="0"
+                max="2"
+                step="1"
+                value="{{ speed_index }}"
+            >
+        </div>
+    </div>
+
+    {# ── T195 — Intensity slider ──────────────────────────────────────────── #}
+    <div class="hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.theme.anim.section.intensity'|trans }}</h3>
+        <div class="hm-anim-slider-group">
+            <div class="hm-anim-slider-labels">
+                <span>{{ 'project.theme.anim.intensity.reduced'|trans }}</span>
+                <span>{{ 'project.theme.anim.intensity.normal'|trans }}</span>
+                <span>{{ 'project.theme.anim.intensity.max'|trans }}</span>
+            </div>
+            <input
+                class="hm-theme-spacing-input"
+                type="range"
+                data-anim-intensity
+                min="0"
+                max="2"
+                step="1"
+                value="{{ intensity_index }}"
+            >
+        </div>
+    </div>
+
+    {# ── Error / status ───────────────────────────────────────────────────── #}
+    <div class="hm-alert hm-alert--danger" data-anim-error hidden></div>
+
+    {# ── Save button ──────────────────────────────────────────────────────── #}
+    <div class="hm-theme-customizer__actions">
+        <button
+            class="hm-button"
+            type="button"
+            data-anim-save
+        >{{ 'project.theme.tokens.save'|trans }}</button>
+    </div>
+</section>
+
+<style>
+    .hm-anim-control {
+        padding: 24px;
+        border-radius: 26px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-anim-control__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-anim-control__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.4rem, 2vw, 1.8rem);
+    }
+
+    .hm-anim-toggle-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .hm-anim-toggle-btn {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 18px;
+        border: 2px solid var(--hm-border);
+        border-radius: 14px;
+        background: var(--hm-surface-strong);
+        color: var(--hm-ink-soft);
+        font: inherit;
+        font-size: 0.90rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color 0.18s, color 0.18s, background 0.18s;
+    }
+
+    .hm-anim-toggle-btn--active {
+        border-color: var(--hm-accent-primary);
+        color: var(--hm-accent-primary);
+        background: var(--hm-accent-soft);
+    }
+
+    .hm-anim-slider-group {
+        display: grid;
+        gap: 6px;
+    }
+
+    .hm-anim-slider-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.80rem;
+        color: var(--hm-ink-soft);
+    }
+</style>
+
+<script>
+    (() => {
+        const panel = document.querySelector('[data-anim-control]');
+        if (!panel) return;
+
+        const saveUrl      = panel.dataset.saveUrl;
+        const csrfToken    = panel.dataset.csrfToken;
+        const errorBox     = panel.querySelector('[data-anim-error]');
+        const saveBtn      = panel.querySelector('[data-anim-save]');
+        const toggleBtn    = panel.querySelector('[data-anim-toggle]');
+        const toggleLabel  = panel.querySelector('[data-anim-toggle-label]');
+        const speedRange   = panel.querySelector('[data-anim-speed]');
+        const intensityRange = panel.querySelector('[data-anim-intensity]');
+        const labelSaving  = panel.dataset.labelSaving  || 'Sauvegarde…';
+        const labelSave    = panel.dataset.labelSave    || 'Appliquer les personnalisations';
+        const errorGeneric = panel.dataset.errorGeneric || 'Une erreur est survenue.';
+
+        // T196 — find the slides preview container to toggle .hm-no-animation
+        const slidesContainer = document.querySelector('[data-anim-container]');
+
+        // Speed index → CSS duration value
+        const SPEED_VALUES = ['0.9s', '0.55s', '0.25s'];
+        // Intensity index → CSS scale value
+        const INTENSITY_VALUES = ['0.4', '1', '1.6'];
+
+        const LABEL_DISABLED    = '{{ 'project.theme.anim.toggle.disabled'|trans }}';
+        const LABEL_ENABLED_TEXT = '{{ 'project.theme.anim.toggle.enabled'|trans }}';
+
+        let animEnabled = toggleBtn.dataset.animEnabled === '1';
+
+        // T198 — real-time preview: apply CSS custom property on :root
+        const applyToken = (token, value) => {
+            document.documentElement.style.setProperty(token, value);
+        };
+
+        // T196 — apply / remove .hm-no-animation on the slides container
+        const applyNoAnimClass = (disabled) => {
+            if (slidesContainer) {
+                slidesContainer.classList.toggle('hm-no-animation', disabled);
+            }
+        };
+
+        // Sync toggle UI state
+        const syncToggle = (enabled) => {
+            animEnabled = enabled;
+            toggleBtn.dataset.animEnabled = enabled ? '1' : '0';
+            toggleBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            toggleBtn.classList.toggle('hm-anim-toggle-btn--active', enabled);
+            if (toggleLabel) {
+                toggleLabel.textContent = enabled ? LABEL_ENABLED_TEXT : LABEL_DISABLED;
+            }
+            applyNoAnimClass(!enabled);
+        };
+
+        // T193 — toggle button click
+        toggleBtn.addEventListener('click', () => {
+            syncToggle(!animEnabled);
+        });
+
+        // T194 — Speed slider real-time preview
+        speedRange.addEventListener('input', () => {
+            const duration = SPEED_VALUES[parseInt(speedRange.value, 10)] || '0.55s';
+            applyToken('--hm-anim-duration', duration);
+        });
+
+        // T195 — Intensity slider real-time preview
+        intensityRange.addEventListener('input', () => {
+            const intensity = INTENSITY_VALUES[parseInt(intensityRange.value, 10)] || '1';
+            applyToken('--hm-anim-intensity', intensity);
+        });
+
+        // T197 — Collect animation settings and POST to server
+        const collectTokens = () => {
+            const speed     = SPEED_VALUES[parseInt(speedRange.value, 10)]     || '0.55s';
+            const intensity = INTENSITY_VALUES[parseInt(intensityRange.value, 10)] || '1';
+
+            return {
+                'animationsEnabled':  animEnabled ? '1' : '0',
+                '--hm-anim-duration': speed,
+                '--hm-anim-intensity': intensity,
+            };
+        };
+
+        saveBtn.addEventListener('click', async () => {
+            errorBox.hidden = true;
+            errorBox.textContent = '';
+            saveBtn.disabled = true;
+            saveBtn.textContent = labelSaving;
+
+            try {
+                const tokens = collectTokens();
+                const formData = new FormData();
+                formData.set('_token', csrfToken);
+                Object.entries(tokens).forEach(([k, v]) => {
+                    formData.append(`tokens[${k}]`, v);
+                });
+
+                const response = await fetch(saveUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw data;
+                }
+            } catch (err) {
+                errorBox.textContent = (err && err.message) || errorGeneric;
+                errorBox.hidden = false;
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = labelSave;
+            }
+        });
+
+        // Apply the initial state from the server-rendered values (T198 — page load preview)
+        applyNoAnimClass(!animEnabled);
+        applyToken('--hm-anim-duration', SPEED_VALUES[parseInt(speedRange.value, 10)] || '0.55s');
+        applyToken('--hm-anim-intensity', INTENSITY_VALUES[parseInt(intensityRange.value, 10)] || '1');
+    })();
+</script>
+{% endif %}

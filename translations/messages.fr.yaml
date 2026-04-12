@@ -291,3 +291,19 @@ project.theme.tokens.save: Appliquer les personnalisations
 project.theme.tokens.saving: Sauvegarde en cours...
 project.theme.tokens.flash.saved: Les personnalisations ont ete sauvegardees.
 project.theme.tokens.error.generic: Une erreur est survenue lors de la sauvegarde du theme.
+
+# T193–T198 — Animation control panel
+project.theme.anim.badge: Animations
+project.theme.anim.title: "Contrôle des animations"
+project.theme.anim.subtitle: "Activez, ajustez la vitesse et l'intensité des animations en temps réel."
+project.theme.anim.section.global: Activation globale
+project.theme.anim.section.speed: Vitesse
+project.theme.anim.section.intensity: "Intensité"
+project.theme.anim.toggle.enabled: "Animations activées"
+project.theme.anim.toggle.disabled: "Animations désactivées"
+project.theme.anim.speed.slow: Lent
+project.theme.anim.speed.normal: Normal
+project.theme.anim.speed.fast: Rapide
+project.theme.anim.intensity.reduced: "Réduit"
+project.theme.anim.intensity.normal: Normal
+project.theme.anim.intensity.max: Maximal

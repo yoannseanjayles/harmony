@@ -78,6 +78,38 @@ final class ThemeTokenValidator
     ];
 
     /**
+     * Animation duration token — value must be one of the allowed duration strings.
+     * Covers slow / normal / fast presets and the "disabled" (0s) value.
+     */
+    private const ANIM_DURATION_TOKEN = '--hm-anim-duration';
+
+    /**
+     * Allowed animation duration values.
+     * 0.25s = fast, 0.55s = normal, 0.9s = slow.
+     * 0s matches the "épuré" preset convention (very short / no perceived motion)
+     * and is kept so preset tokens pass validation.
+     */
+    public const ANIM_DURATION_OPTIONS = ['0s', '0.25s', '0.55s', '0.9s'];
+
+    /**
+     * Animation intensity token — value must be one of the allowed scale factors.
+     */
+    private const ANIM_INTENSITY_TOKEN = '--hm-anim-intensity';
+
+    /**
+     * Allowed intensity scale factors.
+     * 0.4 = reduced, 1 = normal, 1.6 = max.
+     */
+    public const ANIM_INTENSITY_OPTIONS = ['0.4', '1', '1.6'];
+
+    /**
+     * Meta-key for the global animation on/off toggle.
+     * Not a CSS custom property — filtered out by ThemeEngine::toCssBlock().
+     * Stored alongside CSS tokens in the project themeConfig JSON.
+     */
+    public const ANIM_ENABLED_KEY = 'animationsEnabled';
+
+    /**
      * Allowed title font-size values.
      */
     public const FONT_SIZE_TITLE_OPTIONS = [
@@ -136,6 +168,7 @@ final class ThemeTokenValidator
             self::FONT_WEIGHT_TOKENS,
             self::LETTER_SPACING_TOKENS,
             self::FONT_SIZE_TOKENS,
+            [self::ANIM_DURATION_TOKEN, self::ANIM_INTENSITY_TOKEN, self::ANIM_ENABLED_KEY],
         );
     }
 
@@ -167,6 +200,18 @@ final class ThemeTokenValidator
 
         if ($key === '--hm-font-size-subtitle') {
             return in_array($value, self::FONT_SIZE_SUBTITLE_OPTIONS, true) ? $value : null;
+        }
+
+        if ($key === self::ANIM_DURATION_TOKEN) {
+            return in_array($value, self::ANIM_DURATION_OPTIONS, true) ? $value : null;
+        }
+
+        if ($key === self::ANIM_INTENSITY_TOKEN) {
+            return in_array($value, self::ANIM_INTENSITY_OPTIONS, true) ? $value : null;
+        }
+
+        if ($key === self::ANIM_ENABLED_KEY) {
+            return in_array($value, ['0', '1'], true) ? $value : null;
         }
 
         // Token not in any allowlist — drop.

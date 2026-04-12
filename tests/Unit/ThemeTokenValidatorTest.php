@@ -253,4 +253,66 @@ final class ThemeTokenValidatorTest extends TestCase
         self::assertContains('--hm-letter-spacing-label', $names);
         self::assertContains('--hm-font-size-title', $names);
     }
+
+    // ── Animation tokens (T193–T197) ──────────────────────────────────────────
+
+    public function testValidAnimationDurationIsAccepted(): void
+    {
+        foreach (ThemeTokenValidator::ANIM_DURATION_OPTIONS as $duration) {
+            $result = $this->validator->validatePatch(['--hm-anim-duration' => $duration]);
+            self::assertSame(['--hm-anim-duration' => $duration], $result, "Duration '$duration' should be accepted");
+        }
+    }
+
+    public function testArbitraryAnimationDurationIsRejected(): void
+    {
+        $result = $this->validator->validatePatch(['--hm-anim-duration' => '99s; color:red']);
+        self::assertSame([], $result);
+    }
+
+    public function testUnknownDurationValueIsRejected(): void
+    {
+        $result = $this->validator->validatePatch(['--hm-anim-duration' => '1s']);
+        self::assertSame([], $result);
+    }
+
+    public function testValidAnimationIntensityIsAccepted(): void
+    {
+        foreach (ThemeTokenValidator::ANIM_INTENSITY_OPTIONS as $intensity) {
+            $result = $this->validator->validatePatch(['--hm-anim-intensity' => $intensity]);
+            self::assertSame(['--hm-anim-intensity' => $intensity], $result, "Intensity '$intensity' should be accepted");
+        }
+    }
+
+    public function testArbitraryAnimationIntensityIsRejected(): void
+    {
+        $result = $this->validator->validatePatch(['--hm-anim-intensity' => '9999']);
+        self::assertSame([], $result);
+    }
+
+    public function testAnimationsEnabledOneIsAccepted(): void
+    {
+        $result = $this->validator->validatePatch([ThemeTokenValidator::ANIM_ENABLED_KEY => '1']);
+        self::assertSame([ThemeTokenValidator::ANIM_ENABLED_KEY => '1'], $result);
+    }
+
+    public function testAnimationsEnabledZeroIsAccepted(): void
+    {
+        $result = $this->validator->validatePatch([ThemeTokenValidator::ANIM_ENABLED_KEY => '0']);
+        self::assertSame([ThemeTokenValidator::ANIM_ENABLED_KEY => '0'], $result);
+    }
+
+    public function testAnimationsEnabledArbitraryValueIsRejected(): void
+    {
+        $result = $this->validator->validatePatch([ThemeTokenValidator::ANIM_ENABLED_KEY => 'true']);
+        self::assertSame([], $result);
+    }
+
+    public function testAllowedTokenNamesIncludesAnimationTokens(): void
+    {
+        $names = ThemeTokenValidator::allowedTokenNames();
+        self::assertContains('--hm-anim-duration', $names);
+        self::assertContains('--hm-anim-intensity', $names);
+        self::assertContains(ThemeTokenValidator::ANIM_ENABLED_KEY, $names);
+    }
 }
