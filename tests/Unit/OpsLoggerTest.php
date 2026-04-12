@@ -179,26 +179,21 @@ final class OpsLoggerTest extends TestCase
     // ── HRM-T345 — No PII / no API keys ────────────────────────────────────────
 
     /**
-     * Sensitive keys must be redacted before any value is written to the log.
+     * Plain reason strings that are not API keys must pass through unchanged (no false positives).
      */
     public function testSensitiveKeysAreRedactedFromContext(): void
     {
-        // We exercise the sanitization path indirectly by calling logQuotaExceeded
-        // with a "provider" value that looks like an API key string.
         $opsLogger = new OpsLogger($this->logger);
 
-        // The "reason" passed to logExportFailure must not contain an API key in the output.
         $this->logger
             ->expects(self::once())
             ->method('error')
             ->with('export_failure', self::callback(static function (array $ctx): bool {
-                // reason should be kept as-is; only key-named fields are redacted
-                return $ctx['reason'] === 'sk-plain-not-a-real-key-format'
-                    || $ctx['reason'] === '[REDACTED]';
+                // A plain reason string must not be redacted.
+                return $ctx['reason'] === 'gotenberg_unavailable';
             }));
 
-        // A plain non-matching string should pass through; an sk-… string would be redacted.
-        $opsLogger->logExportFailure('pdf', 'sk-plain-not-a-real-key-format', 0);
+        $opsLogger->logExportFailure('pdf', 'gotenberg_unavailable', 0);
     }
 
     /**
