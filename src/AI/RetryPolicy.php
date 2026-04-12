@@ -32,9 +32,29 @@ final class RetryPolicy
         $lastException = null;
 
         while ($attempt <= 2) {
-            $providerResponse = $stream
-                ? $provider->streamPrompt($currentPrompt, static function (): void {})
-                : $provider->sendPrompt($currentPrompt);
+            try {
+                $providerResponse = $stream
+                    ? $provider->streamPrompt($currentPrompt, static function (): void {})
+                    : $provider->sendPrompt($currentPrompt);
+            } catch (ProviderTimeoutException $exception) {
+                $fallbackModel = $provider->getFallbackModel();
+                $this->logger->warning('ai_provider_timeout_fallback', [
+                    'attempt' => $attempt,
+                    'originalModel' => $currentPrompt->model(),
+                    'fallbackModel' => $fallbackModel,
+                ]);
+
+                if ($attempt === 2 || $currentPrompt->model() === $fallbackModel) {
+                    throw $exception;
+                }
+
+                $currentPrompt = $currentPrompt
+                    ->withModel($fallbackModel)
+                    ->withAdditionalSystemPrompt($this->buildResumeInstruction($currentPrompt));
+
+                ++$attempt;
+                continue;
+            }
 
             try {
                 $validatedResponse = $this->responseValidator->validate($providerResponse->content());
@@ -74,6 +94,19 @@ final class RetryPolicy
             '- '.implode("\n- ", $exception->errors()),
             'Schema reminder:',
             $this->responseSchema->promptInstructions(),
+        ]);
+    }
+
+    private function buildResumeInstruction(PromptRequest $promptRequest): string
+    {
+        $slidesCount = (int) ($promptRequest->projectContext()['slidesCount'] ?? 0);
+
+        return implode("\n", [
+            'The previous attempt timed out. This is a retry using a faster model.',
+            'Please provide a complete and valid JSON response.',
+            $slidesCount > 0
+                ? sprintf('The presentation currently has %d validated slide(s). Resume generation to complete the requested changes.', $slidesCount)
+                : 'Start from the beginning and generate a complete response.',
         ]);
     }
 }

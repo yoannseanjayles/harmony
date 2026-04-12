@@ -2,6 +2,8 @@
 
 namespace App\AI\Http;
 
+use App\AI\ProviderTimeoutException;
+
 final class NativeAIHttpClient implements AIHttpClientInterface
 {
     public function __construct(private readonly float $timeoutSeconds = 20.0)
@@ -29,6 +31,13 @@ final class NativeAIHttpClient implements AIHttpClientInterface
 
         $body = @file_get_contents($url, false, $context);
         if ($body === false) {
+            $lastError = error_get_last();
+            $errorMessage = strtolower((string) ($lastError['message'] ?? ''));
+            if (str_contains($errorMessage, 'timed out') || str_contains($errorMessage, 'timeout')) {
+                $provider = str_contains($url, 'anthropic') ? 'anthropic' : 'openai';
+                throw new ProviderTimeoutException($provider);
+            }
+
             throw new \RuntimeException('AI HTTP transport request failed.');
         }
 

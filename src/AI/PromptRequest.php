@@ -86,6 +86,20 @@ final class PromptRequest
         );
     }
 
+    public function withModel(string $model): self
+    {
+        return new self(
+            $this->provider,
+            $model,
+            $this->systemPrompt,
+            $this->userMessage,
+            $this->conversationHistory,
+            $this->projectContext,
+            $this->maxTokens,
+            $this->temperature,
+        );
+    }
+
     /**
      * @return list<array{role: string, content: string}>
      */

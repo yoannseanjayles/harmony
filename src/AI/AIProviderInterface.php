@@ -33,4 +33,14 @@ interface AIProviderInterface
      * @return list<string>
      */
     public function getModelList(): array;
+
+    /**
+     * Returns the fast fallback model to use when the primary model times out.
+     */
+    public function getFallbackModel(): string;
+
+    /**
+     * Returns the HTTP timeout in seconds configured for this provider.
+     */
+    public function getTimeoutSeconds(): float;
 }

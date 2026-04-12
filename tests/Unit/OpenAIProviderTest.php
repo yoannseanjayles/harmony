@@ -101,4 +101,24 @@ final class OpenAIProviderTest extends TestCase
 
         self::assertSame(['gpt-4.1-mini', 'gpt-4.1'], $provider->getModelList());
     }
+
+    public function testGetFallbackModelReturnsQuickModel(): void
+    {
+        $provider = new OpenAIProvider(
+            new RecordingAIHttpClient(new HttpResponse(200, '{}')),
+            new ApiCredential('openai', 'platform', 'sk-openai-1234'),
+        );
+
+        self::assertSame('gpt-4.1-mini', $provider->getFallbackModel());
+    }
+
+    public function testGetTimeoutSecondsReturnsExplicitValue(): void
+    {
+        $provider = new OpenAIProvider(
+            new RecordingAIHttpClient(new HttpResponse(200, '{}')),
+            new ApiCredential('openai', 'platform', 'sk-openai-1234'),
+        );
+
+        self::assertSame(30.0, $provider->getTimeoutSeconds());
+    }
 }

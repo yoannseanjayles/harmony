@@ -1,2 +1,4 @@
 services:
     App\AI\Http\AIHttpClientInterface: '@App\AI\Http\FakeAIHttpClient'
+    harmony.ai.http_client.openai: '@App\AI\Http\FakeAIHttpClient'
+    harmony.ai.http_client.anthropic: '@App\AI\Http\FakeAIHttpClient'

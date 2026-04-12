@@ -9,6 +9,10 @@
 parameters:
     harmony.project_versions.max_keep: 10
     harmony.project_share.ttl_seconds: 604800
+    # HTTP timeout (seconds) for OpenAI API requests — covers p99 latency at 30 s
+    harmony.ai.timeout.openai: 30.0
+    # HTTP timeout (seconds) for Anthropic API requests — Claude models may take longer; 60 s covers p99 latency
+    harmony.ai.timeout.anthropic: 60.0
 
 services:
     # default configuration for services in *this* file
@@ -29,5 +33,16 @@ services:
         arguments:
             $ttlSeconds: '%harmony.project_share.ttl_seconds%'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # Per-provider HTTP clients with explicit, documented timeout values (see parameters above)
+    harmony.ai.http_client.openai:
+        class: App\AI\Http\NativeAIHttpClient
+        arguments: ['%harmony.ai.timeout.openai%']
+
+    harmony.ai.http_client.anthropic:
+        class: App\AI\Http\NativeAIHttpClient
+        arguments: ['%harmony.ai.timeout.anthropic%']
+
+    App\AI\ProviderFactory:
+        arguments:
+            $openAiHttpClient: '@harmony.ai.http_client.openai'
+            $anthropicHttpClient: '@harmony.ai.http_client.anthropic'

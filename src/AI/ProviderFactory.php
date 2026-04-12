@@ -12,7 +12,10 @@ class ProviderFactory
 {
     public function __construct(
         private readonly UserApiKeyManager $userApiKeyManager,
-        private readonly AIHttpClientInterface $httpClient,
+        #[Autowire(service: 'harmony.ai.http_client.openai')]
+        private readonly AIHttpClientInterface $openAiHttpClient,
+        #[Autowire(service: 'harmony.ai.http_client.anthropic')]
+        private readonly AIHttpClientInterface $anthropicHttpClient,
         #[Autowire('%env(string:HARMONY_PLATFORM_API_KEY)%')]
         private readonly string $platformApiKeyFallback,
         #[Autowire('%env(string:HARMONY_PLATFORM_OPENAI_API_KEY)%')]
@@ -36,8 +39,8 @@ class ProviderFactory
         $credential = $this->resolveCredential($user, $provider);
 
         return match ($provider) {
-            'anthropic' => new ClaudeProvider($this->httpClient, $credential, $this->anthropicBaseUrl),
-            'openai' => new OpenAIProvider($this->httpClient, $credential, $this->openAiBaseUrl),
+            'anthropic' => new ClaudeProvider($this->anthropicHttpClient, $credential, $this->anthropicBaseUrl),
+            'openai' => new OpenAIProvider($this->openAiHttpClient, $credential, $this->openAiBaseUrl),
             default => throw new \InvalidArgumentException(sprintf('Unsupported AI provider "%s".', $provider)),
         };
     }

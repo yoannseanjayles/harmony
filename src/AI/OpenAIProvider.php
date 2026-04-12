@@ -6,6 +6,17 @@ use App\AI\Http\AIHttpClientInterface;
 
 final class OpenAIProvider implements AIProviderInterface
 {
+    /**
+     * HTTP timeout in seconds for OpenAI API requests.
+     * OpenAI responses are typically fast; 30 s covers p99 latency.
+     */
+    public const TIMEOUT_SECONDS = 30.0;
+
+    /**
+     * Fast fallback model used when the primary model times out.
+     */
+    public const FALLBACK_MODEL = 'gpt-4.1-mini';
+
     public function __construct(
         private readonly AIHttpClientInterface $httpClient,
         private readonly ApiCredential $apiCredential,
@@ -35,7 +46,7 @@ final class OpenAIProvider implements AIProviderInterface
 
         $content = $this->extractContent($payload);
         if ($content === '') {
-            throw new \RuntimeException('OpenAI provider returned an empty response.');
+            throw new EmptyAIResponseException('openai');
         }
 
         $usage = is_array($payload['usage'] ?? null) ? $payload['usage'] : [];
@@ -67,6 +78,16 @@ final class OpenAIProvider implements AIProviderInterface
             'gpt-4.1-mini',
             'gpt-4.1',
         ];
+    }
+
+    public function getFallbackModel(): string
+    {
+        return self::FALLBACK_MODEL;
+    }
+
+    public function getTimeoutSeconds(): float
+    {
+        return self::TIMEOUT_SECONDS;
     }
 
     /**
@@ -137,3 +158,4 @@ final class OpenAIProvider implements AIProviderInterface
         return str_split($normalized, 120);
     }
 }
+

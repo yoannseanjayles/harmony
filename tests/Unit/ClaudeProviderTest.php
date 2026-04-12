@@ -97,4 +97,24 @@ final class ClaudeProviderTest extends TestCase
 
         self::assertSame(['claude-3-7-sonnet', 'claude-3-5-sonnet'], $provider->getModelList());
     }
+
+    public function testGetFallbackModelReturnsQuickModel(): void
+    {
+        $provider = new ClaudeProvider(
+            new RecordingAIHttpClient(new HttpResponse(200, '{}')),
+            new ApiCredential('anthropic', 'platform', 'sk-anthropic-1234'),
+        );
+
+        self::assertSame('claude-3-5-sonnet', $provider->getFallbackModel());
+    }
+
+    public function testGetTimeoutSecondsReturnsExplicitValue(): void
+    {
+        $provider = new ClaudeProvider(
+            new RecordingAIHttpClient(new HttpResponse(200, '{}')),
+            new ApiCredential('anthropic', 'platform', 'sk-anthropic-1234'),
+        );
+
+        self::assertSame(60.0, $provider->getTimeoutSeconds());
+    }
 }
