@@ -894,7 +894,7 @@ final class SlideBuilderTest extends TestCase
         $html = $this->builder->buildSlide($slide);
 
         self::assertStringNotContainsString('<img', $html);
-        self::assertStringNotContainsString('<b ', $html);
+        self::assertStringNotContainsString('<b>', $html);
         self::assertStringNotContainsString('<script>', $html);
         self::assertStringNotContainsString('onclick', $html);
         self::assertStringContainsString('Clean Title', $html);

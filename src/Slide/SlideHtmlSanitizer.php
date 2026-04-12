@@ -61,14 +61,13 @@ final class SlideHtmlSanitizer
 
     /**
      * Remove every HTML attribute from every tag while keeping the tag itself.
-     * This runs before the whitelist strip so that even tags that will later be removed
-     * cannot carry dangerous attributes if they survive through edge-cases.
+     * Self-closing tags (e.g. <br />) are normalised to <br> since strip_tags in the
+     * next step handles them independently of the trailing slash.
      */
     private function stripAllAttributes(string $html): string
     {
-        // Match opening tags (with optional attributes) and replace with just the tag name.
-        // Handles self-closing tags as well (e.g. <br />).
-        $result = preg_replace('/<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*(\/?)\s*>/', '<$1$2>', $html);
+        // Match any opening tag (with optional attributes, optional self-closing slash) and keep only the tag name.
+        $result = preg_replace('/<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/', '<$1>', $html);
 
         return $result ?? $html;
     }
