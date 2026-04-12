@@ -601,7 +601,7 @@ JSON);
 
         try {
             $validator->validate(json_encode([
-                'assistant_message' => 'Trop d\'items dans une colonne',
+                'assistant_message' => "Trop d'items dans une colonne",
                 'actions' => [[
                     'action' => 'add_slide',
                     'slide' => [
