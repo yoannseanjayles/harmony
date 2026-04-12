@@ -110,6 +110,20 @@ final class FakeAIHttpClient implements AIHttpClientInterface
             ];
         }
 
+        if ($this->requestsDeckReorderConfirmation($userMessage)) {
+            return [
+                'assistant_message' => 'Je vous propose de reordonner les slides pour mettre la synthese avant l\'introduction. Confirmez-vous ?',
+                'actions' => [[
+                    'action' => 'request_confirmation',
+                    'summary' => 'Reordonner les slides pour placer la synthese en premier.',
+                    'proposed_actions' => [[
+                        'action' => 'reorder_slides',
+                        'slide_ids' => ['slide-2', 'slide-1', 'slide-3'],
+                    ]],
+                ]],
+            ];
+        }
+
         return [
             'assistant_message' => sprintf('Reponse Harmony mock (%s): %s', $providerLabel, $userMessage),
             'actions' => [],
@@ -119,6 +133,12 @@ final class FakeAIHttpClient implements AIHttpClientInterface
     private function requestsDeckGeneration(string $userMessage): bool
     {
         return preg_match('/\b(?:5|cinq)\s+slides?\b/i', $userMessage) === 1;
+    }
+
+    private function requestsDeckReorderConfirmation(string $userMessage): bool
+    {
+        return preg_match('/\b(?:reorganise|reorganiser|reordonne|reordonner|inverse)\b/i', $userMessage) === 1
+            && preg_match('/\bslides?\b/i', $userMessage) === 1;
     }
 
     /**

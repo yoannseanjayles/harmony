@@ -360,6 +360,68 @@ class Project
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function getPendingConfirmation(): ?array
+    {
+        $chatMetadata = $this->chatMetadataFrom($this->getMetadata());
+        $pendingConfirmation = $chatMetadata['pending_confirmation'] ?? null;
+
+        return is_array($pendingConfirmation) ? $pendingConfirmation : null;
+    }
+
+    public function hasPendingConfirmation(): bool
+    {
+        return $this->getPendingConfirmation() !== null;
+    }
+
+    /**
+     * @param array<string, mixed> $pendingConfirmation
+     */
+    public function storePendingConfirmation(array $pendingConfirmation): self
+    {
+        $metadata = $this->getMetadata();
+        $chatMetadata = $this->chatMetadataFrom($metadata);
+        $chatMetadata['pending_confirmation'] = $pendingConfirmation;
+        $metadata['chat'] = $chatMetadata;
+
+        return $this->setMetadata($metadata);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function resolvePendingConfirmation(string $decision): ?array
+    {
+        $metadata = $this->getMetadata();
+        $chatMetadata = $this->chatMetadataFrom($metadata);
+        $pendingConfirmation = is_array($chatMetadata['pending_confirmation'] ?? null) ? $chatMetadata['pending_confirmation'] : null;
+
+        if ($pendingConfirmation === null) {
+            return null;
+        }
+
+        unset($chatMetadata['pending_confirmation']);
+        $chatMetadata['last_confirmation'] = [
+            'decision' => $decision,
+            'summary' => trim((string) ($pendingConfirmation['summary'] ?? '')),
+            'assistant_message' => trim((string) ($pendingConfirmation['assistant_message'] ?? '')),
+            'proposed_actions' => is_array($pendingConfirmation['proposed_actions'] ?? null) ? $pendingConfirmation['proposed_actions'] : [],
+            'resolved_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
+        ];
+
+        if ($chatMetadata === []) {
+            unset($metadata['chat']);
+        } else {
+            $metadata['chat'] = $chatMetadata;
+        }
+
+        $this->setMetadata($metadata);
+
+        return $pendingConfirmation;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toVersionSnapshot(): array
@@ -521,5 +583,17 @@ class Project
         } catch (\Exception) {
             return null;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     *
+     * @return array<string, mixed>
+     */
+    private function chatMetadataFrom(array $metadata): array
+    {
+        $chatMetadata = $metadata['chat'] ?? null;
+
+        return is_array($chatMetadata) ? $chatMetadata : [];
     }
 }
