@@ -1,0 +1,320 @@
+/**
+ * Harmony — Cinematic Default Theme
+ * HRM-F21 — Thème cinématique par défaut (tokens --hm-)
+ *
+ * All visual tokens use the --hm- prefix.
+ * Never apply visual styles via AI-generated inline attributes;
+ * always resolve through these tokens.
+ */
+
+/* ─────────────────────────────────────────────────────────────
+   T169 / T170 / T173 — Design tokens: colors, typography,
+   spacing, radius and slide-specific variables
+   ───────────────────────────────────────────────────────────── */
+:root {
+    /* ── Backgrounds ──────────────────────────────────────── */
+    --hm-bg:                    #0c0c14;
+    --hm-surface:               rgba(240, 238, 255, 0.05);
+    --hm-surface-strong:        rgba(240, 238, 255, 0.08);
+    --hm-surface-muted:         rgba(240, 238, 255, 0.03);
+
+    /* ── Ink (text) ───────────────────────────────────────── */
+    --hm-ink:                   #e8e4ff;
+    --hm-ink-soft:              rgba(232, 228, 255, 0.58);
+
+    /* T173 — Accent: violet (primary) + emerald (secondary) */
+    --hm-accent-primary:        #7c3aed;
+    --hm-accent-primary-deep:   #5b21b6;
+    --hm-accent-secondary:      #10b981;
+    --hm-accent-secondary-deep: #059669;
+
+    /* Canonical accent aliases used across all components */
+    --hm-accent:                var(--hm-accent-primary);
+    --hm-accent-deep:           var(--hm-accent-primary-deep);
+    --hm-accent-soft:           rgba(124, 58, 237, 0.12);
+
+    /* ── Status ───────────────────────────────────────────── */
+    --hm-danger:                #ef4444;
+    --hm-success:               #10b981;
+
+    /* ── Borders & Shadows ────────────────────────────────── */
+    --hm-border:                rgba(124, 58, 237, 0.16);
+    --hm-shadow:                0 24px 70px rgba(0, 0, 0, 0.55);
+
+    /* T170 — Font families */
+    --hm-font-body:             "Inter", "Segoe UI", system-ui, sans-serif;
+    --hm-font-title:            Georgia, "Times New Roman", serif;
+    --hm-font-mono:             "JetBrains Mono", "Fira Code", monospace;
+
+    /* T170 — Font weights */
+    --hm-font-weight-normal:    400;
+    --hm-font-weight-medium:    500;
+    --hm-font-weight-bold:      700;
+
+    /* T170 — Letter spacing */
+    --hm-letter-spacing-label:  0.12em;
+    --hm-letter-spacing-tight:  -0.02em;
+
+    /* T170 — Font size scale */
+    --hm-font-size-label:       0.82rem;
+    --hm-font-size-body:        1rem;
+    --hm-font-size-subheading:  clamp(1.1rem, 1.8vw, 1.4rem);
+    --hm-font-size-heading:     clamp(1.8rem, 3.5vw, 2.8rem);
+    --hm-font-size-title:       clamp(2.4rem, 5vw, 4.2rem);
+    --hm-font-size-stat:        clamp(2rem, 4vw, 3.2rem);
+    --hm-font-size-quote:       clamp(1.6rem, 3.5vw, 2.4rem);
+    --hm-font-size-subtitle:    1.2rem;
+    --hm-font-size-closing:     clamp(1.6rem, 3.5vw, 2.6rem);
+
+    /* T169 — Spacing scale */
+    --hm-space-xs:   4px;
+    --hm-space-sm:   8px;
+    --hm-space-md:   16px;
+    --hm-space-lg:   24px;
+    --hm-space-xl:   40px;
+    --hm-space-2xl:  64px;
+
+    /* T169 — Border-radius scale */
+    --hm-radius-sm:  8px;
+    --hm-radius-md:  16px;
+    --hm-radius-lg:  24px;
+    --hm-radius-xl:  32px;
+    --hm-radius-full: 999px;
+
+    /* ── Slide-level overrides (set per project/theme) ─────── */
+    --hm-slide-bg:              var(--hm-bg);
+    --hm-slide-fg:              var(--hm-ink);
+    --hm-slide-fg-soft:         var(--hm-ink-soft);
+    --hm-slide-padding:         3rem 4rem;
+    --hm-slide-padding-x:       4rem;
+
+    /* Inverted surface tokens used on dark slides */
+    --hm-surface-invert-muted:  rgba(232, 228, 255, 0.06);
+    --hm-surface-invert-border: rgba(232, 228, 255, 0.10);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   T171 — Dark background and radial halos
+   Applied on the slide wrapper so each rendered slide has the
+   cinematic dark background with ambient glow effects.
+   ───────────────────────────────────────────────────────────── */
+.hm-slide {
+    position: relative;
+    background-color: var(--hm-slide-bg);
+}
+
+.hm-slide::before,
+.hm-slide::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Violet halo — top-left */
+.hm-slide::before {
+    top: -15%;
+    left: -10%;
+    width: 55%;
+    height: 55%;
+    background: radial-gradient(
+        circle,
+        rgba(124, 58, 237, 0.18) 0%,
+        transparent 70%
+    );
+    filter: blur(40px);
+}
+
+/* Emerald halo — bottom-right */
+.hm-slide::after {
+    bottom: -15%;
+    right: -10%;
+    width: 50%;
+    height: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(16, 185, 129, 0.12) 0%,
+        transparent 70%
+    );
+    filter: blur(40px);
+}
+
+.hm-slide__inner {
+    position: relative;
+    z-index: 1;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   T172 — Fundamental animations
+   fadeIn | slideUp | phoneIn | float | glint | textIn | linePop
+   ───────────────────────────────────────────────────────────── */
+
+/* fadeIn — gentle opacity entrance */
+@keyframes hm-fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* slideUp — upward movement with fade */
+@keyframes hm-slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(28px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* phoneIn — spring entrance from below (elastic) */
+@keyframes hm-phoneIn {
+    0%   { opacity: 0; transform: translateY(60px) scale(0.92); }
+    60%  { opacity: 1; transform: translateY(-6px) scale(1.01); }
+    80%  { transform: translateY(3px) scale(0.995); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* float — continuous gentle levitation */
+@keyframes hm-float {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-10px); }
+}
+
+/* glint — shimmer / highlight sweep */
+@keyframes hm-glint {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+/* textIn — character-level entrance (letter spacing collapse) */
+@keyframes hm-textIn {
+    from {
+        opacity: 0;
+        letter-spacing: 0.35em;
+    }
+    to {
+        opacity: 1;
+        letter-spacing: inherit;
+    }
+}
+
+/* linePop — horizontal rule / underline expansion */
+@keyframes hm-linePop {
+    from { transform: scaleX(0); transform-origin: left center; }
+    to   { transform: scaleX(1); transform-origin: left center; }
+}
+
+/* Animation utility classes — activation and duration
+   controlled via --hm-anim-duration and --hm-anim-delay */
+:root {
+    --hm-anim-duration:    0.55s;
+    --hm-anim-delay:       0s;
+    --hm-anim-easing:      cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hm-anim-fade-in {
+    animation: hm-fadeIn var(--hm-anim-duration) var(--hm-anim-easing)
+               var(--hm-anim-delay) both;
+}
+
+.hm-anim-slide-up {
+    animation: hm-slideUp var(--hm-anim-duration) var(--hm-anim-easing)
+               var(--hm-anim-delay) both;
+}
+
+.hm-anim-phone-in {
+    animation: hm-phoneIn 0.7s var(--hm-anim-easing)
+               var(--hm-anim-delay) both;
+}
+
+.hm-anim-float {
+    animation: hm-float 4s ease-in-out infinite;
+}
+
+.hm-anim-glint {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.18) 40%,
+        rgba(255, 255, 255, 0.28) 50%,
+        rgba(255, 255, 255, 0.18) 60%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: hm-glint 2.4s linear infinite;
+}
+
+.hm-anim-text-in {
+    animation: hm-textIn var(--hm-anim-duration) var(--hm-anim-easing)
+               var(--hm-anim-delay) both;
+}
+
+.hm-anim-line-pop {
+    animation: hm-linePop var(--hm-anim-duration) var(--hm-anim-easing)
+               var(--hm-anim-delay) both;
+}
+
+/* Reduced-motion: suppress all decorative animations */
+@media (prefers-reduced-motion: reduce) {
+    .hm-anim-fade-in,
+    .hm-anim-slide-up,
+    .hm-anim-phone-in,
+    .hm-anim-float,
+    .hm-anim-text-in,
+    .hm-anim-line-pop {
+        animation: none;
+    }
+
+    .hm-anim-glint {
+        animation: none;
+        background: none;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   T174 — Navigation dots component
+   Used for inter-slide navigation in the presentation view.
+   ───────────────────────────────────────────────────────────── */
+.hm-nav-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--hm-space-sm);
+    padding: var(--hm-space-sm) 0;
+}
+
+.hm-nav-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--hm-radius-full);
+    background: rgba(232, 228, 255, 0.28);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: width 0.3s var(--hm-anim-easing),
+                background 0.3s ease,
+                opacity 0.2s ease;
+    flex-shrink: 0;
+}
+
+.hm-nav-dot:hover {
+    background: rgba(232, 228, 255, 0.55);
+}
+
+.hm-nav-dot--active {
+    width: 24px;
+    background: var(--hm-accent-primary);
+}
+
+.hm-nav-dot--visited {
+    background: rgba(124, 58, 237, 0.45);
+}
+
+/* Accessible focus ring */
+.hm-nav-dot:focus-visible {
+    outline: 2px solid var(--hm-accent-primary);
+    outline-offset: 3px;
+}

@@ -55,8 +55,8 @@
         align-items: center;
         justify-content: center;
         min-height: 100%;
-        background: var(--hm-slide-bg, var(--hm-surface-strong, #fffdf8));
-        color: var(--hm-slide-fg, var(--hm-ink, #173f35));
+        background: var(--hm-slide-bg, #0c0c14);
+        color: var(--hm-slide-fg, #e8e4ff);
         padding: var(--hm-slide-padding, 3rem 4rem);
     }
 
@@ -73,7 +73,7 @@
         font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
         font-size: var(--hm-font-size-heading, clamp(1.8rem, 3.5vw, 2.8rem));
         line-height: 1.1;
-        color: var(--hm-slide-fg, var(--hm-ink, #173f35));
+        color: var(--hm-slide-fg, #e8e4ff);
         text-align: center;
     }
 
@@ -87,7 +87,7 @@
     .hm-comparison__divider {
         width: 1px;
         min-height: 100%;
-        background: var(--hm-surface-muted, #d6cfc3);
+        background: var(--hm-surface-invert-border, rgba(232, 228, 255, 0.10));
         margin: 0 2rem;
         align-self: stretch;
     }
@@ -101,11 +101,11 @@
     }
 
     .hm-comparison__column--left {
-        background: var(--hm-surface-muted, rgba(214, 207, 195, 0.25));
+        background: var(--hm-surface-invert-muted, rgba(232, 228, 255, 0.04));
     }
 
     .hm-comparison__column--right {
-        background: var(--hm-accent-soft, rgba(191, 106, 61, 0.1));
+        background: rgba(124, 58, 237, 0.08);
     }
 
     .hm-comparison__heading {
@@ -113,27 +113,27 @@
         font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
         font-size: var(--hm-font-size-subheading, clamp(1.2rem, 2vw, 1.6rem));
         line-height: 1.2;
-        color: var(--hm-slide-fg, var(--hm-ink, #173f35));
+        color: var(--hm-slide-fg, #e8e4ff);
     }
 
     .hm-comparison__highlight {
         display: inline-block;
         padding: 0.2rem 0.75rem;
         border-radius: 2rem;
-        font-size: var(--hm-font-size-label, 0.8rem);
+        font-size: var(--hm-font-size-label, 0.82rem);
         font-weight: 700;
-        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        font-family: var(--hm-font-body, "Inter", "Segoe UI", sans-serif);
         text-transform: uppercase;
         letter-spacing: 0.06em;
     }
 
     .hm-comparison__highlight--left {
-        background: var(--hm-surface-muted, #d6cfc3);
-        color: var(--hm-slide-fg-soft, var(--hm-ink-soft, #41655d));
+        background: var(--hm-surface-invert-muted, rgba(232, 228, 255, 0.08));
+        color: var(--hm-slide-fg-soft, rgba(232, 228, 255, 0.65));
     }
 
     .hm-comparison__highlight--right {
-        background: var(--hm-accent, #bf6a3d);
+        background: var(--hm-accent-primary, #7c3aed);
         color: #fff;
     }
 
@@ -147,7 +147,7 @@
     .hm-comparison__item {
         font-size: var(--hm-font-size-body, 1rem);
         line-height: 1.55;
-        color: var(--hm-slide-fg-soft, var(--hm-ink-soft, #41655d));
-        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        color: var(--hm-slide-fg-soft, rgba(232, 228, 255, 0.65));
+        font-family: var(--hm-font-body, "Inter", "Segoe UI", sans-serif);
     }
 </style>
