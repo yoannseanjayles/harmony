@@ -25,6 +25,8 @@ parameters:
     # T160 — Slide render cache versioning: increment these when Twig templates or static assets change.
     harmony.slide_cache.template_version: '1'
     harmony.slide_cache.assets_version: ''
+    # HRM-T344 — Configurable AI error-rate alert threshold (0.0–1.0). Default 0.5 = 50 %.
+    harmony.ops.ai_error_rate_threshold: 0.5
 
 services:
     # default configuration for services in *this* file
@@ -103,3 +105,8 @@ services:
     # T220 — The active adapter is resolved at boot time by StorageAdapterFactory.
     App\Storage\StorageAdapterInterface:
         factory: ['@App\Storage\StorageAdapterFactory', 'create']
+
+    # HRM-T344 — OpsLogger: configurable AI error-rate threshold.
+    App\Ops\OpsLogger:
+        arguments:
+            $aiErrorRateThreshold: '%harmony.ops.ai_error_rate_threshold%'
