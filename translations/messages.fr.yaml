@@ -259,3 +259,35 @@ theme.preset.corporate: Corporate
 theme.preset.corporate.description: Tons neutres, typographie sans-serif, animations reduites.
 theme.preset.epure: Epure
 theme.preset.epure.description: Fond clair, typographie minimaliste, animations desactivees.
+
+# T185 / T186 / T187 / T188 / T190 — Theme customization panel
+project.theme.customizer.badge: Personnalisation avancee
+project.theme.customizer.title: Couleurs et typographie
+project.theme.customizer.subtitle: Ajustez les tokens visuels du projet en temps reel. Cliquez sur Appliquer pour sauvegarder.
+project.theme.customizer.section.mode: Mode d'affichage
+project.theme.customizer.section.colors: Couleurs
+project.theme.customizer.section.typography: Typographie
+project.theme.customizer.section.density: Taille et espacement
+project.theme.customizer.mode.dark: Sombre
+project.theme.customizer.mode.light: Clair
+project.theme.token.bg: Fond de page
+project.theme.token.ink: Texte principal
+project.theme.token.accent_primary: Accent primaire
+project.theme.token.accent_secondary: Accent secondaire
+project.theme.token.slide_bg: Fond des slides
+project.theme.token.slide_fg: Texte des slides
+project.theme.token.font_body: Police du corps
+project.theme.token.font_title: Police des titres
+project.theme.token.font_weight_bold: Graisse (gras)
+project.theme.token.font_size_title: Taille du titre principal
+project.theme.token.font_size_subtitle: Taille du sous-titre
+project.theme.token.letter_spacing_label: Espacement label
+project.theme.token.letter_spacing_tight: Espacement titre
+project.theme.token.size.small: Petit
+project.theme.token.size.medium_small: Moyen-petit
+project.theme.token.size.medium: Moyen
+project.theme.token.size.large: Grand
+project.theme.tokens.save: Appliquer les personnalisations
+project.theme.tokens.saving: Sauvegarde en cours...
+project.theme.tokens.flash.saved: Les personnalisations ont ete sauvegardees.
+project.theme.tokens.error.generic: Une erreur est survenue lors de la sauvegarde du theme.

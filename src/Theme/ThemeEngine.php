@@ -5,7 +5,6 @@ namespace App\Theme;
 use App\Entity\Project;
 use App\Entity\Slide;
 use App\Entity\Theme;
-
 /**
  * T181 — ThemeEngine: applies a Theme preset to a project and generates the CSS override block
  * that is injected into each slide's rendered HTML.
@@ -88,6 +87,45 @@ final class ThemeEngine
                 $slide->invalidateRenderCache();
             }
         }
+    }
+
+    /**
+     * T190 / T191 — Merge a validated token patch onto the project's theme config and
+     * invalidate every associated slide's render cache (T191).
+     *
+     * The patch is validated by ThemeTokenValidator before being merged so that only
+     * allow-listed --hm-* tokens with safe values reach the project config.
+     *
+     * The caller is responsible for flushing the EntityManager after this call.
+     *
+     * @param array<string, mixed> $tokenPatch Raw token patch from the request.
+     * @param list<Slide>          $slides     All slides belonging to $project.
+     *
+     * @return array<string, string> The validated subset that was actually merged.
+     */
+    public function mergeTokenOverrides(
+        array $tokenPatch,
+        Project $project,
+        array $slides,
+        ThemeTokenValidator $validator,
+    ): array {
+        $validated = $validator->validatePatch($tokenPatch);
+
+        if ($validated === []) {
+            return [];
+        }
+
+        $existing = $project->getThemeConfig();
+        $merged = array_merge($existing, $validated);
+        $project->setThemeConfig($merged);
+
+        foreach ($slides as $slide) {
+            if ($slide instanceof Slide) {
+                $slide->invalidateRenderCache();
+            }
+        }
+
+        return $validated;
     }
 
     /**
