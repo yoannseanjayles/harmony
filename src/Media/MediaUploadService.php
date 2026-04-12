@@ -4,12 +4,14 @@ namespace App\Media;
 
 use App\Entity\MediaAsset;
 use App\Entity\Project;
+use App\Media\Message\GenerateImageVariantsMessage;
 use App\Storage\StorageAdapterInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * T210 / T211 / T212 / T214 / T215 — Handles media upload validation and persistence.
+ * T210 / T211 / T212 / T214 / T215 / T230 — Handles media upload validation and persistence.
  *
  * Responsibilities:
  *  - Validate MIME type against a configurable whitelist (T211)
@@ -18,6 +20,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  *  - Rename the file using a UUID to avoid collisions and path traversal (T214)
  *  - Persist a MediaAsset entity and return the asset ID + preview URL (T215)
  *  - Delegate physical storage to the active StorageAdapterInterface (T217–T220)
+ *  - Dispatch an async message to generate image variants after upload (T230)
  */
 final class MediaUploadService
 {
@@ -41,6 +44,7 @@ final class MediaUploadService
         private readonly EntityManagerInterface $entityManager,
         private readonly AntivirusScannerInterface $antivirusScanner,
         private readonly StorageAdapterInterface $storageAdapter,
+        private readonly MessageBusInterface $messageBus,
         private readonly int $maxUploadSizeBytes,
     ) {
     }
@@ -77,6 +81,9 @@ final class MediaUploadService
 
         $this->entityManager->persist($asset);
         $this->entityManager->flush();
+
+        // T230 — Dispatch variant generation asynchronously so the upload response is not blocked.
+        $this->messageBus->dispatch(new GenerateImageVariantsMessage((int) $asset->getId()));
 
         return [
             'id'         => (int) $asset->getId(),
