@@ -371,6 +371,7 @@
                 } %}
 
                 <div class="hm-actions">
+                    <a class="hm-link" href="{{ path('app_export_html_download', { id: project.id }) }}">{{ 'project.export.html'|trans }}</a>
                     <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
                         <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
