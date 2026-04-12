@@ -25,6 +25,11 @@ parameters:
     # T160 — Slide render cache versioning: increment these when Twig templates or static assets change.
     harmony.slide_cache.template_version: '1'
     harmony.slide_cache.assets_version: ''
+    # HRM-T258 — Gotenberg PDF export service configuration.
+    harmony.gotenberg.url: '%env(GOTENBERG_URL)%'
+    harmony.gotenberg.timeout_seconds: '%env(float:GOTENBERG_TIMEOUT_SECONDS)%'
+    # HRM-T262 — Path to the Harmony CSS file for HTML export embedding.
+    harmony.export.harmony_css_path: '%kernel.project_dir%/public/theme/harmony.css'
 
 services:
     # default configuration for services in *this* file
@@ -103,3 +108,18 @@ services:
     # T220 — The active adapter is resolved at boot time by StorageAdapterFactory.
     App\Storage\StorageAdapterInterface:
         factory: ['@App\Storage\StorageAdapterFactory', 'create']
+
+    # HRM-T258 / HRM-T259 — Gotenberg PDF client.
+    App\Export\NativeGotenbergClient:
+        arguments:
+            $gotenbergUrl: '%harmony.gotenberg.url%'
+            $timeoutSeconds: '%harmony.gotenberg.timeout_seconds%'
+
+    # HRM-T258 — Wire the interface to the native implementation.
+    App\Export\GotenbergClientInterface:
+        alias: App\Export\NativeGotenbergClient
+
+    # HRM-T259 — ExportService: assembles slide HTML and inlines media/CSS for export.
+    App\Export\ExportService:
+        arguments:
+            $harmonyCssPath: '%harmony.export.harmony_css_path%'

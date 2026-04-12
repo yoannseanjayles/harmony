@@ -1,0 +1,91 @@
+{#
+  Export template — self-contained, single-file HTML presentation.
+
+  Variables:
+    project         (Project)                 — the exported project
+    renderedSlides  (string[])                — pre-rendered slide HTML snippets
+    themeStyle      (string)                  — <style>:root{...}</style> theme block
+    harmonyCss      (string)                  — full harmony.css content for inline embedding
+    mediaBase64Map  (array<string, string>)   — signedUrl → data URI for media assets
+#}
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.title|e }}</title>
+    <style>
+        /* ── Harmony CSS ──────────────────────────────────────────── */
+        {{ harmonyCss|raw }}
+
+        /* ── Export layout ────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--hm-bg, #0c0c14);
+            color: var(--hm-ink, #e8e4ff);
+            font-family: var(--hm-font-body, "Inter", "Segoe UI", sans-serif);
+        }
+
+        .hm-export-deck {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .hm-export-slide-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        .hm-export-slide-wrapper > * {
+            flex: 1;
+        }
+
+        /* ── Print / PDF layout ───────────────────────────────────── */
+        @media print {
+            .hm-export-slide-wrapper {
+                height: 100vh;
+                min-height: 100vh;
+                page-break-after: always;
+                break-after: page;
+                overflow: hidden;
+            }
+        }
+
+        @page {
+            size: 16in 9in;
+            margin: 0;
+        }
+    </style>
+    {{ themeStyle|raw }}
+</head>
+<body>
+    <div class="hm-export-deck" data-export-deck>
+        {% for slideHtml in renderedSlides %}
+            <div class="hm-export-slide-wrapper">
+                {#
+                  Replace signed media URLs with inline base64 data URIs
+                  so the exported file is fully self-contained.
+                #}
+                {% set resolvedHtml = slideHtml %}
+                {% for signedUrl, dataUri in mediaBase64Map %}
+                    {% set resolvedHtml = resolvedHtml|replace({(signedUrl): dataUri}) %}
+                {% endfor %}
+                {{ resolvedHtml|raw }}
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
