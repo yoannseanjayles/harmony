@@ -14,7 +14,9 @@
         {% if items is defined and items is not empty %}
             <ul class="hm-slide__list">
                 {% for item in items %}
-                    <li class="hm-slide__list-item">{{ item }}</li>
+                    {% if item is not empty %}
+                        <li class="hm-slide__list-item">{{ item }}</li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}

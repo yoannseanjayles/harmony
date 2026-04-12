@@ -188,6 +188,20 @@ final class SlideBuilderTest extends TestCase
         self::assertStringNotContainsString('<b>Click', $html);
     }
 
+    public function testClosingSlideRejectsJavascriptProtocolUrls(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_CLOSING, [
+            'message' => 'Done.',
+            'cta_label' => 'Click',
+            'cta_url' => 'javascript:alert(1)',
+        ]);
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertStringNotContainsString('javascript:', $html);
+        self::assertStringNotContainsString('href=', $html);
+    }
+
     // ── fallback ──────────────────────────────────────────────────────────────
 
     public function testUnknownTypeRendersContentTemplate(): void

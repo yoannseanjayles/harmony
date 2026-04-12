@@ -83,10 +83,25 @@ final class SlideBuilder
      */
     private function buildClosingContext(array $content): array
     {
+        $ctaUrl = trim((string) ($content['cta_url'] ?? ''));
+
         return [
             'message' => trim((string) ($content['message'] ?? '')),
             'cta_label' => trim((string) ($content['cta_label'] ?? '')),
-            'cta_url' => trim((string) ($content['cta_url'] ?? '')),
+            'cta_url' => $this->sanitizeUrl($ctaUrl),
         ];
+    }
+
+    private function sanitizeUrl(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
+        return '';
     }
 }
