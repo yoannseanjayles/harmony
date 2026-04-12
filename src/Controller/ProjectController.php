@@ -11,6 +11,7 @@ use App\Project\ProjectDuplicator;
 use App\Project\ProjectShareLinkGenerator;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
+use App\Repository\MediaAssetRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
 use App\Repository\SlideRepository;
@@ -98,13 +99,15 @@ final class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_project_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): Response
+    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, MediaAssetRepository $mediaAssetRepository, SlideRepository $slideRepository): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
 
         return $this->render('project/show.html.twig', [
-            'project' => $project,
+            'project'     => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+            'mediaAssets' => $mediaAssetRepository->findByProject($project),
+            'slides'      => $slideRepository->findByProjectOrdered($project),
         ]);
     }
 

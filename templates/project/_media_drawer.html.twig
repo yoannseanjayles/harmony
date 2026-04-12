@@ -1,0 +1,728 @@
+{#
+  T241 / T242 / T243 / T244 / T245 / T246 / T247 — Media management drawer.
+
+  - T241 — Lists all media assets for the project with filename, size and slide refs.
+  - T242 — Allows replacing any asset's file with a new upload (POST /media/{id}/replace).
+  - T243 — Integrates Cropper.js for interactive image cropping before replacement.
+  - T244 — Provides a colour overlay picker + opacity slider (CSS overlay layer).
+  - T245 — Image opacity slider with real-time canvas preview.
+  - T246 — Persists overlay & opacity settings in the targeted slide's contentJson
+           via POST /media/slide/{slideId}/overlay.
+  - T247 — After any modification the corresponding preview card's content is updated.
+
+  Variables expected:
+    project      — App\Entity\Project
+    mediaAssets  — list<App\Entity\MediaAsset>
+    slides       — list<App\Entity\Slide>
+#}
+{% if not project.isArchived %}
+
+<section
+    class="hm-media-drawer"
+    data-media-drawer
+    data-project-id="{{ project.id }}"
+    data-replace-url-template="/media/__ASSET_ID__/replace"
+    data-overlay-url-template="/media/slide/__SLIDE_ID__/overlay"
+    data-csrf-token="{{ csrf_token('media_drawer_' ~ project.id) }}"
+    data-label-uploading="{{ 'project.media.replace.uploading'|trans }}"
+    data-label-replace="{{ 'project.media.replace.button'|trans }}"
+    data-label-saving="{{ 'project.media.overlay.saving'|trans }}"
+    data-label-save="{{ 'project.media.overlay.save'|trans }}"
+    data-error-replace="{{ 'project.media.replace.error'|trans }}"
+    data-error-overlay="{{ 'project.media.overlay.error'|trans }}"
+    data-error-no-slide="{{ 'project.media.overlay.no_slide'|trans }}"
+>
+    <header class="hm-media-drawer__header">
+        <span class="hm-badge">{{ 'project.media.badge'|trans }}</span>
+        <h2 class="hm-media-drawer__title">{{ 'project.media.title'|trans }}</h2>
+        <p class="hm-muted">{{ 'project.media.subtitle'|trans }}</p>
+    </header>
+
+    {# ── T241 — Asset list ────────────────────────────────────────────────── #}
+    {% if mediaAssets is empty %}
+        <div class="hm-media-empty">
+            <strong>{{ 'project.media.empty_title'|trans }}</strong>
+            <p class="hm-muted">{{ 'project.media.empty_copy'|trans }}</p>
+        </div>
+    {% else %}
+        <p class="hm-muted hm-media-count">{{ 'project.media.asset_count'|trans({ '%count%': mediaAssets|length }) }}</p>
+
+        <div class="hm-media-list" data-media-list>
+            {% for asset in mediaAssets %}
+            <article
+                class="hm-media-card"
+                data-media-card
+                data-asset-id="{{ asset.id }}"
+            >
+                {# Thumbnail preview #}
+                <div class="hm-media-card__thumb">
+                    <img
+                        class="hm-media-card__img"
+                        data-asset-preview="{{ asset.id }}"
+                        src="{{ asset.storageKey }}"
+                        alt="{{ asset.filename }}"
+                        loading="lazy"
+                    >
+                </div>
+
+                <div class="hm-media-card__body">
+                    <p class="hm-media-card__filename">{{ asset.filename }}</p>
+                    <p class="hm-muted hm-media-card__meta">
+                        {{ (asset.size / 1024)|round(1) }} KiB
+                        {% if asset.slideRefs is not empty %}
+                            · {{ 'project.media.label.slide_refs'|trans({ '%count%': asset.slideRefs|length }) }}
+                        {% endif %}
+                    </p>
+
+                    {# ── T242 — Replace image ──────────────────────────────────── #}
+                    <div class="hm-media-replace" data-replace-zone>
+                        <label class="hm-media-replace__label">
+                            {{ 'project.media.replace.label'|trans }}
+                            <input
+                                class="hm-media-replace__input"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                data-replace-input="{{ asset.id }}"
+                                aria-label="{{ 'project.media.replace.button'|trans }} {{ asset.filename }}"
+                            >
+                        </label>
+                        <button
+                            class="hm-button hm-button--sm"
+                            type="button"
+                            data-replace-btn="{{ asset.id }}"
+                        >{{ 'project.media.replace.button'|trans }}</button>
+                        <div class="hm-alert hm-alert--danger" data-replace-error="{{ asset.id }}" hidden></div>
+                    </div>
+
+                    {# ── T243 — Crop controls ──────────────────────────────────── #}
+                    <div class="hm-media-crop" data-crop-zone="{{ asset.id }}" hidden>
+                        <p class="hm-theme-section__label">{{ 'project.media.crop.title'|trans }}</p>
+                        <div class="hm-media-crop__canvas-wrap">
+                            <img
+                                class="hm-media-crop__source"
+                                data-crop-source="{{ asset.id }}"
+                                src=""
+                                alt="{{ asset.filename }}"
+                            >
+                        </div>
+                        <div class="hm-media-card__actions">
+                            <button class="hm-button hm-button--sm" type="button" data-crop-apply="{{ asset.id }}">{{ 'project.media.crop.apply'|trans }}</button>
+                            <button class="hm-button hm-button--sm hm-button--ghost" type="button" data-crop-cancel="{{ asset.id }}">{{ 'project.media.crop.cancel'|trans }}</button>
+                        </div>
+                    </div>
+                </div>
+
+                {# ── T244 / T245 / T246 — Overlay & opacity controls ──────── #}
+                {# Pre-compute the saved overlay settings for this asset across all slides. #}
+                {% set assetOverlay = {} %}
+                {% for slide in slides %}
+                    {% set od = slide.content['_mediaOverlay'] ?? {} %}
+                    {% if od is not empty and (od['assetId'] ?? 0) == asset.id %}
+                        {% set assetOverlay = od %}
+                    {% endif %}
+                {% endfor %}
+                <div class="hm-media-overlay" data-overlay-zone="{{ asset.id }}">
+                    <h3 class="hm-theme-section__label">{{ 'project.media.overlay.title'|trans }}</h3>
+
+                    {# Slide selector (T246 — persisted per slide) #}
+                    <div class="hm-theme-select-field">
+                        <label class="hm-theme-color-field__label" for="overlay-slide-{{ asset.id }}">
+                            {{ 'project.media.overlay.slide_label'|trans }}
+                        </label>
+                        <select
+                            id="overlay-slide-{{ asset.id }}"
+                            class="hm-theme-select"
+                            data-overlay-slide="{{ asset.id }}"
+                        >
+                            <option value="">{{ 'project.media.overlay.slide_placeholder'|trans }}</option>
+                            {% for slide in slides %}
+                                {% set overlayData = slide.content['_mediaOverlay'] ?? {} %}
+                                <option
+                                    value="{{ slide.id }}"
+                                    {% if (overlayData['assetId'] ?? 0) == asset.id %}selected{% endif %}
+                                >{{ 'project.preview.slide_badge'|trans({ '%number%': loop.index }) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# T244 — Colour overlay #}
+                    <div class="hm-media-overlay__row">
+                        <label class="hm-theme-color-field">
+                            <span class="hm-theme-color-field__label">{{ 'project.media.overlay.section.color'|trans }}</span>
+                            <input
+                                class="hm-theme-color-input"
+                                type="color"
+                                data-overlay-color="{{ asset.id }}"
+                                value="{{ assetOverlay['color'] ?? '#000000' }}"
+                            >
+                        </label>
+                        <label class="hm-theme-color-field">
+                            <span class="hm-theme-color-field__label">{{ 'project.media.overlay.section.color_opacity'|trans }}</span>
+                            <input
+                                class="hm-theme-spacing-input"
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="1"
+                                data-overlay-color-opacity="{{ asset.id }}"
+                                value="{{ assetOverlay['colorOpacity'] ?? 0 }}"
+                            >
+                            <span class="hm-anim-slider-labels" data-overlay-color-opacity-val="{{ asset.id }}">{{ assetOverlay['colorOpacity'] ?? 0 }}%</span>
+                        </label>
+                    </div>
+
+                    {# T245 — Image opacity slider #}
+                    <label class="hm-theme-color-field">
+                        <span class="hm-theme-color-field__label">{{ 'project.media.overlay.section.img_opacity'|trans }}</span>
+                        <input
+                            class="hm-theme-spacing-input"
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="1"
+                            data-overlay-img-opacity="{{ asset.id }}"
+                            value="{{ assetOverlay['imgOpacity'] ?? 100 }}"
+                        >
+                        <span class="hm-anim-slider-labels" data-overlay-img-opacity-val="{{ asset.id }}">{{ assetOverlay['imgOpacity'] ?? 100 }}%</span>
+                    </label>
+
+                    {# Live preview of the overlay effect #}
+                    <div class="hm-media-overlay__preview-wrap">
+                        <img
+                            class="hm-media-overlay__preview-img"
+                            data-overlay-preview-img="{{ asset.id }}"
+                            src="{{ asset.storageKey }}"
+                            alt="{{ asset.filename }}"
+                        >
+                        <div
+                            class="hm-media-overlay__color-layer"
+                            data-overlay-color-layer="{{ asset.id }}"
+                        ></div>
+                    </div>
+
+                    <div class="hm-alert hm-alert--danger" data-overlay-error="{{ asset.id }}" hidden></div>
+
+                    {# T246 — Save button #}
+                    <div class="hm-theme-customizer__actions">
+                        <button
+                            class="hm-button hm-button--sm"
+                            type="button"
+                            data-overlay-save="{{ asset.id }}"
+                        >{{ 'project.media.overlay.save'|trans }}</button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+
+<style>
+    .hm-media-drawer {
+        padding: 24px;
+        border-radius: 26px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-media-drawer__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-media-drawer__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.4rem, 2vw, 1.8rem);
+    }
+
+    .hm-media-count {
+        margin-bottom: 14px;
+        font-size: 0.85rem;
+    }
+
+    .hm-media-empty {
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px dashed var(--hm-border);
+    }
+
+    .hm-media-empty strong {
+        display: block;
+        margin-bottom: 6px;
+        font-family: var(--hm-font-title);
+    }
+
+    .hm-media-list {
+        display: grid;
+        gap: 18px;
+    }
+
+    .hm-media-card {
+        padding: 18px;
+        border-radius: 18px;
+        border: 1px solid var(--hm-border);
+        background: var(--hm-surface-strong);
+        display: grid;
+        gap: 14px;
+    }
+
+    .hm-media-card__thumb {
+        width: 100%;
+        max-height: 160px;
+        overflow: hidden;
+        border-radius: 12px;
+        background: var(--hm-surface);
+    }
+
+    .hm-media-card__img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .hm-media-card__filename {
+        margin: 0 0 4px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        word-break: break-all;
+    }
+
+    .hm-media-card__meta {
+        font-size: 0.80rem;
+        margin: 0 0 10px;
+    }
+
+    .hm-media-card__actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+
+    .hm-media-replace {
+        display: grid;
+        gap: 8px;
+    }
+
+    .hm-media-replace__label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--hm-ink-soft);
+        cursor: pointer;
+    }
+
+    .hm-media-replace__input {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.82rem;
+    }
+
+    .hm-media-crop {
+        display: grid;
+        gap: 10px;
+    }
+
+    .hm-media-crop__canvas-wrap {
+        overflow: hidden;
+        border-radius: 10px;
+        max-height: 320px;
+    }
+
+    .hm-media-crop__source {
+        display: block;
+        max-width: 100%;
+    }
+
+    .hm-media-overlay {
+        display: grid;
+        gap: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--hm-border);
+    }
+
+    .hm-media-overlay__row {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .hm-media-overlay__preview-wrap {
+        position: relative;
+        width: 100%;
+        max-height: 140px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .hm-media-overlay__preview-img {
+        display: block;
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+    }
+
+    .hm-media-overlay__color-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .hm-button--sm {
+        padding: 7px 14px;
+        font-size: 0.84rem;
+    }
+
+    .hm-button--ghost {
+        background: transparent;
+        border-color: var(--hm-border);
+        color: var(--hm-ink-soft);
+    }
+</style>
+
+{# T243 — Load Cropper.js from CDN #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js" crossorigin="anonymous"></script>
+
+<script>
+    (() => {
+        const drawer = document.querySelector('[data-media-drawer]');
+        if (!drawer) return;
+
+        const projectId          = drawer.dataset.projectId;
+        const replaceUrlTpl      = drawer.dataset.replaceUrlTemplate;
+        const overlayUrlTpl      = drawer.dataset.overlayUrlTemplate;
+        const csrfToken          = drawer.dataset.csrfToken;
+        const labelUploading     = drawer.dataset.labelUploading;
+        const labelReplace       = drawer.dataset.labelReplace;
+        const labelSaving        = drawer.dataset.labelSaving;
+        const labelSave          = drawer.dataset.labelSave;
+        const errorReplaceGeneric = drawer.dataset.errorReplace;
+        const errorOverlayGeneric = drawer.dataset.errorOverlay;
+        const errorNoSlide       = drawer.dataset.errorNoSlide;
+
+        /** Map of active Cropper instances keyed by asset ID. */
+        const croppers = {};
+
+        // ── Initialise signed preview URLs on load ────────────────────────────
+        // The src attributes currently hold the storageKey; fetch a real signed URL.
+        drawer.querySelectorAll('[data-asset-preview]').forEach(async (img) => {
+            const assetId = img.dataset.assetPreview;
+            try {
+                const resp = await fetch(`/media/${assetId}/url`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    img.src = data.signedUrl;
+                    // Also update the overlay preview image.
+                    const previewImg = drawer.querySelector(`[data-overlay-preview-img="${assetId}"]`);
+                    if (previewImg) previewImg.src = data.signedUrl;
+                    // Update crop source image.
+                    const cropSrc = drawer.querySelector(`[data-crop-source="${assetId}"]`);
+                    if (cropSrc) cropSrc.src = data.signedUrl;
+                }
+            } catch (_) { /* silently ignore; broken image shown */ }
+        });
+
+        // ── Initialise slider value labels ───────────────────────────────────
+        drawer.querySelectorAll('[data-overlay-color-opacity-val]').forEach((label) => {
+            const assetId = label.dataset.overlayColorOpacityVal;
+            const input   = drawer.querySelector(`[data-overlay-color-opacity="${assetId}"]`);
+            if (input) label.textContent = input.value + '%';
+        });
+        drawer.querySelectorAll('[data-overlay-img-opacity-val]').forEach((label) => {
+            const assetId = label.dataset.overlayImgOpacityVal;
+            const input   = drawer.querySelector(`[data-overlay-img-opacity="${assetId}"]`);
+            if (input) label.textContent = input.value + '%';
+        });
+
+        // ── T242 — Replace image ──────────────────────────────────────────────
+        drawer.querySelectorAll('[data-replace-btn]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const assetId  = btn.dataset.replaceBtn;
+                const fileInput = drawer.querySelector(`[data-replace-input="${assetId}"]`);
+                const errorBox  = drawer.querySelector(`[data-replace-error="${assetId}"]`);
+
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    showError(errorBox, errorReplaceGeneric);
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const originalLabel = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = labelUploading;
+                hideError(errorBox);
+
+                try {
+                    const formData = new FormData();
+                    formData.set('file', file);
+
+                    const url      = replaceUrlTpl.replace('__ASSET_ID__', assetId);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || errorReplaceGeneric);
+                    }
+
+                    // T247 — Update preview images with the new signed URL.
+                    updateAssetPreviews(assetId, data.previewUrl);
+
+                    // T243 — Show the cropper with the new image.
+                    showCropper(assetId, data.previewUrl);
+                } catch (err) {
+                    showError(errorBox, err.message || errorReplaceGeneric);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = originalLabel;
+                }
+            });
+        });
+
+        // ── T243 — Cropper.js integration ─────────────────────────────────────
+        const showCropper = (assetId, imageUrl) => {
+            const cropZone   = drawer.querySelector(`[data-crop-zone="${assetId}"]`);
+            const cropSource = drawer.querySelector(`[data-crop-source="${assetId}"]`);
+            if (!cropZone || !cropSource) return;
+
+            // Destroy any previous Cropper instance for this asset.
+            if (croppers[assetId]) {
+                croppers[assetId].destroy();
+                delete croppers[assetId];
+            }
+
+            cropSource.src = imageUrl;
+            cropZone.hidden = false;
+
+            // Initialise Cropper after the image loads.
+            cropSource.onload = () => {
+                if (typeof Cropper !== 'undefined') {
+                    croppers[assetId] = new Cropper(cropSource, {
+                        aspectRatio: NaN,
+                        viewMode: 1,
+                        autoCropArea: 1,
+                    });
+                }
+            };
+        };
+
+        drawer.querySelectorAll('[data-crop-apply]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const assetId = btn.dataset.cropApply;
+                const cropper = croppers[assetId];
+                if (!cropper) return;
+
+                const canvas   = cropper.getCroppedCanvas();
+                const cropZone = drawer.querySelector(`[data-crop-zone="${assetId}"]`);
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) return;
+
+                    const errorBox = drawer.querySelector(`[data-replace-error="${assetId}"]`);
+                    hideError(errorBox);
+                    btn.disabled = true;
+
+                    try {
+                        const formData = new FormData();
+                        formData.set('file', blob, 'crop.jpg');
+
+                        const url      = replaceUrlTpl.replace('__ASSET_ID__', assetId);
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        });
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.error || errorReplaceGeneric);
+                        }
+
+                        updateAssetPreviews(assetId, data.previewUrl);
+                    } catch (err) {
+                        showError(errorBox, err.message || errorReplaceGeneric);
+                    } finally {
+                        btn.disabled = false;
+                        cropper.destroy();
+                        delete croppers[assetId];
+                        if (cropZone) cropZone.hidden = true;
+                    }
+                }, 'image/jpeg', 0.92);
+            });
+        });
+
+        drawer.querySelectorAll('[data-crop-cancel]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const assetId = btn.dataset.cropCancel;
+                const cropper = croppers[assetId];
+                if (cropper) {
+                    cropper.destroy();
+                    delete croppers[assetId];
+                }
+                const cropZone = drawer.querySelector(`[data-crop-zone="${assetId}"]`);
+                if (cropZone) cropZone.hidden = true;
+            });
+        });
+
+        // ── T244 / T245 — Real-time overlay preview ───────────────────────────
+        drawer.querySelectorAll('[data-overlay-color]').forEach((input) => {
+            input.addEventListener('input', () => applyOverlayPreview(input.dataset.overlayColor));
+        });
+
+        drawer.querySelectorAll('[data-overlay-color-opacity]').forEach((input) => {
+            input.addEventListener('input', () => {
+                const assetId = input.dataset.overlayColorOpacity;
+                const label   = drawer.querySelector(`[data-overlay-color-opacity-val="${assetId}"]`);
+                if (label) label.textContent = input.value + '%';
+                applyOverlayPreview(assetId);
+            });
+        });
+
+        drawer.querySelectorAll('[data-overlay-img-opacity]').forEach((input) => {
+            input.addEventListener('input', () => {
+                const assetId = input.dataset.overlayImgOpacity;
+                const label   = drawer.querySelector(`[data-overlay-img-opacity-val="${assetId}"]`);
+                if (label) label.textContent = input.value + '%';
+                applyOverlayPreview(assetId);
+            });
+        });
+
+        const applyOverlayPreview = (assetId) => {
+            const colorInput   = drawer.querySelector(`[data-overlay-color="${assetId}"]`);
+            const colorOpInput = drawer.querySelector(`[data-overlay-color-opacity="${assetId}"]`);
+            const imgOpInput   = drawer.querySelector(`[data-overlay-img-opacity="${assetId}"]`);
+            const previewImg   = drawer.querySelector(`[data-overlay-preview-img="${assetId}"]`);
+            const colorLayer   = drawer.querySelector(`[data-overlay-color-layer="${assetId}"]`);
+
+            if (!previewImg || !colorLayer) return;
+
+            const color        = colorInput ? colorInput.value : '#000000';
+            const colorOpacity = colorOpInput ? parseInt(colorOpInput.value, 10) / 100 : 0;
+            const imgOpacity   = imgOpInput  ? parseInt(imgOpInput.value, 10)  / 100 : 1;
+
+            previewImg.style.opacity = imgOpacity;
+
+            if (colorOpacity > 0) {
+                const [r, g, b] = hexToRgb(color);
+                colorLayer.style.backgroundColor = `rgba(${r},${g},${b},${colorOpacity})`;
+            } else {
+                colorLayer.style.backgroundColor = 'transparent';
+            }
+        };
+
+        // ── T246 — Persist overlay settings ──────────────────────────────────
+        drawer.querySelectorAll('[data-overlay-save]').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const assetId = btn.dataset.overlaySave;
+                const errorBox = drawer.querySelector(`[data-overlay-error="${assetId}"]`);
+
+                const slideSelect  = drawer.querySelector(`[data-overlay-slide="${assetId}"]`);
+                const slideId      = slideSelect ? slideSelect.value : '';
+
+                if (!slideId) {
+                    showError(errorBox, errorNoSlide);
+                    return;
+                }
+
+                const colorInput   = drawer.querySelector(`[data-overlay-color="${assetId}"]`);
+                const colorOpInput = drawer.querySelector(`[data-overlay-color-opacity="${assetId}"]`);
+                const imgOpInput   = drawer.querySelector(`[data-overlay-img-opacity="${assetId}"]`);
+
+                const originalLabel = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = labelSaving;
+                hideError(errorBox);
+
+                try {
+                    const formData = new FormData();
+                    formData.set('asset_id', assetId);
+                    formData.set('color',         colorInput   ? colorInput.value   : '');
+                    formData.set('color_opacity', colorOpInput ? colorOpInput.value : '0');
+                    formData.set('img_opacity',   imgOpInput   ? imgOpInput.value   : '100');
+
+                    const url      = overlayUrlTpl.replace('__SLIDE_ID__', slideId);
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || errorOverlayGeneric);
+                    }
+
+                    // T247 — Trigger a visual hint on the preview card for this slide.
+                    refreshSlidePreviewCard(slideId);
+                } catch (err) {
+                    showError(errorBox, err.message || errorOverlayGeneric);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = originalLabel;
+                }
+            });
+        });
+
+        // ── T247 — Update slide preview card after media modification ─────────
+        const updateAssetPreviews = (assetId, newUrl) => {
+            drawer.querySelectorAll(`[data-asset-preview="${assetId}"]`).forEach((img) => {
+                img.src = newUrl;
+            });
+            const previewImg = drawer.querySelector(`[data-overlay-preview-img="${assetId}"]`);
+            if (previewImg) previewImg.src = newUrl;
+            const cropSrc = drawer.querySelector(`[data-crop-source="${assetId}"]`);
+            if (cropSrc) cropSrc.src = newUrl;
+        };
+
+        const refreshSlidePreviewCard = (slideId) => {
+            const card = document.querySelector(`[data-preview-slide-id="${slideId}"]`);
+            if (!card) return;
+            // Add a brief visual highlight to signal the update.
+            card.classList.add('hm-preview-card--updated');
+            setTimeout(() => card.classList.remove('hm-preview-card--updated'), 1800);
+        };
+
+        // ── Utility helpers ───────────────────────────────────────────────────
+        const showError = (el, msg) => {
+            if (!el) return;
+            el.textContent = msg;
+            el.hidden = false;
+        };
+
+        const hideError = (el) => {
+            if (!el) return;
+            el.textContent = '';
+            el.hidden = true;
+        };
+
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result
+                ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+                : [0, 0, 0];
+        };
+
+        // Apply initial preview state for all assets on load.
+        drawer.querySelectorAll('[data-media-card]').forEach((card) => {
+            const assetId = card.dataset.assetId;
+            applyOverlayPreview(assetId);
+        });
+    })();
+</script>
+
+<style>
+    /* T247 — flash highlight on preview card after overlay save */
+    .hm-preview-card--updated {
+        outline: 2px solid var(--hm-accent-primary);
+        transition: outline 0.4s ease;
+    }
+</style>
+
+{% endif %}
