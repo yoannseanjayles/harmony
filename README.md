@@ -195,6 +195,54 @@ $this->responseValidator->validate($llmOutput); // JSON Schema strict
 
 ---
 
+## 🖨️ Export Engine — Gotenberg (HRM-F32)
+
+Harmony délègue la conversion HTML → PDF à **Gotenberg**, un service headless Chromium externalisé.
+
+### Architecture
+
+| Route | Résultat |
+|-------|---------|
+| `GET /export/{id}/html` | Téléchargement HTML single-file (assets en base64) |
+| `GET /export/{id}/pdf` | Téléchargement PDF via Gotenberg |
+
+- **ExportService** assemble les slides via SlideBuilder, injecte le CSS et les tokens thème, inline les médias en base64.
+- **NativeGotenbergClient** envoie le HTML via `multipart/form-data` à `POST /forms/chromium/convert/html`.
+- En cas de **timeout** ou d'**indisponibilité** Gotenberg, l'endpoint retourne HTTP 503 avec un message clair et l'export est comptabilisé comme échec dans les métriques KPI.
+- Chaque job PDF est journalisé (`pdf_export_success` / `pdf_export_timeout`) avec durée, statut et taille (canal `ai`).
+
+### Variables d'environnement
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `GOTENBERG_URL` | URL du service Gotenberg | `http://localhost:3000` |
+| `GOTENBERG_TIMEOUT_SECONDS` | Timeout HTTP en secondes | `30` |
+
+### Configuration docker-compose
+
+Gotenberg est inclus dans `compose.yaml` :
+
+```yaml
+gotenberg:
+  image: gotenberg/gotenberg:8
+  ports:
+    - "3000:3000"
+```
+
+Lancer avec :
+
+```bash
+docker compose up -d gotenberg
+```
+
+Puis dans `.env.local` :
+
+```bash
+GOTENBERG_URL=http://localhost:3000
+```
+
+---
+
 ## 🗄️ Stockage des assets — Configuration S3 (HRM-F27)
 
 Harmony supporte deux backends de stockage, sélectionnés via `APP_STORAGE_DRIVER` :
