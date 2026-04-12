@@ -5,6 +5,8 @@ namespace App\Slide;
 use App\Entity\Slide;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Twig\Environment;
 
 final class SlideBuilder
@@ -12,17 +14,74 @@ final class SlideBuilder
     public function __construct(
         private readonly Environment $twig,
         private readonly SlideHtmlSanitizer $sanitizer,
+        private readonly SlideRenderHashCalculator $hashCalculator,
+        #[Autowire(service: 'harmony.slides')]
+        private readonly CacheInterface $slideCache,
         #[Autowire(service: 'monolog.logger.ai')]
         private readonly LoggerInterface $logger,
     ) {
     }
 
+    /**
+     * T161/T162 — Render a slide to HTML, using the deterministic render cache.
+     *
+     * Lookup order:
+     *   1. Entity cache: if renderHash on the entity matches the computed hash, return htmlCache.
+     *   2. Symfony cache pool: if the hash key is present in the pool, return the cached HTML
+     *      and back-fill the entity fields.
+     *   3. Full render via Twig: store the result in both the pool and the entity fields.
+     *
+     * The entity's renderHash and htmlCache fields are always updated after a pool or full
+     * render so that subsequent calls within the same request are served from the entity.
+     */
     public function buildSlide(Slide $slide): string
     {
-        $template = $this->resolveTemplate($slide->getType());
-        $context = $this->buildContext($slide);
+        $themeJson = $slide->getProject()?->getThemeConfigJson() ?? '{}';
+        $hash = $this->hashCalculator->compute($slide->getContentJson(), $themeJson);
 
-        return $this->twig->render($template, $context);
+        // 1. Entity cache hit (T162) — cheapest check, no I/O
+        if ($slide->getRenderHash() === $hash && $slide->getHtmlCache() !== null) {
+            $this->logger->debug('slide_cache_hit', [
+                'hash' => substr($hash, 0, 8),
+                'source' => 'entity',
+                'slide_id' => $slide->getId(),
+            ]);
+
+            return $slide->getHtmlCache();
+        }
+
+        // Validate the slide type early so that an UnsupportedSlideTypeException propagates
+        // before any cache I/O occurs.
+        $template = $this->resolveTemplate($slide->getType());
+
+        // 2. Symfony cache pool (T163/T164) — fast I/O-backed check
+        $renderStart = microtime(true);
+        $cacheHit = true;
+
+        $html = $this->slideCache->get(
+            'slide_' . $hash,
+            function (ItemInterface $item) use ($slide, $template, &$cacheHit): string {
+                $cacheHit = false;
+                $context = $this->buildContext($slide);
+
+                return $this->twig->render($template, $context);
+            },
+        );
+
+        // T168 — log render duration and cache outcome for performance monitoring
+        $durationMs = (int) round((microtime(true) - $renderStart) * 1000);
+        $this->logger->debug($cacheHit ? 'slide_cache_hit' : 'slide_cache_miss', [
+            'hash' => substr($hash, 0, 8),
+            'source' => $cacheHit ? 'pool' : 'render',
+            'duration_ms' => $durationMs,
+            'slide_id' => $slide->getId(),
+        ]);
+
+        // T161 — back-fill entity fields so the entity check is a hit on the next call
+        $slide->setRenderHash($hash);
+        $slide->setHtmlCache($html);
+
+        return $html;
     }
 
     /**

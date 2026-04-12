@@ -7,11 +7,14 @@ use App\AI\ChatEngine;
 use App\AI\EmptyAIResponseException;
 use App\Entity\ChatMessage;
 use App\Entity\Project;
+use App\Entity\Slide;
 use App\Entity\User;
 use App\Chat\ChatStreamSessionStore;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ProjectRepository;
+use App\Slide\SlideBuilder;
+use App\Slide\UnsupportedSlideTypeException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -294,6 +297,7 @@ final class ChatController extends AbstractController
         ChatEngine $chatEngine,
         ProjectVersioning $projectVersioning,
         EntityManagerInterface $entityManager,
+        SlideBuilder $slideBuilder,
     ): StreamedResponse {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -319,6 +323,7 @@ final class ChatController extends AbstractController
             $chatEngine,
             $projectVersioning,
             $entityManager,
+            $slideBuilder,
         ): void {
             $this->prepareSseStream();
             echo 'retry: '.self::STREAM_RETRY_MILLISECONDS."\n\n";
@@ -366,11 +371,11 @@ final class ChatController extends AbstractController
                     $user,
                     $userMessage,
                     $priorConversation,
-                    function (string $type, array $payload) use ($chatStreamSessionStore, $streamId, &$lastSentEventId): void {
+                    function (string $type, array $payload) use ($chatStreamSessionStore, $streamId, &$lastSentEventId, $project, $slideBuilder): void {
                         $event = $chatStreamSessionStore->appendEvent(
                             $streamId,
                             $type,
-                            $this->buildSlideEventPayload($payload['slide'] ?? []),
+                            $this->buildSlideEventPayload($payload['slide'] ?? [], $project, $slideBuilder),
                         );
                         $this->emitSseEvent((int) $event['id'], $type, $event['payload']);
                         $lastSentEventId = (int) $event['id'];
@@ -504,11 +509,17 @@ final class ChatController extends AbstractController
     }
 
     /**
+     * T166 — Build the SSE slide payload and pre-warm the slide render cache.
+     *
+     * A transient (non-persisted) Slide entity is created from the chat JSON payload so that
+     * SlideBuilder can compute the renderHash and populate the Symfony cache pool.  When the
+     * same slide is later rendered from a persisted entity the cache pool will be warm.
+     *
      * @param array<string, mixed> $slide
      *
      * @return array<string, mixed>
      */
-    private function buildSlideEventPayload(array $slide): array
+    private function buildSlideEventPayload(array $slide, Project $project, SlideBuilder $slideBuilder): array
     {
         if (($slide['removed'] ?? false) === true) {
             return [
@@ -527,12 +538,69 @@ final class ChatController extends AbstractController
             'position' => (int) ($slide['position'] ?? 1),
         ];
 
+        // T166 — Attempt to pre-warm the slide render cache by building a transient Slide entity.
+        // If the slide type is unsupported (e.g. "summary" used internally by ChatEngine) or if
+        // rendering fails for any reason, fall back to the lightweight preview template gracefully.
+        $previewHtml = null;
+        $type = trim((string) ($slide['type'] ?? ''));
+        if ($type !== '' && in_array($type, Slide::supportedTypes(), true)) {
+            try {
+                $transientSlide = $this->buildTransientSlide($slide, $project);
+                $previewHtml = $slideBuilder->buildSlide($transientSlide);
+            } catch (UnsupportedSlideTypeException) {
+                // Fall through to lightweight preview below.
+            } catch (\Throwable) {
+                // Never let a cache warm-up failure break the SSE stream.
+            }
+        }
+
+        if ($previewHtml === null) {
+            $previewHtml = $this->renderView('project/_preview_slide.html.twig', [
+                'slide' => $normalizedSlide,
+            ]);
+        }
+
         return [
             'slide' => $normalizedSlide,
-            'html' => $this->renderView('project/_preview_slide.html.twig', [
-                'slide' => $normalizedSlide,
-            ]),
+            'html' => $previewHtml,
         ];
+    }
+
+    /**
+     * Build a transient (non-persisted) Slide entity from a chat JSON payload for cache pre-warming.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function buildTransientSlide(array $payload, Project $project): Slide
+    {
+        $type = trim((string) ($payload['type'] ?? 'content'));
+        $title = trim((string) ($payload['title'] ?? ''));
+        $subtitle = trim((string) ($payload['subtitle'] ?? ''));
+        $body = trim((string) ($payload['body'] ?? ''));
+        $rawItems = is_array($payload['items'] ?? null) ? $payload['items'] : [];
+        $items = array_values(array_filter(
+            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
+            static fn (string $item): bool => $item !== '',
+        ));
+
+        $content = match ($type) {
+            Slide::TYPE_TITLE => ['label' => '', 'title' => $title, 'subtitle' => $subtitle],
+            Slide::TYPE_CONTENT => ['title' => $title, 'body' => $body, 'items' => $items],
+            Slide::TYPE_CLOSING => ['message' => $body ?: $title, 'cta_label' => '', 'cta_url' => ''],
+            Slide::TYPE_QUOTE => ['quote' => $body ?: $title, 'author' => '', 'role' => '', 'source' => ''],
+            Slide::TYPE_SPLIT => ['title' => $title, 'body' => $body, 'items' => $items, 'image_url' => '', 'image_alt' => '', 'layout' => 'text-left'],
+            Slide::TYPE_IMAGE => ['image_url' => '', 'image_alt' => $title, 'overlay_text' => $title, 'caption' => ''],
+            Slide::TYPE_TIMELINE => ['title' => $title, 'items' => []],
+            Slide::TYPE_STATS => ['title' => $title, 'stats' => []],
+            Slide::TYPE_COMPARISON => ['title' => $title, 'left' => ['heading' => '', 'items' => [], 'highlight' => ''], 'right' => ['heading' => '', 'items' => [], 'highlight' => '']],
+            default => ['title' => $title, 'body' => $body, 'items' => $items],
+        };
+
+        return (new Slide())
+            ->setProject($project)
+            ->setType($type)
+            ->setContent($content)
+            ->setPosition((int) ($payload['position'] ?? 1));
     }
 
     /**

@@ -97,7 +97,7 @@ class Slide
             $this->contentJson = '{}';
         }
 
-        return $this;
+        return $this->invalidateRenderCache();
     }
 
     public function getContentJson(): string
@@ -109,7 +109,7 @@ class Slide
     {
         $this->contentJson = $contentJson;
 
-        return $this;
+        return $this->invalidateRenderCache();
     }
 
     public function getPosition(): int
@@ -144,6 +144,22 @@ class Slide
     public function setHtmlCache(?string $htmlCache): self
     {
         $this->htmlCache = $htmlCache;
+
+        return $this;
+    }
+
+    /**
+     * T165 — Explicitly clear the render cache stored on this entity.
+     *
+     * Call this whenever content, theme or referenced media assets change so that
+     * the next call to SlideBuilder::buildSlide() triggers a full re-render.
+     * Content-setter methods (setContent, setContentJson) call this automatically.
+     * Theme or media changes must invoke it manually.
+     */
+    public function invalidateRenderCache(): self
+    {
+        $this->renderHash = null;
+        $this->htmlCache = null;
 
         return $this;
     }

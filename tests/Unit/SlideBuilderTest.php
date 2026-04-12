@@ -6,22 +6,26 @@ use App\Entity\Project;
 use App\Entity\Slide;
 use App\Slide\SlideBuilder;
 use App\Slide\SlideHtmlSanitizer;
+use App\Slide\SlideRenderHashCalculator;
 use App\Slide\UnsupportedSlideTypeException;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 final class SlideBuilderTest extends TestCase
 {
     private SlideBuilder $builder;
+    private ArrayAdapter $cacheAdapter;
 
     protected function setUp(): void
     {
         $loader = new FilesystemLoader(dirname(__DIR__, 2).'/templates');
         $twig = new Environment($loader, ['autoescape' => 'html']);
         $logger = $this->createStub(LoggerInterface::class);
-        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), $logger);
+        $this->cacheAdapter = new ArrayAdapter();
+        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), $this->cacheAdapter, $logger);
     }
 
     // ── title slide ──────────────────────────────────────────────────────────
@@ -853,7 +857,7 @@ final class SlideBuilderTest extends TestCase
                 self::callback(static fn (array $ctx): bool => $ctx['type'] === 'injected_type'),
             );
 
-        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), $logger);
+        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), new ArrayAdapter(), $logger);
 
         $slide = $this->makeSlide('injected_type', ['title' => 'Bad']);
 
@@ -988,6 +992,108 @@ final class SlideBuilderTest extends TestCase
         self::assertStringContainsString('Before', $html);
         self::assertStringContainsString('Manual', $html);
         self::assertStringContainsString('Slow', $html);
+    }
+
+    // ── T161/T162 — render cache on entity ───────────────────────────────────
+
+    public function testBuildSlide_StoresRenderHashAndHtmlCacheOnEntity(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Cached']);
+
+        self::assertNull($slide->getRenderHash());
+        self::assertNull($slide->getHtmlCache());
+
+        $html = $this->builder->buildSlide($slide);
+
+        self::assertNotNull($slide->getRenderHash());
+        self::assertNotEmpty($slide->getHtmlCache());
+        self::assertSame($html, $slide->getHtmlCache());
+    }
+
+    public function testBuildSlide_ReturnsCachedHtmlFromEntity(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Cached']);
+
+        $firstCall = $this->builder->buildSlide($slide);
+
+        // Corrupt the template reference to ensure a second call returns from cache
+        $slide->setRenderHash($slide->getRenderHash()); // no change — hash stays the same
+
+        $secondCall = $this->builder->buildSlide($slide);
+
+        self::assertSame($firstCall, $secondCall);
+    }
+
+    public function testBuildSlide_ReRendersWhenContentChanges(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Original']);
+        $this->builder->buildSlide($slide);
+        $originalHash = $slide->getRenderHash();
+
+        $slide->setContent(['title' => 'Updated']);
+        $this->builder->buildSlide($slide);
+        $updatedHash = $slide->getRenderHash();
+
+        self::assertNotSame($originalHash, $updatedHash);
+    }
+
+    public function testBuildSlide_IsServedFromCachePoolOnSecondEntity(): void
+    {
+        // First entity: populate the cache pool
+        $slide1 = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Shared']);
+        $html1 = $this->builder->buildSlide($slide1);
+
+        // Second entity with identical content: must be served from the pool
+        $slide2 = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Shared']);
+
+        self::assertNull($slide2->getRenderHash()); // entity cache cold
+
+        $html2 = $this->builder->buildSlide($slide2);
+
+        self::assertSame($html1, $html2);
+        self::assertSame($slide1->getRenderHash(), $slide2->getRenderHash());
+    }
+
+    // ── T165 — invalidateRenderCache ─────────────────────────────────────────
+
+    public function testInvalidateRenderCache_ClearsRenderHashAndHtmlCache(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Warm']);
+        $this->builder->buildSlide($slide);
+
+        self::assertNotNull($slide->getRenderHash());
+        self::assertNotNull($slide->getHtmlCache());
+
+        $slide->invalidateRenderCache();
+
+        self::assertNull($slide->getRenderHash());
+        self::assertNull($slide->getHtmlCache());
+    }
+
+    public function testSetContentJson_AutoInvalidatesRenderCache(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Before']);
+        $this->builder->buildSlide($slide);
+
+        self::assertNotNull($slide->getRenderHash());
+
+        $slide->setContentJson('{"title":"After"}');
+
+        self::assertNull($slide->getRenderHash());
+        self::assertNull($slide->getHtmlCache());
+    }
+
+    public function testSetContent_AutoInvalidatesRenderCache(): void
+    {
+        $slide = $this->makeSlide(Slide::TYPE_TITLE, ['title' => 'Before']);
+        $this->builder->buildSlide($slide);
+
+        self::assertNotNull($slide->getRenderHash());
+
+        $slide->setContent(['title' => 'After']);
+
+        self::assertNull($slide->getRenderHash());
+        self::assertNull($slide->getHtmlCache());
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
