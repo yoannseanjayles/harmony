@@ -358,6 +358,14 @@
                     project: project
                 } %}
 
+                {% include 'project/_theme_preset_drawer.html.twig' with {
+                    project: project
+                } %}
+
+                {% include 'project/_theme_customization_drawer.html.twig' with {
+                    project: project
+                } %}
+
                 <div class="hm-actions">
                     <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">

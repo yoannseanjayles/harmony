@@ -13,6 +13,10 @@ use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
+use App\Repository\SlideRepository;
+use App\Theme\ThemeEngine;
+use App\Theme\ThemePresetLoader;
+use App\Theme\ThemeTokenValidator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -249,6 +253,88 @@ final class ProjectController extends AbstractController
         $project->revokeShare();
         $entityManager->flush();
         $this->addFlash('success', 'project.share.flash.revoked');
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * T182 — Apply a built-in theme preset to a project.
+     *
+     * Updates Project::themeConfigJson with the preset's token map and invalidates the
+     * renderHash of every associated Slide entity so the next render picks up the new CSS.
+     */
+    #[Route('/{id}/theme/preset', name: 'app_project_theme_preset', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function applyThemePreset(
+        int $id,
+        Request $request,
+        ProjectRepository $projectRepository,
+        SlideRepository $slideRepository,
+        ThemeEngine $themeEngine,
+        ThemePresetLoader $themePresetLoader,
+        ProjectVersioning $projectVersioning,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $project = $this->findOwnedEditableProjectOr404($id, $projectRepository);
+        $this->denyInvalidToken('theme_preset_'.$project->getId(), (string) $request->request->get('_token'));
+
+        $presetName = trim((string) $request->request->get('preset', ''));
+
+        if (!in_array($presetName, ThemeEngine::presetNames(), true)) {
+            $this->addFlash('error', 'project.theme.flash.invalid_preset');
+
+            return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+        }
+
+        $preset = $themePresetLoader->load($presetName);
+        $slides = $slideRepository->findByProjectOrdered($project);
+        $themeEngine->applyPresetToProject($preset, $project, $slides);
+        $entityManager->flush();
+        $projectVersioning->captureSnapshot($project);
+
+        $this->addFlash('success', 'project.theme.flash.applied');
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * T190 / T191 — Patch the project's theme token overrides (AJAX).
+     *
+     * Accepts a flat token map sent as form data (`tokens[--hm-bg]=...` etc.) and merges
+     * it onto the existing themeConfigJson. Only allow-listed --hm-* tokens pass validation.
+     * All associated slide renderHashes are invalidated (T191) so the next render picks up
+     * the new values.
+     *
+     * Returns JSON `{success: true, cssBlock: "..."}` for XHR callers, or redirects for
+     * non-XHR callers.
+     */
+    #[Route('/{id}/theme/tokens', name: 'app_project_theme_tokens', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function patchThemeTokens(
+        int $id,
+        Request $request,
+        ProjectRepository $projectRepository,
+        SlideRepository $slideRepository,
+        ThemeEngine $themeEngine,
+        ThemeTokenValidator $themeTokenValidator,
+        ProjectVersioning $projectVersioning,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $project = $this->findOwnedEditableProjectOr404($id, $projectRepository);
+        $this->denyInvalidToken('theme_tokens_'.$project->getId(), (string) $request->request->get('_token'));
+
+        $rawTokens = $request->request->all('tokens');
+        $slides = $slideRepository->findByProjectOrdered($project);
+        $themeEngine->mergeTokenOverrides($rawTokens, $project, $slides, $themeTokenValidator);
+        $entityManager->flush();
+        $projectVersioning->captureSnapshot($project);
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json([
+                'success' => true,
+                'cssBlock' => $themeEngine->toCssBlock($project->getThemeConfigJson()),
+            ]);
+        }
+
+        $this->addFlash('success', 'project.theme.tokens.flash.saved');
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }

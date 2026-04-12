@@ -8,6 +8,7 @@ use App\Slide\SlideBuilder;
 use App\Slide\SlideHtmlSanitizer;
 use App\Slide\SlideRenderHashCalculator;
 use App\Slide\UnsupportedSlideTypeException;
+use App\Theme\ThemeEngine;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -25,7 +26,7 @@ final class SlideBuilderTest extends TestCase
         $twig = new Environment($loader, ['autoescape' => 'html']);
         $logger = $this->createStub(LoggerInterface::class);
         $this->cacheAdapter = new ArrayAdapter();
-        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), $this->cacheAdapter, $logger);
+        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), $this->cacheAdapter, $logger, new ThemeEngine());
     }
 
     // ── title slide ──────────────────────────────────────────────────────────
@@ -857,7 +858,7 @@ final class SlideBuilderTest extends TestCase
                 self::callback(static fn (array $ctx): bool => $ctx['type'] === 'injected_type'),
             );
 
-        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), new ArrayAdapter(), $logger);
+        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), new ArrayAdapter(), $logger, new ThemeEngine());
 
         $slide = $this->makeSlide('injected_type', ['title' => 'Bad']);
 

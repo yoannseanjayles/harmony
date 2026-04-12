@@ -1,0 +1,154 @@
+{#
+  T182 — Theme preset selector drawer.
+  Allows the user to apply one of the three built-in presets to the project.
+  Included on project/show.html.twig for non-archived, non-deleted projects.
+#}
+{% if not project.isArchived %}
+<section class="hm-theme-drawer">
+    <header class="hm-theme-drawer__header">
+        <span class="hm-badge">{{ 'project.theme.badge'|trans }}</span>
+        <h2 class="hm-theme-drawer__title">{{ 'project.theme.title'|trans }}</h2>
+        <p class="hm-muted">{{ 'project.theme.subtitle'|trans }}</p>
+    </header>
+
+    <form
+        method="post"
+        action="{{ path('app_project_theme_preset', { id: project.id }) }}"
+        class="hm-theme-drawer__form"
+    >
+        <input type="hidden" name="_token" value="{{ csrf_token('theme_preset_' ~ project.id) }}">
+
+        <div class="hm-theme-preset-grid">
+            <label class="hm-theme-preset-card">
+                <input
+                    class="hm-theme-preset-card__radio"
+                    type="radio"
+                    name="preset"
+                    value="cinematic"
+                    required
+                >
+                <span class="hm-theme-preset-card__swatch hm-theme-preset-card__swatch--cinematic"></span>
+                <span class="hm-theme-preset-card__name">{{ 'theme.preset.cinematic'|trans }}</span>
+                <span class="hm-muted">{{ 'theme.preset.cinematic.description'|trans }}</span>
+            </label>
+
+            <label class="hm-theme-preset-card">
+                <input
+                    class="hm-theme-preset-card__radio"
+                    type="radio"
+                    name="preset"
+                    value="corporate"
+                    required
+                >
+                <span class="hm-theme-preset-card__swatch hm-theme-preset-card__swatch--corporate"></span>
+                <span class="hm-theme-preset-card__name">{{ 'theme.preset.corporate'|trans }}</span>
+                <span class="hm-muted">{{ 'theme.preset.corporate.description'|trans }}</span>
+            </label>
+
+            <label class="hm-theme-preset-card">
+                <input
+                    class="hm-theme-preset-card__radio"
+                    type="radio"
+                    name="preset"
+                    value="epure"
+                    required
+                >
+                <span class="hm-theme-preset-card__swatch hm-theme-preset-card__swatch--epure"></span>
+                <span class="hm-theme-preset-card__name">{{ 'theme.preset.epure'|trans }}</span>
+                <span class="hm-muted">{{ 'theme.preset.epure.description'|trans }}</span>
+            </label>
+        </div>
+
+        <div class="hm-theme-drawer__actions">
+            <button class="hm-button" type="submit">{{ 'project.theme.apply'|trans }}</button>
+        </div>
+    </form>
+</section>
+
+<style>
+    .hm-theme-drawer {
+        padding: 24px;
+        border-radius: 26px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-theme-drawer__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-theme-drawer__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.4rem, 2vw, 1.8rem);
+    }
+
+    .hm-theme-drawer__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-top: 16px;
+    }
+
+    .hm-theme-preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 14px;
+    }
+
+    .hm-theme-preset-card {
+        position: relative;
+        display: grid;
+        gap: 6px;
+        padding: 16px;
+        border-radius: 18px;
+        border: 2px solid rgba(124, 58, 237, 0.12);
+        background: var(--hm-surface-strong);
+        cursor: pointer;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hm-theme-preset-card:has(.hm-theme-preset-card__radio:checked) {
+        border-color: var(--hm-accent-primary);
+        box-shadow: 0 0 0 3px var(--hm-accent-soft);
+    }
+
+    .hm-theme-preset-card:hover {
+        border-color: rgba(124, 58, 237, 0.35);
+    }
+
+    .hm-theme-preset-card__radio {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .hm-theme-preset-card__swatch {
+        display: block;
+        width: 100%;
+        height: 44px;
+        border-radius: 10px;
+        margin-bottom: 4px;
+    }
+
+    .hm-theme-preset-card__swatch--cinematic {
+        background: linear-gradient(135deg, #0c0c14 0%, #7c3aed 60%, #10b981 100%);
+    }
+
+    .hm-theme-preset-card__swatch--corporate {
+        background: linear-gradient(135deg, #f4f4f6 0%, #334155 60%, #64748b 100%);
+    }
+
+    .hm-theme-preset-card__swatch--epure {
+        background: linear-gradient(135deg, #ffffff 0%, #e5e7eb 60%, #111118 100%);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .hm-theme-preset-card__name {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+</style>
+{% endif %}
