@@ -12,6 +12,9 @@ class Slide
     public const TYPE_TITLE = 'title';
     public const TYPE_CONTENT = 'content';
     public const TYPE_CLOSING = 'closing';
+    public const TYPE_SPLIT = 'split';
+    public const TYPE_IMAGE = 'image';
+    public const TYPE_QUOTE = 'quote';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -151,6 +154,9 @@ class Slide
             self::TYPE_TITLE,
             self::TYPE_CONTENT,
             self::TYPE_CLOSING,
+            self::TYPE_SPLIT,
+            self::TYPE_IMAGE,
+            self::TYPE_QUOTE,
         ];
     }
 }

@@ -3,7 +3,8 @@
 namespace App\Tests\Support\Slide;
 
 /**
- * Fixtures of valid contentJson arrays for slide types title, content and closing (Phase 1).
+ * Fixtures of valid contentJson arrays for slide types title, content and closing (Phase 1),
+ * and split, image and quote (Phase 2).
  *
  * Usage:
  *   $content = SlideContentFixtures::titleFull();
@@ -153,6 +154,140 @@ final class SlideContentFixtures
     {
         return [
             'message' => 'Thank you for your attention.',
+        ];
+    }
+
+    // ── split ──────────────────────────────────────────────────────────────
+
+    /**
+     * Split slide with title, body, items, image and default (text-left) layout.
+     *
+     * @return array<string, mixed>
+     */
+    public static function splitFull(): array
+    {
+        return [
+            'title' => 'How It Works',
+            'body' => 'Our three-step process makes presentations effortless.',
+            'items' => [
+                'Describe your idea in plain language',
+                'AI generates structured slides instantly',
+                'Refine with one-click edits',
+            ],
+            'image_url' => 'https://harmony.app/assets/how-it-works.jpg',
+            'image_alt' => 'Diagram showing the three-step process',
+            'layout' => 'text-left',
+        ];
+    }
+
+    /**
+     * Split slide with image on the left (text-right layout).
+     *
+     * @return array<string, mixed>
+     */
+    public static function splitTextRight(): array
+    {
+        return [
+            'title' => 'Visual Impact',
+            'body' => 'High-resolution imagery paired with concise copy.',
+            'image_url' => 'https://harmony.app/assets/visual.jpg',
+            'image_alt' => 'Abstract visual',
+            'layout' => 'text-right',
+        ];
+    }
+
+    /**
+     * Split slide with title only and no image (graceful degradation).
+     *
+     * @return array<string, mixed>
+     */
+    public static function splitMinimal(): array
+    {
+        return [
+            'title' => 'Minimal Split',
+        ];
+    }
+
+    // ── image ──────────────────────────────────────────────────────────────
+
+    /**
+     * Image slide with all optional fields populated.
+     *
+     * @return array<string, mixed>
+     */
+    public static function imageFull(): array
+    {
+        return [
+            'image_url' => 'https://harmony.app/assets/hero.jpg',
+            'image_alt' => 'Team collaborating in a modern office',
+            'overlay_text' => 'The Future of Presentations',
+            'caption' => 'Harmony platform — April 2025',
+        ];
+    }
+
+    /**
+     * Image slide with asset and overlay but no caption.
+     *
+     * @return array<string, mixed>
+     */
+    public static function imageWithOverlayOnly(): array
+    {
+        return [
+            'image_url' => 'https://harmony.app/assets/city.jpg',
+            'image_alt' => 'City skyline at dusk',
+            'overlay_text' => 'Our Global Reach',
+        ];
+    }
+
+    /**
+     * Image slide with no asset (graceful degradation).
+     *
+     * @return array<string, mixed>
+     */
+    public static function imageMinimal(): array
+    {
+        return [];
+    }
+
+    // ── quote ──────────────────────────────────────────────────────────────
+
+    /**
+     * Quote slide with all optional fields populated.
+     *
+     * @return array<string, mixed>
+     */
+    public static function quoteFull(): array
+    {
+        return [
+            'quote' => 'Design is not just what it looks like and feels like. Design is how it works.',
+            'author' => 'Steve Jobs',
+            'role' => 'Co-founder, Apple Inc.',
+            'source' => 'The New York Times Magazine, 2003',
+        ];
+    }
+
+    /**
+     * Quote slide with author but no role or source.
+     *
+     * @return array<string, mixed>
+     */
+    public static function quoteWithAuthorOnly(): array
+    {
+        return [
+            'quote' => 'Simplicity is the ultimate sophistication.',
+            'author' => 'Leonardo da Vinci',
+        ];
+    }
+
+    /**
+     * Quote slide with only the required quote field.
+     *
+     * @return array<string, mixed>
+     */
+    public static function quoteMinimal(): array
+    {
+        return [
+            'quote' => 'The best way to predict the future is to invent it.',
         ];
     }
 }

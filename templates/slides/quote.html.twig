@@ -1,0 +1,90 @@
+{#
+  Template for slide type "quote"
+  Expected content keys:
+    - quote   (string, required): the citation text
+    - author  (string, optional): name of the person being quoted
+    - role    (string, optional): role or title of the author
+    - source  (string, optional): publication, book or URL source of the quote
+#}
+<section class="hm-slide hm-slide--quote" data-slide-type="quote">
+    <div class="hm-slide__inner">
+        <blockquote class="hm-slide__blockquote">
+            <p class="hm-slide__quote-text">{{ quote }}</p>
+            {% if author is defined and author is not empty %}
+                <footer class="hm-slide__quote-footer">
+                    <cite class="hm-slide__quote-author">{{ author }}</cite>
+                    {% if role is defined and role is not empty %}
+                        <span class="hm-slide__quote-role">{{ role }}</span>
+                    {% endif %}
+                    {% if source is defined and source is not empty %}
+                        <span class="hm-slide__quote-source">{{ source }}</span>
+                    {% endif %}
+                </footer>
+            {% endif %}
+        </blockquote>
+    </div>
+</section>
+<style>
+    .hm-slide--quote {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-ink, #173f35));
+        color: var(--hm-slide-fg, #f8f4ea);
+        padding: var(--hm-slide-padding, 3rem 4rem);
+    }
+
+    .hm-slide--quote .hm-slide__inner {
+        max-width: 760px;
+        width: 100%;
+    }
+
+    .hm-slide__blockquote {
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+
+    .hm-slide__quote-text {
+        margin: 0 0 2rem;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-quote, clamp(1.6rem, 3.5vw, 2.4rem));
+        line-height: 1.35;
+        color: var(--hm-slide-fg, #f8f4ea);
+        position: relative;
+    }
+
+    .hm-slide__quote-text::before {
+        content: '\201C';
+        font-size: 4em;
+        line-height: 0;
+        vertical-align: -0.4em;
+        margin-right: 0.1em;
+        color: var(--hm-accent, #bf6a3d);
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+    }
+
+    .hm-slide__quote-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-left: 0.5rem;
+        border-left: 3px solid var(--hm-accent, #bf6a3d);
+    }
+
+    .hm-slide__quote-author {
+        font-style: normal;
+        font-weight: 700;
+        font-size: var(--hm-font-size-body, 1.05rem);
+        color: var(--hm-slide-fg, #f8f4ea);
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+
+    .hm-slide__quote-role,
+    .hm-slide__quote-source {
+        font-size: var(--hm-font-size-label, 0.85rem);
+        color: var(--hm-slide-fg-soft, rgba(248, 244, 234, 0.65));
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+</style>
