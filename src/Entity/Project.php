@@ -50,6 +50,21 @@ class Project
     #[ORM\Column(type: Types::TEXT, options: ['default' => '{}'])]
     private string $themeConfigJson = '{}';
 
+    /**
+     * T201 — Stores the user's manual token overrides delta, separate from the applied preset
+     * base tokens kept in themeConfigJson.  The effective theme is the merge of both.
+     */
+    #[ORM\Column(type: Types::TEXT, options: ['default' => '{}'])]
+    private string $themeOverridesJson = '{}';
+
+    /**
+     * T203 — Monotonically-increasing version counter, incremented by ThemeEngine each time
+     * the project's theme (base or overrides) is modified.  Included in the slide renderHash
+     * so that theme-only changes correctly invalidate the render cache (T204).
+     */
+    #[ORM\Column(options: ['default' => 1])]
+    private int $themeVersion = 1;
+
     #[ORM\Column(type: Types::TEXT, options: ['default' => '{}'])]
     private string $metadataJson = '{}';
 
@@ -214,6 +229,85 @@ class Project
     public function setThemeConfig(array $themeConfig): self
     {
         $this->themeConfigJson = $this->encodeJson($themeConfig, '{}');
+
+        return $this;
+    }
+
+    // ── T201 — Per-project user overrides ────────────────────────────────────
+
+    public function getThemeOverridesJson(): string
+    {
+        return $this->themeOverridesJson;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getThemeOverrides(): array
+    {
+        return $this->decodeJsonObject($this->themeOverridesJson);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    public function setThemeOverrides(array $overrides): self
+    {
+        $this->themeOverridesJson = $this->encodeJson($overrides, '{}');
+
+        return $this;
+    }
+
+    // ── T202 — Effective theme (preset base + user overrides merged) ─────────
+
+    /**
+     * Return the effective theme JSON: the base preset tokens merged with the user's overrides.
+     * This is what ThemeEngine::toCssBlock() and SlideRenderHashCalculator should use.
+     */
+    public function getEffectiveThemeConfigJson(): string
+    {
+        if ($this->themeOverridesJson === '{}' || $this->themeOverridesJson === '') {
+            return $this->themeConfigJson;
+        }
+
+        $base      = $this->getThemeConfig();
+        $overrides = $this->getThemeOverrides();
+
+        if ($overrides === []) {
+            return $this->themeConfigJson;
+        }
+
+        $merged = array_merge($base, $overrides);
+
+        try {
+            return (string) json_encode($merged, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $this->themeConfigJson;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getEffectiveThemeConfig(): array
+    {
+        return $this->decodeJsonObject($this->getEffectiveThemeConfigJson());
+    }
+
+    // ── T203 — Theme version counter ─────────────────────────────────────────
+
+    public function getThemeVersion(): int
+    {
+        return $this->themeVersion;
+    }
+
+    /**
+     * Increment the theme version.  Called by ThemeEngine whenever the base preset or
+     * user overrides change so that the slide renderHash is correctly invalidated (T204).
+     */
+    public function incrementThemeVersion(): self
+    {
+        ++$this->themeVersion;
 
         return $this;
     }
@@ -438,6 +532,8 @@ class Project
             'status' => $this->getStatus(),
             'slides' => $this->getSlides(),
             'themeConfig' => $this->getThemeConfig(),
+            'themeOverrides' => $this->getThemeOverrides(),
+            'themeVersion' => $this->getThemeVersion(),
             'metadata' => $this->getMetadata(),
             'mediaRefs' => $this->getMediaRefs(),
             'archivedAt' => $this->getArchivedAt()?->format(DATE_ATOM),
@@ -456,6 +552,7 @@ class Project
             ->setStatus((string) ($snapshot['status'] ?? $this->getStatus()))
             ->setSlides(is_array($snapshot['slides'] ?? null) ? $snapshot['slides'] : $this->getSlides())
             ->setThemeConfig(is_array($snapshot['themeConfig'] ?? null) ? $snapshot['themeConfig'] : $this->getThemeConfig())
+            ->setThemeOverrides(is_array($snapshot['themeOverrides'] ?? null) ? $snapshot['themeOverrides'] : $this->getThemeOverrides())
             ->setMetadata(is_array($snapshot['metadata'] ?? null) ? $snapshot['metadata'] : $this->getMetadata())
             ->setMediaRefs(is_array($snapshot['mediaRefs'] ?? null) ? $snapshot['mediaRefs'] : $this->getMediaRefs())
             ->setArchivedAt($this->parseArchivedAtValue($snapshot['archivedAt'] ?? null))

@@ -5,7 +5,7 @@
   Included on project/show.html.twig for non-archived projects.
 #}
 {% if not project.isArchived %}
-{% set tc = project.themeConfig %}
+{% set tc = project.effectiveThemeConfig %}
 
 {# Resolve current token values with sensible defaults #}
 {% set cur_bg               = tc['--hm-bg']                   ?? '#0c0c14' %}
@@ -212,13 +212,27 @@
     {# ── Error / status ───────────────────────────────────────────────────── #}
     <div class="hm-alert hm-alert--danger" data-theme-error hidden></div>
 
-    {# ── Save button ──────────────────────────────────────────────────────── #}
+    {# ── T205 — Reset overrides + Save buttons ───────────────────────────── #}
     <div class="hm-theme-customizer__actions">
         <button
             class="hm-button"
             type="button"
             data-theme-save
         >{{ 'project.theme.tokens.save'|trans }}</button>
+
+        {% if project.themeOverridesJson != '{}' and project.themeOverridesJson != '' %}
+        <form
+            method="post"
+            action="{{ path('app_project_theme_reset', { id: project.id }) }}"
+            class="hm-theme-reset-form"
+        >
+            <input type="hidden" name="_token" value="{{ csrf_token('theme_reset_' ~ project.id) }}">
+            <button
+                class="hm-button hm-button--secondary"
+                type="submit"
+            >{{ 'project.theme.reset.button'|trans }}</button>
+        </form>
+        {% endif %}
     </div>
 </section>
 

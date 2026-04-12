@@ -10,6 +10,7 @@ namespace App\Slide;
  *   - normalised themeJson    (keys sorted recursively)
  *   - templateVersion         (incremented when Twig templates change)
  *   - assetsVersion           (incremented when referenced static assets change)
+ *   - themeVersion            (T204 — incremented by ThemeEngine on every theme change)
  *
  * Normalising the JSON before hashing ensures that key ordering differences
  * (e.g. coming from different serialisers) do not produce false cache misses.
@@ -25,17 +26,20 @@ final class SlideRenderHashCalculator
     /**
      * Compute the renderHash for the given contentJson and themeJson strings.
      *
-     * @param string $contentJson Raw JSON string stored in Slide::$contentJson.
-     * @param string $themeJson   Raw JSON string from Project::getThemeConfigJson().
+     * @param string $contentJson  Raw JSON string stored in Slide::$contentJson.
+     * @param string $themeJson    Raw JSON string from Project::getEffectiveThemeConfigJson().
+     * @param string $themeVersion Stringified Project::getThemeVersion() — included so that
+     *                             theme-only changes (T204) correctly bust the render cache
+     *                             even when the CSS output happens to be identical.
      */
-    public function compute(string $contentJson, string $themeJson): string
+    public function compute(string $contentJson, string $themeJson, string $themeVersion = ''): string
     {
         $normalizedContent = $this->normalizeJson($contentJson);
         $normalizedTheme = $this->normalizeJson($themeJson);
 
         return hash(
             'sha256',
-            $normalizedContent . $normalizedTheme . $this->templateVersion . $this->assetsVersion,
+            $normalizedContent . $normalizedTheme . $this->templateVersion . $this->assetsVersion . $themeVersion,
         );
     }
 

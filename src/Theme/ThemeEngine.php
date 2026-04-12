@@ -85,6 +85,10 @@ final class ThemeEngine
      * T181 / T183 — Apply a preset's token overrides to a project and invalidate every
      * associated slide's render cache so the next render picks up the new theme.
      *
+     * Clears any existing user overrides (themeOverridesJson) so that the project reverts
+     * to a clean preset state, and increments themeVersion (T203) so the render cache is
+     * correctly invalidated (T204).
+     *
      * The caller is responsible for flushing the EntityManager after this call.
      *
      * @param list<Slide> $slides All slides belonging to $project (order does not matter).
@@ -98,6 +102,8 @@ final class ThemeEngine
         }
 
         $project->setThemeConfig(is_array($tokens) ? $tokens : []);
+        $project->setThemeOverrides([]);
+        $project->incrementThemeVersion();
 
         foreach ($slides as $slide) {
             if ($slide instanceof Slide) {
@@ -107,8 +113,12 @@ final class ThemeEngine
     }
 
     /**
-     * T190 / T191 — Merge a validated token patch onto the project's theme config and
+     * T190 / T191 — Merge a validated token patch onto the project's theme overrides and
      * invalidate every associated slide's render cache (T191).
+     *
+     * The patch is stored separately in themeOverridesJson (T201) so that the user's delta
+     * is always distinguishable from the preset base (themeConfigJson).  The themeVersion
+     * counter is incremented (T203) to drive render-cache invalidation (T204).
      *
      * The patch is validated by ThemeTokenValidator before being merged so that only
      * allow-listed --hm-* tokens with safe values reach the project config.
@@ -132,9 +142,12 @@ final class ThemeEngine
             return [];
         }
 
-        $existing = $project->getThemeConfig();
-        $merged = array_merge($existing, $validated);
-        $project->setThemeConfig($merged);
+        // T201 — store the user's delta separately from the preset base
+        $existingOverrides = $project->getThemeOverrides();
+        $project->setThemeOverrides(array_merge($existingOverrides, $validated));
+
+        // T203 — version bump so the render hash changes
+        $project->incrementThemeVersion();
 
         foreach ($slides as $slide) {
             if ($slide instanceof Slide) {
@@ -143,6 +156,30 @@ final class ThemeEngine
         }
 
         return $validated;
+    }
+
+    /**
+     * T205 — Reset the project's user overrides back to the preset base, clearing all manual
+     * token customisations and invalidating every slide's render cache.
+     *
+     * After this call the project's effective theme equals its base preset (themeConfigJson)
+     * and themeOverridesJson is empty.  themeVersion is incremented so the render cache is
+     * correctly invalidated (T204).
+     *
+     * The caller is responsible for flushing the EntityManager after this call.
+     *
+     * @param list<Slide> $slides All slides belonging to $project.
+     */
+    public function resetOverrides(Project $project, array $slides): void
+    {
+        $project->setThemeOverrides([]);
+        $project->incrementThemeVersion();
+
+        foreach ($slides as $slide) {
+            if ($slide instanceof Slide) {
+                $slide->invalidateRenderCache();
+            }
+        }
     }
 
     /**

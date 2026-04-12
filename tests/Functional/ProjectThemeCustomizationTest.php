@@ -50,8 +50,8 @@ final class ProjectThemeCustomizationTest extends FunctionalTestCase
         self::assertTrue($data['success']);
 
         $reloaded = $this->reloadProject($project->getId());
-        self::assertSame('#1a1a2e', $reloaded->getThemeConfig()['--hm-bg']);
-        self::assertSame('#e2e2ff', $reloaded->getThemeConfig()['--hm-ink']);
+        self::assertSame('#1a1a2e', $reloaded->getEffectiveThemeConfig()['--hm-bg']);
+        self::assertSame('#e2e2ff', $reloaded->getEffectiveThemeConfig()['--hm-ink']);
     }
 
     public function testAjaxPatchReturnsJsonWithCssBlock(): void
@@ -170,8 +170,8 @@ final class ProjectThemeCustomizationTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
 
         $reloaded = $this->reloadProject($project->getId());
-        self::assertSame('Georgia, "Times New Roman", serif', $reloaded->getThemeConfig()['--hm-font-body']);
-        self::assertSame('"Inter", "Segoe UI", system-ui, sans-serif', $reloaded->getThemeConfig()['--hm-font-title']);
+        self::assertSame('Georgia, "Times New Roman", serif', $reloaded->getEffectiveThemeConfig()['--hm-font-body']);
+        self::assertSame('"Inter", "Segoe UI", system-ui, sans-serif', $reloaded->getEffectiveThemeConfig()['--hm-font-title']);
     }
 
     public function testInvalidFontFamilyIsDropped(): void
@@ -224,8 +224,8 @@ final class ProjectThemeCustomizationTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
 
         $reloaded = $this->reloadProject($project->getId());
-        self::assertSame('600', $reloaded->getThemeConfig()['--hm-font-weight-bold']);
-        self::assertSame('400', $reloaded->getThemeConfig()['--hm-font-weight-normal']);
+        self::assertSame('600', $reloaded->getEffectiveThemeConfig()['--hm-font-weight-bold']);
+        self::assertSame('400', $reloaded->getEffectiveThemeConfig()['--hm-font-weight-normal']);
     }
 
     // ── T188 — Density tokens ─────────────────────────────────────────────────
@@ -253,8 +253,8 @@ final class ProjectThemeCustomizationTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
 
         $reloaded = $this->reloadProject($project->getId());
-        self::assertSame('0.10em', $reloaded->getThemeConfig()['--hm-letter-spacing-label']);
-        self::assertSame('-0.03em', $reloaded->getThemeConfig()['--hm-letter-spacing-tight']);
+        self::assertSame('0.10em', $reloaded->getEffectiveThemeConfig()['--hm-letter-spacing-label']);
+        self::assertSame('-0.03em', $reloaded->getEffectiveThemeConfig()['--hm-letter-spacing-tight']);
     }
 
     public function testValidFontSizeTitleTokenPersists(): void
@@ -279,7 +279,7 @@ final class ProjectThemeCustomizationTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
 
         $reloaded = $this->reloadProject($project->getId());
-        self::assertSame('clamp(1.8rem, 3.5vw, 3rem)', $reloaded->getThemeConfig()['--hm-font-size-title']);
+        self::assertSame('clamp(1.8rem, 3.5vw, 3rem)', $reloaded->getEffectiveThemeConfig()['--hm-font-size-title']);
     }
 
     public function testInvalidFontSizeTitleIsDropped(): void

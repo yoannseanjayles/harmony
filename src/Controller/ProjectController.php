@@ -330,11 +330,41 @@ final class ProjectController extends AbstractController
         if ($request->isXmlHttpRequest()) {
             return $this->json([
                 'success' => true,
-                'cssBlock' => $themeEngine->toCssBlock($project->getThemeConfigJson()),
+                'cssBlock' => $themeEngine->toCssBlock($project->getEffectiveThemeConfigJson()),
             ]);
         }
 
         $this->addFlash('success', 'project.theme.tokens.flash.saved');
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * T205 — Reset the project's user overrides back to the preset base, clearing all
+     * manual token customisations from the theme customization drawer.
+     *
+     * Clears themeOverridesJson, increments themeVersion, and invalidates all slide render
+     * caches so the next render picks up the clean preset tokens.
+     */
+    #[Route('/{id}/theme/reset', name: 'app_project_theme_reset', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function resetThemeOverrides(
+        int $id,
+        Request $request,
+        ProjectRepository $projectRepository,
+        SlideRepository $slideRepository,
+        ThemeEngine $themeEngine,
+        ProjectVersioning $projectVersioning,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $project = $this->findOwnedEditableProjectOr404($id, $projectRepository);
+        $this->denyInvalidToken('theme_reset_'.$project->getId(), (string) $request->request->get('_token'));
+
+        $slides = $slideRepository->findByProjectOrdered($project);
+        $themeEngine->resetOverrides($project, $slides);
+        $entityManager->flush();
+        $projectVersioning->captureSnapshot($project);
+
+        $this->addFlash('success', 'project.theme.reset.flash.done');
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }
