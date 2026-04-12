@@ -202,6 +202,25 @@ project.preview.empty_title: Aucun slide synchronise pour le moment.
 project.preview.empty_copy: Les slides ajoutes ou modifies pendant la generation IA apparaitront ici en temps reel.
 project.preview.slide_badge: Slide %number%
 project.preview.slide_empty: Aucun contenu synchronise pour l'instant.
+
+# T291/T292/T297 — Live preview zone
+project.preview.live.empty_title: Aucune slide active pour le moment.
+project.preview.live.empty_copy: Lancez une generation ou cliquez sur une miniature pour previsualiser une slide.
+project.preview.live.nav_label: Navigation entre slides
+project.preview.live.prev: Slide precedente
+project.preview.live.next: Slide suivante
+project.preview.live.counter: "%current% / %total%"
+
+# Slide type labels used in text-based thumbnail placeholders
+slide.type.title: Titre
+slide.type.content: Contenu
+slide.type.closing: Conclusion
+slide.type.split: Deux colonnes
+slide.type.image: Image
+slide.type.quote: Citation
+slide.type.timeline: Chronologie
+slide.type.stats: Statistiques
+slide.type.comparison: Comparaison
 chat.panel.badge: Conversation projet
 chat.panel.title: Panneau de chat
 chat.panel.subtitle: "%count% message(s) dans cette conversation."
