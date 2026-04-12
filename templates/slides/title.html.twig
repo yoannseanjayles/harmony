@@ -1,0 +1,59 @@
+{#
+  Template for slide type "title"
+  Expected content keys:
+    - label    (string, optional): small eyebrow label above the title
+    - title    (string, required): main headline
+    - subtitle (string, optional): supporting subtitle
+#}
+<section class="hm-slide hm-slide--title" data-slide-type="title">
+    <div class="hm-slide__inner">
+        {% if label is defined and label is not empty %}
+            <p class="hm-slide__label">{{ label }}</p>
+        {% endif %}
+        <h1 class="hm-slide__title">{{ title }}</h1>
+        {% if subtitle is defined and subtitle is not empty %}
+            <p class="hm-slide__subtitle">{{ subtitle }}</p>
+        {% endif %}
+    </div>
+</section>
+<style>
+    .hm-slide--title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-ink));
+        color: var(--hm-slide-fg, #f8f4ea);
+        padding: var(--hm-slide-padding, 3rem 4rem);
+        text-align: center;
+    }
+
+    .hm-slide--title .hm-slide__inner {
+        max-width: 820px;
+    }
+
+    .hm-slide--title .hm-slide__label {
+        margin: 0 0 1rem;
+        font-size: var(--hm-font-size-label, 0.85rem);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--hm-accent, #bf6a3d);
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+
+    .hm-slide--title .hm-slide__title {
+        margin: 0 0 0.75rem;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-title, clamp(2.4rem, 5vw, 4.2rem));
+        line-height: 1.05;
+        color: var(--hm-slide-fg, #f8f4ea);
+    }
+
+    .hm-slide--title .hm-slide__subtitle {
+        margin: 0;
+        font-size: var(--hm-font-size-subtitle, 1.2rem);
+        color: var(--hm-slide-fg-soft, rgba(248, 244, 234, 0.75));
+        line-height: 1.55;
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+    }
+</style>
