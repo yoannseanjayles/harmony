@@ -311,3 +311,13 @@ project.theme.anim.speed.fast: Rapide
 project.theme.anim.intensity.reduced: "Réduit"
 project.theme.anim.intensity.normal: Normal
 project.theme.anim.intensity.max: Maximal
+
+# HRM-F35 — Editor two-panel layout (T283–T290)
+project.editor.meta_title: "Éditeur — %title% | Harmony"
+project.editor.nav.back: Retour au projet
+project.editor.nav.history: Historique
+project.editor.nav.theme: Theme
+project.editor.nav.export_html: Exporter HTML
+project.editor.nav.export_pdf: Exporter PDF
+project.editor.nav.export_processing: Export en cours...
+project.editor.nav.export_error: "Échec de l'export. Réessayez."
