@@ -195,8 +195,8 @@ final class ThemeTokenValidator
     }
 
     /**
-     * Validate a letter-spacing value: optional minus sign, up to 4 digits, decimal point,
-     * up to 4 decimal digits, "em" unit — e.g. "0.12em", "-0.02em".
+     * Validate a letter-spacing value: optional minus sign, 1 to 4 digits, optional decimal
+     * point with 1 to 4 decimal digits, "em" unit — e.g. "0.12em", "-0.02em".
      */
     private function validateLetterSpacing(string $value): ?string
     {

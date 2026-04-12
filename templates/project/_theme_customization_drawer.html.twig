@@ -429,13 +429,15 @@
             });
         });
 
+        // Helper: format a range value with its CSS unit
+        const rangeValue = (range) => parseFloat(range.value).toFixed(2) + (range.dataset.unit || '');
+
         // T188 / T189 — Range inputs: preview on input + update display label
         customizer.querySelectorAll('.hm-theme-spacing-input').forEach((range) => {
             const display = range.nextElementSibling;
 
             const update = () => {
-                const unit  = range.dataset.unit || '';
-                const val   = parseFloat(range.value).toFixed(2) + unit;
+                const val = rangeValue(range);
                 applyToken(range.dataset.token, val);
                 if (display) {
                     display.textContent = val;
@@ -454,8 +456,7 @@
                 if (!token) return;
 
                 if (el.tagName === 'INPUT' && el.type === 'range') {
-                    const unit = el.dataset.unit || '';
-                    tokens[token] = parseFloat(el.value).toFixed(2) + unit;
+                    tokens[token] = rangeValue(el);
                 } else {
                     tokens[token] = el.value;
                 }
