@@ -3,6 +3,7 @@
 namespace App\Slide;
 
 use App\Entity\Slide;
+use App\Theme\ThemeEngine;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -19,6 +20,7 @@ final class SlideBuilder
         private readonly CacheInterface $slideCache,
         #[Autowire(service: 'monolog.logger.ai')]
         private readonly LoggerInterface $logger,
+        private readonly ThemeEngine $themeEngine,
     ) {
     }
 
@@ -76,6 +78,13 @@ final class SlideBuilder
             'duration_ms' => $durationMs,
             'slide_id' => $slide->getId(),
         ]);
+
+        // T181 — prepend the theme CSS override block so custom tokens are applied in the
+        // slide's isolated HTML snippet (entity cache stores the full, theme-aware HTML).
+        $themeStyle = $this->themeEngine->toCssBlock($themeJson);
+        if ($themeStyle !== '') {
+            $html = $themeStyle . "\n" . $html;
+        }
 
         // T161 — back-fill entity fields so the entity check is a hit on the next call
         $slide->setRenderHash($hash);

@@ -243,3 +243,19 @@ project.flash.duplicated: Le projet a ete duplique.
 project.flash.archived: Le projet a ete archive.
 project.flash.restored: Le projet a ete restaure.
 project.flash.deleted: Le projet a ete supprime.
+
+# T182 — Theme preset selector
+project.theme.badge: Theme du projet
+project.theme.title: Personnalisation du theme
+project.theme.subtitle: Choisissez un preset visuel pour les slides de ce projet. Le cache de rendu sera automatiquement invalide.
+project.theme.apply: Appliquer le theme
+project.theme.flash.applied: Le theme a ete applique avec succes.
+project.theme.flash.invalid_preset: Le preset selectionne n'est pas valide.
+
+# T177 / T178 / T179 / T180 — Preset names and descriptions
+theme.preset.cinematic: Cinematique
+theme.preset.cinematic.description: Fond sombre, accents violet et emeraude, animations dynamiques.
+theme.preset.corporate: Corporate
+theme.preset.corporate.description: Tons neutres, typographie sans-serif, animations reduites.
+theme.preset.epure: Epure
+theme.preset.epure.description: Fond clair, typographie minimaliste, animations desactivees.
