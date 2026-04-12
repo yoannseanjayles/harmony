@@ -558,7 +558,7 @@ final class SlideBuilderTest extends TestCase
         self::assertSame(1, $count);
     }
 
-    public function testTimelineSlideClampsMores6Items(): void
+    public function testTimelineSlideClampsMoreThan6Items(): void
     {
         $items = [];
         for ($i = 1; $i <= 8; ++$i) {
@@ -660,7 +660,7 @@ final class SlideBuilderTest extends TestCase
         self::assertSame(1, $count);
     }
 
-    public function testStatsSlideClampsMores6Stats(): void
+    public function testStatsSlideClampsMoreThan6Stats(): void
     {
         $stats = [];
         for ($i = 1; $i <= 8; ++$i) {
@@ -765,7 +765,7 @@ final class SlideBuilderTest extends TestCase
         self::assertSame(3, $leftItemCount);
     }
 
-    public function testComparisonSlideClampsMores6ItemsPerColumn(): void
+    public function testComparisonSlideClampsMoreThan6ItemsPerColumn(): void
     {
         $items = [];
         for ($i = 1; $i <= 8; ++$i) {
