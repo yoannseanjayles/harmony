@@ -20,6 +20,7 @@ use Twig\Environment;
  *   - exportHtml() renders all slides in order, injects theme tokens, inlines
  *     media assets as base64 data URIs (T252), and produces a single HTML file
  *     that works offline (T256).
+ *   - exportPdf() delegates to GotenbergClientInterface after building the same HTML (HRM-T267).
  *   - The standalone template (T254) includes keyboard navigation between slides.
  *   - The endpoint (T255) is at GET /export/{id}/html and triggers a download.
  */
@@ -32,6 +33,7 @@ final class ExportService
         private readonly MediaAssetRepository $mediaAssetRepository,
         private readonly StorageAdapterInterface $storageAdapter,
         private readonly Environment $twig,
+        private readonly GotenbergClientInterface $gotenbergClient,
         #[Autowire('%kernel.project_dir%')]
         private readonly string $projectDir,
         #[Autowire('%harmony.media.signed_url_ttl%')]
@@ -80,6 +82,26 @@ final class ExportService
             'themeCssBlock'  => $themeCssBlock,
             'harmonyCss'     => $harmonyCss,
         ]);
+    }
+
+    /**
+     * HRM-T267 — Export a project to a PDF by delegating to Gotenberg.
+     *
+     * Builds the self-contained HTML via exportHtml(), then sends it to
+     * GotenbergClientInterface::convertHtmlToPdf().
+     *
+     * @return string Raw PDF bytes
+     *
+     * @throws GotenbergException on any Gotenberg failure (timeout / 5xx / connection)
+     */
+    public function exportPdf(Project $project): string
+    {
+        $html     = $this->exportHtml($project);
+        $slug     = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $project->getTitle()));
+        $slug     = trim($slug, '-');
+        $filename = ($slug !== '' ? $slug : 'export') . '.html';
+
+        return $this->gotenbergClient->convertHtmlToPdf($html, $filename);
     }
 
     /**
