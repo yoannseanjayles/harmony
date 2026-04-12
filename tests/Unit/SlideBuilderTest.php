@@ -4,10 +4,13 @@ namespace App\Tests\Unit;
 
 use App\Entity\Project;
 use App\Entity\Slide;
+use App\Media\MediaUrlResolver;
+use App\Repository\MediaAssetRepository;
 use App\Slide\SlideBuilder;
 use App\Slide\SlideHtmlSanitizer;
 use App\Slide\SlideRenderHashCalculator;
 use App\Slide\UnsupportedSlideTypeException;
+use App\Storage\StorageAdapterInterface;
 use App\Theme\ThemeEngine;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -26,7 +29,11 @@ final class SlideBuilderTest extends TestCase
         $twig = new Environment($loader, ['autoescape' => 'html']);
         $logger = $this->createStub(LoggerInterface::class);
         $this->cacheAdapter = new ArrayAdapter();
-        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), $this->cacheAdapter, $logger, new ThemeEngine());
+        $mediaUrlResolver = new MediaUrlResolver(
+            $this->createStub(MediaAssetRepository::class),
+            $this->createStub(StorageAdapterInterface::class),
+        );
+        $this->builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), $this->cacheAdapter, $logger, new ThemeEngine(), $mediaUrlResolver);
     }
 
     // ── title slide ──────────────────────────────────────────────────────────
@@ -858,7 +865,10 @@ final class SlideBuilderTest extends TestCase
                 self::callback(static fn (array $ctx): bool => $ctx['type'] === 'injected_type'),
             );
 
-        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), new ArrayAdapter(), $logger, new ThemeEngine());
+        $builder = new SlideBuilder($twig, new SlideHtmlSanitizer(), new SlideRenderHashCalculator('1', ''), new ArrayAdapter(), $logger, new ThemeEngine(), new MediaUrlResolver(
+            $this->createStub(MediaAssetRepository::class),
+            $this->createStub(StorageAdapterInterface::class),
+        ));
 
         $slide = $this->makeSlide('injected_type', ['title' => 'Bad']);
 

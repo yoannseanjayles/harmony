@@ -83,7 +83,9 @@ final class MediaUploadTest extends FunctionalTestCase
         self::assertArrayHasKey('storageKey', $data);
         self::assertArrayHasKey('previewUrl', $data);
         self::assertIsInt($data['id']);
-        self::assertStringStartsWith('/uploads/media/', $data['previewUrl']);
+        // T233 — previewUrl is a signed URL when HMAC secret is configured (as in test env);
+        // it may start with /media/serve/ (HMAC-signed) or /uploads/media/ (unsigned fallback).
+        self::assertStringContainsString($data['storageKey'], $data['previewUrl']);
         self::assertStringEndsWith('.jpg', $data['storageKey']);
 
         // T214 — storage key must be UUID-based (not the original filename)

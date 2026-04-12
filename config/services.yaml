@@ -14,6 +14,10 @@ parameters:
     harmony.media.max_upload_size_bytes: 10485760
     # T217–T220 — Storage adapter selection. Set APP_STORAGE_DRIVER=s3 in production.
     harmony.storage.driver: '%env(APP_STORAGE_DRIVER)%'
+    # T233 — HMAC secret for local signed URLs. Leave empty to fall back to plain public paths (dev).
+    harmony.media.signed_url_secret: '%env(HARMONY_MEDIA_SIGNED_URL_SECRET)%'
+    # T233/T238 — Default TTL (seconds) for signed media URLs.
+    harmony.media.signed_url_ttl: 3600
     # HTTP timeout (seconds) for OpenAI API requests — covers p99 latency at 30 s
     harmony.ai.timeout.openai: 30.0
     # HTTP timeout (seconds) for Anthropic API requests — Claude models may take longer; 60 s covers p99 latency
@@ -66,6 +70,11 @@ services:
         arguments:
             $maxUploadSizeBytes: '%harmony.media.max_upload_size_bytes%'
 
+    # T237 — MediaUrlResolver: resolves "media:{id}" references to signed URLs at render time.
+    App\Media\MediaUrlResolver:
+        arguments:
+            $signedUrlTtlSeconds: '%harmony.media.signed_url_ttl%'
+
     # T213 — Default to no-op scanner; replace with a real implementation when ClamAV is available.
     App\Media\AntivirusScannerInterface:
         alias: App\Media\NoOpAntivirusScanner
@@ -74,6 +83,7 @@ services:
     App\Storage\LocalStorageAdapter:
         arguments:
             $uploadDirectory: '%harmony.media.upload_directory%'
+            $hmacSecret: '%harmony.media.signed_url_secret%'
 
     App\Storage\NativeS3Client:
         arguments:
