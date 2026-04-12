@@ -6,6 +6,17 @@ use App\AI\Http\AIHttpClientInterface;
 
 final class ClaudeProvider implements AIProviderInterface
 {
+    /**
+     * HTTP timeout in seconds for Anthropic API requests.
+     * Claude models can take longer for complex prompts; 60 s covers p99 latency.
+     */
+    public const TIMEOUT_SECONDS = 60.0;
+
+    /**
+     * Fast fallback model used when the primary model times out.
+     */
+    public const FALLBACK_MODEL = 'claude-3-5-sonnet';
+
     public function __construct(
         private readonly AIHttpClientInterface $httpClient,
         private readonly ApiCredential $apiCredential,
@@ -37,7 +48,7 @@ final class ClaudeProvider implements AIProviderInterface
 
         $content = $this->extractContent($payload);
         if ($content === '') {
-            throw new \RuntimeException('Anthropic provider returned an empty response.');
+            throw new EmptyAIResponseException('anthropic');
         }
 
         $usage = is_array($payload['usage'] ?? null) ? $payload['usage'] : [];
@@ -69,6 +80,16 @@ final class ClaudeProvider implements AIProviderInterface
             'claude-3-7-sonnet',
             'claude-3-5-sonnet',
         ];
+    }
+
+    public function getFallbackModel(): string
+    {
+        return self::FALLBACK_MODEL;
+    }
+
+    public function getTimeoutSeconds(): float
+    {
+        return self::TIMEOUT_SECONDS;
     }
 
     /**

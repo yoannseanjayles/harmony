@@ -13,6 +13,24 @@ use PHPUnit\Framework\TestCase;
 
 final class ProviderFactoryTest extends TestCase
 {
+    private function buildFactory(
+        UserApiKeyManager $userApiKeyManager,
+        string $platformDefault = 'sk-platform-default',
+        string $openAiPlatformKey = 'sk-platform-openai',
+        string $anthropicPlatformKey = 'sk-platform-anthropic',
+    ): ProviderFactory {
+        return new ProviderFactory(
+            $userApiKeyManager,
+            new RecordingAIHttpClient(),
+            new RecordingAIHttpClient(),
+            $platformDefault,
+            $openAiPlatformKey,
+            $anthropicPlatformKey,
+            'https://openai.test/v1',
+            'https://anthropic.test/v1',
+        );
+    }
+
     public function testResolveCredentialUsesUserByokWhenAvailable(): void
     {
         $user = (new User())->setEmail('byok@harmony.test');
@@ -20,16 +38,7 @@ final class ProviderFactoryTest extends TestCase
         $userApiKeyManager->method('hasUserApiKey')->with($user)->willReturn(true);
         $userApiKeyManager->method('revealUserApiKey')->with($user)->willReturn('sk-user-1234');
 
-        $factory = new ProviderFactory(
-            $userApiKeyManager,
-            new RecordingAIHttpClient(),
-            'sk-platform-default',
-            'sk-platform-openai',
-            'sk-platform-anthropic',
-            'https://openai.test/v1',
-            'https://anthropic.test/v1',
-        );
-        $credential = $factory->resolveCredential($user, 'openai');
+        $credential = $this->buildFactory($userApiKeyManager)->resolveCredential($user, 'openai');
 
         self::assertSame('byok', $credential->source());
         self::assertSame('sk-user-1234', $credential->reveal());
@@ -43,16 +52,7 @@ final class ProviderFactoryTest extends TestCase
         $userApiKeyManager = $this->createMock(UserApiKeyManager::class);
         $userApiKeyManager->method('hasUserApiKey')->with($user)->willReturn(false);
 
-        $factory = new ProviderFactory(
-            $userApiKeyManager,
-            new RecordingAIHttpClient(),
-            'sk-platform-default',
-            'sk-platform-openai',
-            'sk-platform-anthropic',
-            'https://openai.test/v1',
-            'https://anthropic.test/v1',
-        );
-        $credential = $factory->resolveCredential($user, 'anthropic');
+        $credential = $this->buildFactory($userApiKeyManager)->resolveCredential($user, 'anthropic');
 
         self::assertSame('platform', $credential->source());
         self::assertSame('anthropic', $credential->provider());
@@ -65,15 +65,7 @@ final class ProviderFactoryTest extends TestCase
         $userApiKeyManager = $this->createMock(UserApiKeyManager::class);
         $userApiKeyManager->method('hasUserApiKey')->with($user)->willReturn(false);
 
-        $factory = new ProviderFactory(
-            $userApiKeyManager,
-            new RecordingAIHttpClient(),
-            'sk-platform-default',
-            '',
-            '',
-            'https://openai.test/v1',
-            'https://anthropic.test/v1',
-        );
+        $factory = $this->buildFactory($userApiKeyManager, 'sk-platform-default', '', '');
 
         self::assertSame('sk-platform-default', $factory->resolveCredential($user, 'openai')->reveal());
         self::assertSame('sk-platform-default', $factory->resolveCredential($user, 'anthropic')->reveal());
@@ -84,17 +76,7 @@ final class ProviderFactoryTest extends TestCase
         $userApiKeyManager = $this->createMock(UserApiKeyManager::class);
         $userApiKeyManager->method('hasUserApiKey')->willReturn(false);
 
-        $factory = new ProviderFactory(
-            $userApiKeyManager,
-            new RecordingAIHttpClient(),
-            'sk-platform-default',
-            'sk-platform-openai',
-            'sk-platform-anthropic',
-            'https://openai.test/v1',
-            'https://anthropic.test/v1',
-        );
-
-        self::assertInstanceOf(OpenAIProvider::class, $factory->createForProvider('openai', null));
+        self::assertInstanceOf(OpenAIProvider::class, $this->buildFactory($userApiKeyManager)->createForProvider('openai', null));
     }
 
     public function testCreateForProjectReturnsClaudeProviderFromProjectConfiguration(): void
@@ -102,21 +84,11 @@ final class ProviderFactoryTest extends TestCase
         $userApiKeyManager = $this->createMock(UserApiKeyManager::class);
         $userApiKeyManager->method('hasUserApiKey')->willReturn(false);
 
-        $factory = new ProviderFactory(
-            $userApiKeyManager,
-            new RecordingAIHttpClient(),
-            'sk-platform-default',
-            'sk-platform-openai',
-            'sk-platform-anthropic',
-            'https://openai.test/v1',
-            'https://anthropic.test/v1',
-        );
-
         $project = (new Project())
             ->setTitle('Projet Claude')
             ->setProvider('anthropic')
             ->setModel('claude-3-7-sonnet');
 
-        self::assertInstanceOf(ClaudeProvider::class, $factory->createForProject($project, null));
+        self::assertInstanceOf(ClaudeProvider::class, $this->buildFactory($userApiKeyManager)->createForProject($project, null));
     }
 }

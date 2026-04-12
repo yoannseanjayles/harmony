@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\AI\ChatCompletionService;
 use App\AI\ChatEngine;
+use App\AI\EmptyAIResponseException;
 use App\Entity\ChatMessage;
 use App\Entity\Project;
 use App\Entity\User;
@@ -147,10 +148,14 @@ final class ChatController extends AbstractController
             if ($generationResult->slidesChanged()) {
                 $projectVersioning->captureSnapshot($project);
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $isEmptyResponse = $e instanceof EmptyAIResponseException;
+
             if ($request->isXmlHttpRequest()) {
                 return $this->json([
                     'errors' => ['Harmony n\'a pas pu generer de reponse IA pour le moment.'],
+                    'retryAvailable' => $isEmptyResponse,
+                    'userMessageId' => $message->getId(),
                 ], Response::HTTP_BAD_GATEWAY);
             }
 
@@ -176,6 +181,43 @@ final class ChatController extends AbstractController
         }
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * Creates a new stream session for an existing user message, enabling the
+     * manual retry button (T123) after an AI generation failure.
+     */
+    #[Route('/retry', name: 'app_chat_retry', methods: ['POST'])]
+    public function retryGeneration(
+        int $projectId,
+        Request $request,
+        ProjectRepository $projectRepository,
+        ChatMessageRepository $chatMessageRepository,
+        ChatStreamSessionStore $chatStreamSessionStore,
+    ): JsonResponse {
+        $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
+        $user = $this->requireUser();
+        $token = (string) $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('chat_send_'.$project->getId(), $token)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $userMessageId = $request->request->getInt('userMessageId');
+        $userMessage = $chatMessageRepository->findProjectMessage($project, $userMessageId);
+        if (!$userMessage instanceof ChatMessage || !$userMessage->isUser()) {
+            return $this->json([
+                'errors' => ['Message utilisateur introuvable pour la relance.'],
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $streamId = $chatStreamSessionStore->create($project, $user, $userMessage);
+
+        return $this->json([
+            'streamUrl' => $this->generateUrl('app_chat_stream', [
+                'projectId' => $project->getId(),
+                'streamId' => $streamId,
+            ]),
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/confirmation', name: 'app_chat_resolve_confirmation', methods: ['POST'])]
@@ -340,19 +382,29 @@ final class ChatController extends AbstractController
                     ->setRole(ChatMessage::ROLE_ASSISTANT)
                     ->setContent($generationResult->assistantContent());
 
-                $entityManager->persist($assistantMessage);
+                // Wrap slide persistence in a transaction to guarantee no partial slide state
+                // is committed in case of a flush failure (T124)
+                $entityManager->wrapInTransaction(function () use (
+                    $entityManager,
+                    $project,
+                    $projectVersioning,
+                    $generationResult,
+                    $assistantMessage,
+                ): void {
+                    $entityManager->persist($assistantMessage);
 
-                if ($generationResult->requiresConfirmation()) {
-                    $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
-                } elseif ($generationResult->slidesChanged()) {
-                    $project->setSlides($generationResult->slides());
-                }
+                    if ($generationResult->requiresConfirmation()) {
+                        $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
+                    } elseif ($generationResult->slidesChanged()) {
+                        $project->setSlides($generationResult->slides());
+                    }
 
-                $entityManager->flush();
+                    $entityManager->flush();
 
-                if ($generationResult->slidesChanged()) {
-                    $projectVersioning->captureSnapshot($project);
-                }
+                    if ($generationResult->slidesChanged()) {
+                        $projectVersioning->captureSnapshot($project);
+                    }
+                });
 
                 $chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
                 $history = $chatMessageRepository->paginateProjectConversation($project, 1, self::MESSAGES_PER_PAGE);
@@ -369,10 +421,17 @@ final class ChatController extends AbstractController
                 ]);
 
                 $this->emitSseEvent((int) $doneEvent['id'], 'generation_done', $doneEvent['payload']);
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
+                $isEmptyResponse = $e instanceof EmptyAIResponseException;
+                $userMessageId = (int) ($state['userMessageId'] ?? 0);
+
                 $chatStreamSessionStore->markStatus($streamId, 'error');
                 $errorEvent = $chatStreamSessionStore->appendEvent($streamId, 'error', [
-                    'message' => 'Harmony n\'a pas pu terminer la generation en streaming.',
+                    'message' => $isEmptyResponse
+                        ? 'Harmony n\'a pas recu de reponse de l\'IA. Vous pouvez relancer la generation.'
+                        : 'Harmony n\'a pas pu terminer la generation en streaming.',
+                    'retryAvailable' => $isEmptyResponse,
+                    'userMessageId' => $userMessageId > 0 ? $userMessageId : null,
                 ]);
                 $this->emitSseEvent((int) $errorEvent['id'], 'error', $errorEvent['payload']);
             } finally {
