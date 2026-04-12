@@ -320,10 +320,13 @@ final class ResponseValidator
             $errors[] = $path.'.type must be provided.';
         }
 
+        $resolvedType = null;
         if (array_key_exists('type', $slide)) {
             $type = $slide['type'];
             if (!is_string($type) || !in_array($type, $this->responseSchema->supportedSlideTypes(), true)) {
                 $errors[] = $path.'.type is not supported.';
+            } else {
+                $resolvedType = $type;
             }
         }
 
@@ -343,12 +346,144 @@ final class ResponseValidator
             $errors[] = $path.'.notes must be a string with max 400 characters.';
         }
 
-        if ($requireFullDefinition && !array_key_exists('items', $slide) && ($slide['type'] ?? null) === 'bullet_list') {
+        if ($requireFullDefinition && !array_key_exists('items', $slide) && $resolvedType === 'bullet_list') {
             $errors[] = $path.'.items must be provided for bullet_list slides.';
         }
 
-        if (array_key_exists('items', $slide) && !$this->validateItems($slide['items'])) {
+        if (array_key_exists('items', $slide) && $resolvedType !== 'timeline' && !$this->validateItems($slide['items'])) {
             $errors[] = $path.'.items must contain between 1 and 6 strings, each between 1 and 140 characters.';
+        }
+
+        // Phase 3 type-specific validation
+        if ($resolvedType === 'timeline') {
+            $this->validateTimelineSlide($slide, $path, $errors, $requireFullDefinition);
+        } elseif ($resolvedType === 'stats') {
+            $this->validateStatsSlide($slide, $path, $errors, $requireFullDefinition);
+        } elseif ($resolvedType === 'comparison') {
+            $this->validateComparisonSlide($slide, $path, $errors, $requireFullDefinition);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $slide
+     * @param list<string> $errors
+     */
+    private function validateTimelineSlide(array $slide, string $path, array &$errors, bool $requireFullDefinition): void
+    {
+        if (!array_key_exists('items', $slide)) {
+            if ($requireFullDefinition) {
+                $errors[] = $path.'.items is required for timeline slides.';
+            }
+
+            return;
+        }
+
+        $items = $slide['items'];
+        if (!is_array($items) || count($items) < 2 || count($items) > 6) {
+            $errors[] = $path.'.items must contain between 2 and 6 timeline entries.';
+
+            return;
+        }
+
+        foreach ($items as $i => $item) {
+            $itemPath = sprintf('%s.items[%d]', $path, $i);
+            if (!is_array($item)) {
+                $errors[] = $itemPath.' must be an object.';
+                continue;
+            }
+
+            if (!$this->isNonEmptyString($item['label'] ?? null, 1, 140)) {
+                $errors[] = $itemPath.'.label must be a non-empty string with max 140 characters.';
+            }
+
+            if (array_key_exists('year', $item) && !$this->isNullableStringWithinLength($item['year'], 20)) {
+                $errors[] = $itemPath.'.year must be a string with max 20 characters.';
+            }
+
+            if (array_key_exists('description', $item) && !$this->isNullableStringWithinLength($item['description'], 300)) {
+                $errors[] = $itemPath.'.description must be a string with max 300 characters.';
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $slide
+     * @param list<string> $errors
+     */
+    private function validateStatsSlide(array $slide, string $path, array &$errors, bool $requireFullDefinition): void
+    {
+        if (!array_key_exists('stats', $slide)) {
+            if ($requireFullDefinition) {
+                $errors[] = $path.'.stats is required for stats slides.';
+            }
+
+            return;
+        }
+
+        $stats = $slide['stats'];
+        if (!is_array($stats) || count($stats) < 2 || count($stats) > 6) {
+            $errors[] = $path.'.stats must contain between 2 and 6 entries.';
+
+            return;
+        }
+
+        foreach ($stats as $i => $stat) {
+            $statPath = sprintf('%s.stats[%d]', $path, $i);
+            if (!is_array($stat)) {
+                $errors[] = $statPath.' must be an object.';
+                continue;
+            }
+
+            if (!$this->isNonEmptyString($stat['value'] ?? null, 1, 40)) {
+                $errors[] = $statPath.'.value must be a non-empty string with max 40 characters.';
+            }
+
+            if (!$this->isNonEmptyString($stat['label'] ?? null, 1, 80)) {
+                $errors[] = $statPath.'.label must be a non-empty string with max 80 characters.';
+            }
+
+            if (array_key_exists('detail', $stat) && !$this->isNullableStringWithinLength($stat['detail'], 140)) {
+                $errors[] = $statPath.'.detail must be a string with max 140 characters.';
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $slide
+     * @param list<string> $errors
+     */
+    private function validateComparisonSlide(array $slide, string $path, array &$errors, bool $requireFullDefinition): void
+    {
+        foreach (['left', 'right'] as $side) {
+            $colPath = $path.'.'.$side;
+
+            if (!array_key_exists($side, $slide)) {
+                if ($requireFullDefinition) {
+                    $errors[] = $colPath.' is required for comparison slides.';
+                }
+                continue;
+            }
+
+            $column = $slide[$side];
+            if (!is_array($column)) {
+                $errors[] = $colPath.' must be an object.';
+                continue;
+            }
+
+            if (!$this->isNonEmptyString($column['heading'] ?? null, 1, 80)) {
+                $errors[] = $colPath.'.heading must be a non-empty string with max 80 characters.';
+            }
+
+            $items = $column['items'] ?? null;
+            if (!is_array($items) || count($items) < 1 || count($items) > 6) {
+                $errors[] = $colPath.'.items must contain between 1 and 6 strings.';
+            } elseif (!$this->validateItems($items)) {
+                $errors[] = $colPath.'.items must contain between 1 and 6 strings, each between 1 and 140 characters.';
+            }
+
+            if (array_key_exists('highlight', $column) && !$this->isNullableStringWithinLength($column['highlight'], 80)) {
+                $errors[] = $colPath.'.highlight must be a string with max 80 characters.';
+            }
         }
     }
 
@@ -485,7 +620,7 @@ final class ResponseValidator
             }
         }
 
-        if (array_key_exists('items', $slide) && is_array($slide['items'])) {
+        if (array_key_exists('items', $slide) && is_array($slide['items']) && ($normalized['type'] ?? null) !== 'timeline') {
             $normalized['items'] = array_values(array_map(
                 static fn (string $item): string => trim($item),
                 array_filter($slide['items'], static fn (mixed $item): bool => is_string($item) && trim($item) !== ''),
@@ -498,6 +633,95 @@ final class ResponseValidator
 
         if (!$partial && !array_key_exists('items', $normalized) && ($normalized['type'] ?? null) === 'bullet_list') {
             $normalized['items'] = [];
+        }
+
+        // Phase 3 fields
+        if (array_key_exists('items', $slide) && is_array($slide['items']) && ($normalized['type'] ?? null) === 'timeline') {
+            $normalized['items'] = $this->normalizeTimelineItems($slide['items']);
+        }
+        if (array_key_exists('stats', $slide) && is_array($slide['stats'])) {
+            $normalized['stats'] = $this->normalizeStatsEntries($slide['stats']);
+        }
+
+        foreach (['left', 'right'] as $side) {
+            if (array_key_exists($side, $slide) && is_array($slide[$side])) {
+                $normalized[$side] = $this->normalizeComparisonColumn($slide[$side]);
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param list<mixed> $items
+     *
+     * @return list<array<string, string>>
+     */
+    private function normalizeTimelineItems(array $items): array
+    {
+        $normalized = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $entry = ['label' => trim((string) ($item['label'] ?? ''))];
+            if (isset($item['year']) && is_string($item['year'])) {
+                $entry['year'] = trim($item['year']);
+            }
+            if (isset($item['description']) && is_string($item['description'])) {
+                $entry['description'] = trim($item['description']);
+            }
+            $normalized[] = $entry;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param list<mixed> $stats
+     *
+     * @return list<array<string, string>>
+     */
+    private function normalizeStatsEntries(array $stats): array
+    {
+        $normalized = [];
+        foreach ($stats as $stat) {
+            if (!is_array($stat)) {
+                continue;
+            }
+            $entry = [
+                'value' => trim((string) ($stat['value'] ?? '')),
+                'label' => trim((string) ($stat['label'] ?? '')),
+            ];
+            if (isset($stat['detail']) && is_string($stat['detail'])) {
+                $entry['detail'] = trim($stat['detail']);
+            }
+            $normalized[] = $entry;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string, mixed> $column
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeComparisonColumn(array $column): array
+    {
+        $normalized = [
+            'heading' => trim((string) ($column['heading'] ?? '')),
+        ];
+
+        if (isset($column['items']) && is_array($column['items'])) {
+            $normalized['items'] = array_values(array_map(
+                static fn (string $item): string => trim($item),
+                array_filter($column['items'], static fn (mixed $item): bool => is_string($item) && trim($item) !== ''),
+            ));
+        }
+
+        if (isset($column['highlight']) && is_string($column['highlight'])) {
+            $normalized['highlight'] = trim($column['highlight']);
         }
 
         return $normalized;
