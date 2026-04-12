@@ -13,3 +13,8 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+###> media uploads ###
+/public/uploads/media/*
+!/public/uploads/media/.gitkeep
+###< media uploads ###
