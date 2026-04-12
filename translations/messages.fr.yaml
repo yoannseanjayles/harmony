@@ -195,6 +195,7 @@ project.share.public_expiry: Expiration du lien
 project.share.slides_badge: Apercu des slides
 project.share.slide_fallback: Slide %number%
 project.share.slide_identifier: "Identifiant : %id%"
+project.export.html: Exporter en HTML
 project.preview.badge: Preview live
 project.preview.title: Panneau preview
 project.preview.subtitle: "%count% slide(s) synchronisee(s) en direct."
