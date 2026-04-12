@@ -85,6 +85,6 @@ final class LocalStorageAdapter implements StorageAdapterInterface
      */
     public function getSignedUrl(string $storageKey, int $expiresIn = 3600): string
     {
-        return rtrim($this->publicBasePath, '/') . '/' . $storageKey;
+        return rtrim($this->publicBasePath, '/').'/'.$storageKey;
     }
 }
