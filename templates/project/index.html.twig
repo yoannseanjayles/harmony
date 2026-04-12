@@ -1,0 +1,484 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'project.index.meta_title'|trans }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .hm-dashboard--wide {
+            width: min(100%, 1180px);
+        }
+
+        .hm-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .hm-summary-card,
+        .hm-project-card {
+            padding: 22px;
+            border-radius: 22px;
+            background: var(--hm-surface-strong);
+            border: 1px solid rgba(23, 63, 53, 0.08);
+        }
+
+        .hm-summary-card span,
+        .hm-project-card__label,
+        .hm-project-stat span {
+            display: block;
+            font-size: 0.82rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-summary-card strong,
+        .hm-project-stat strong {
+            display: block;
+            margin-top: 10px;
+            font-size: 1.7rem;
+            font-family: var(--hm-font-title);
+        }
+
+        .hm-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-end;
+            margin: 22px 0 18px;
+        }
+
+        .hm-toolbar-form {
+            display: grid;
+            grid-template-columns: minmax(240px, 1.7fr) repeat(2, minmax(150px, 0.7fr)) auto auto;
+            gap: 12px;
+            width: 100%;
+            align-items: end;
+        }
+
+        .hm-toolbar-field {
+            display: grid;
+            gap: 8px;
+        }
+
+        .hm-toolbar-field label {
+            font-weight: 700;
+        }
+
+        .hm-toolbar-field input,
+        .hm-toolbar-field select {
+            width: 100%;
+            min-height: 52px;
+            padding: 0 16px;
+            border-radius: 16px;
+            border: 1px solid rgba(23, 63, 53, 0.18);
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--hm-ink);
+            font: inherit;
+        }
+
+        .hm-filter-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .hm-results-copy {
+            margin: 0 0 12px;
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 18px;
+        }
+
+        .hm-project-card {
+            display: grid;
+            gap: 18px;
+        }
+
+        .hm-project-card__top {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .hm-project-card__title {
+            margin: 12px 0 0;
+            font-family: var(--hm-font-title);
+            font-size: 1.9rem;
+            line-height: 1.05;
+        }
+
+        .hm-project-card__updated {
+            margin: -4px 0 0;
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-status {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 0 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .hm-status--active {
+            background: rgba(29, 122, 90, 0.12);
+            color: var(--hm-success);
+        }
+
+        .hm-status--draft {
+            background: rgba(191, 106, 61, 0.12);
+            color: var(--hm-accent-deep);
+        }
+
+        .hm-status--archived {
+            background: rgba(23, 63, 53, 0.1);
+            color: var(--hm-ink);
+        }
+
+        .hm-project-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .hm-project-stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(244, 239, 227, 0.7);
+            border: 1px solid rgba(23, 63, 53, 0.08);
+        }
+
+        .hm-export-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .hm-export-card {
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(23, 63, 53, 0.08);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .hm-export-card__meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .hm-export-card__rate {
+            font-weight: 700;
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-meter {
+            height: 10px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(23, 63, 53, 0.1);
+        }
+
+        .hm-meter__fill {
+            height: 100%;
+            border-radius: 999px;
+            background: rgba(23, 63, 53, 0.3);
+        }
+
+        .hm-meter__fill--success {
+            background: linear-gradient(135deg, #24835e, #1d7a5a);
+        }
+
+        .hm-meter__fill--warning {
+            background: linear-gradient(135deg, #d39b3c, #bf6a3d);
+        }
+
+        .hm-meter__fill--danger {
+            background: linear-gradient(135deg, #d1604a, #a3362b);
+        }
+
+        .hm-meter__fill--idle {
+            background: rgba(23, 63, 53, 0.22);
+        }
+
+        .hm-pagination {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            margin-top: 18px;
+        }
+
+        @media (max-width: 1100px) {
+            .hm-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .hm-toolbar-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 900px) {
+            .hm-project-stats,
+            .hm-export-grid,
+            .hm-summary-grid,
+            .hm-toolbar-form {
+                grid-template-columns: 1fr;
+            }
+
+            .hm-project-card__top,
+            .hm-pagination {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    {% set baseQuery = {
+        scope: currentScope,
+        search: currentSearch,
+        sort: currentSort,
+        direction: currentDirection
+    } %}
+
+    <main class="hm-shell">
+        <section class="hm-dashboard hm-dashboard--wide">
+            <header>
+                <div>
+                    <span class="hm-badge">{{ 'project.index.badge'|trans }}</span>
+                    <h1 class="hm-page-title">{{ 'project.index.title'|trans }}</h1>
+                    <p class="hm-copy">{{ 'project.index.subtitle'|trans }}</p>
+                </div>
+
+                <div class="hm-actions">
+                    <a class="hm-link" href="{{ path('app_dashboard') }}">{{ 'project.back_dashboard'|trans }}</a>
+                    <a class="hm-button" href="{{ path('app_project_new') }}">{{ 'project.index.cta'|trans }}</a>
+                </div>
+            </header>
+
+            {% for flash in app.flashes('success') %}
+                <div class="hm-alert hm-alert--success">{{ flash|trans }}</div>
+            {% endfor %}
+
+            <section class="hm-summary-grid">
+                <article class="hm-summary-card">
+                    <span>{{ 'project.index.summary.projects'|trans }}</span>
+                    <strong>{{ summary.visibleProjects }}</strong>
+                </article>
+                <article class="hm-summary-card">
+                    <span>{{ 'project.index.summary.slides'|trans }}</span>
+                    <strong>{{ summary.totalSlides }}</strong>
+                </article>
+                <article class="hm-summary-card">
+                    <span>{{ 'project.index.summary.ai_cost'|trans }}</span>
+                    <strong>{{ summary.totalAiCostUsd|number_format(2, ',', ' ') }} USD</strong>
+                </article>
+                <article class="hm-summary-card">
+                    <span>{{ 'project.index.summary.export_html'|trans }}</span>
+                    <strong>{{ summary.htmlExports.rate|number_format(0, ',', ' ') }} %</strong>
+                </article>
+                <article class="hm-summary-card">
+                    <span>{{ 'project.index.summary.export_pdf'|trans }}</span>
+                    <strong>{{ summary.pdfExports.rate|number_format(0, ',', ' ') }} %</strong>
+                </article>
+            </section>
+
+            <div class="hm-filter-tabs">
+                {% set scopeLinks = {
+                    active: 'project.index.filter.active',
+                    archived: 'project.index.filter.archived',
+                    all: 'project.index.filter.all'
+                } %}
+                {% for scopeValue, labelKey in scopeLinks %}
+                    <a class="{{ currentScope == scopeValue ? 'hm-button' : 'hm-link' }}" href="{{ path('app_project_index', baseQuery|merge({ scope: scopeValue, page: 1 })) }}">{{ labelKey|trans }}</a>
+                {% endfor %}
+            </div>
+
+            <div class="hm-toolbar">
+                <form class="hm-toolbar-form" method="get" action="{{ path('app_project_index') }}">
+                    <input type="hidden" name="scope" value="{{ currentScope }}">
+                    <div class="hm-toolbar-field">
+                        <label for="project-search">{{ 'project.index.search_label'|trans }}</label>
+                        <input id="project-search" type="search" name="search" value="{{ currentSearch }}" placeholder="{{ 'project.index.search_placeholder'|trans }}">
+                    </div>
+                    <div class="hm-toolbar-field">
+                        <label for="project-sort">{{ 'project.index.sort_label'|trans }}</label>
+                        <select id="project-sort" name="sort">
+                            {% for sortValue, labelKey in sortOptions %}
+                                <option value="{{ sortValue }}" {{ currentSort == sortValue ? 'selected' }}>{{ labelKey|trans }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="hm-toolbar-field">
+                        <label for="project-direction">{{ 'project.index.direction_label'|trans }}</label>
+                        <select id="project-direction" name="direction">
+                            {% for directionValue, labelKey in directionOptions %}
+                                <option value="{{ directionValue }}" {{ currentDirection == directionValue ? 'selected' }}>{{ labelKey|trans }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button class="hm-button" type="submit">{{ 'project.index.apply_filters'|trans }}</button>
+                    <a class="hm-link" href="{{ path('app_project_index', { scope: currentScope }) }}">{{ 'project.index.reset_filters'|trans }}</a>
+                </form>
+            </div>
+
+            <p class="hm-results-copy">{{ 'project.index.results'|trans({ '%count%': totalProjects }) }}</p>
+
+            {% if dashboardEntries is empty %}
+                <div class="hm-summary-card">
+                    <strong>
+                        {% if currentSearch is not empty %}
+                            {{ 'project.index.empty_filtered_title'|trans }}
+                        {% elseif currentScope == 'archived' %}
+                            {{ 'project.index.empty_archived_title'|trans }}
+                        {% else %}
+                            {{ 'project.index.empty_title'|trans }}
+                        {% endif %}
+                    </strong>
+                    <p class="hm-muted">
+                        {% if currentSearch is not empty %}
+                            {{ 'project.index.empty_filtered_copy'|trans }}
+                        {% elseif currentScope == 'archived' %}
+                            {{ 'project.index.empty_archived_copy'|trans }}
+                        {% else %}
+                            {{ 'project.index.empty_copy'|trans }}
+                        {% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <section class="hm-project-grid">
+                    {% for entry in dashboardEntries %}
+                        {% set project = entry.project %}
+                        {% set statusClass = project.isArchived
+                            ? 'hm-status--archived'
+                            : (project.status == 'active' ? 'hm-status--active' : 'hm-status--draft') %}
+                        {% set htmlTone = entry.htmlExports.total == 0
+                            ? 'idle'
+                            : (entry.htmlExports.rate >= 80 ? 'success' : (entry.htmlExports.rate >= 50 ? 'warning' : 'danger')) %}
+                        {% set pdfTone = entry.pdfExports.total == 0
+                            ? 'idle'
+                            : (entry.pdfExports.rate >= 80 ? 'success' : (entry.pdfExports.rate >= 50 ? 'warning' : 'danger')) %}
+
+                        <article class="hm-project-card" data-project-card>
+                            <div class="hm-project-card__top">
+                                <div>
+                                    <span class="hm-badge">{{ project.isArchived ? 'project.archived.badge'|trans : 'project.card.scope_active'|trans }}</span>
+                                    <h2 class="hm-project-card__title" data-project-title>{{ project.title }}</h2>
+                                </div>
+                                <span class="hm-status {{ statusClass }}">{{ ('project.status.' ~ project.status)|trans }}</span>
+                            </div>
+
+                            <p class="hm-muted">{{ 'project.card.meta'|trans({
+                                '%provider%': project.providerLabelKey|trans,
+                                '%model%': project.modelLabelKey|trans,
+                                '%status%': ('project.status.' ~ project.status)|trans
+                            }) }}</p>
+                            <p class="hm-project-card__updated">{{ 'project.card.updated_at'|trans({ '%date%': project.updatedAt|date('d/m/Y H:i') }) }}</p>
+
+                            <section class="hm-project-stats">
+                                <article class="hm-project-stat">
+                                    <span>{{ 'project.show.card.slides'|trans }}</span>
+                                    <strong>{{ project.slidesCount }}</strong>
+                                </article>
+                                <article class="hm-project-stat">
+                                    <span>{{ 'project.card.ai_cost'|trans }}</span>
+                                    <strong>{{ entry.aiCostUsd|number_format(2, ',', ' ') }} USD</strong>
+                                </article>
+                            </section>
+
+                            <section class="hm-export-grid">
+                                <article class="hm-export-card">
+                                    <div class="hm-export-card__meta">
+                                        <div>
+                                            <span class="hm-project-card__label">{{ 'project.card.export_html'|trans }}</span>
+                                            <strong class="hm-export-card__rate">
+                                                {% if entry.htmlExports.total > 0 %}
+                                                    {{ entry.htmlExports.successes }}/{{ entry.htmlExports.total }} | {{ entry.htmlExports.rate|number_format(0, ',', ' ') }} %
+                                                {% else %}
+                                                    {{ 'project.card.export_empty'|trans }}
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div class="hm-meter">
+                                        <div class="hm-meter__fill hm-meter__fill--{{ htmlTone }}" style="width: {{ entry.htmlExports.total > 0 ? entry.htmlExports.rate : 8 }}%"></div>
+                                    </div>
+                                </article>
+                                <article class="hm-export-card">
+                                    <div class="hm-export-card__meta">
+                                        <div>
+                                            <span class="hm-project-card__label">{{ 'project.card.export_pdf'|trans }}</span>
+                                            <strong class="hm-export-card__rate">
+                                                {% if entry.pdfExports.total > 0 %}
+                                                    {{ entry.pdfExports.successes }}/{{ entry.pdfExports.total }} | {{ entry.pdfExports.rate|number_format(0, ',', ' ') }} %
+                                                {% else %}
+                                                    {{ 'project.card.export_empty'|trans }}
+                                                {% endif %}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div class="hm-meter">
+                                        <div class="hm-meter__fill hm-meter__fill--{{ pdfTone }}" style="width: {{ entry.pdfExports.total > 0 ? entry.pdfExports.rate : 8 }}%"></div>
+                                    </div>
+                                </article>
+                            </section>
+
+                            <div class="hm-actions">
+                                <a class="hm-link" href="{{ path('app_project_show', { id: project.id }) }}">{{ 'project.card.show'|trans }}</a>
+                                <a class="hm-link" href="{{ path('app_project_versions', { id: project.id }) }}">{{ 'project.card.history'|trans }}</a>
+                                {% if not project.isArchived %}
+                                    <a class="hm-link" href="{{ path('app_project_edit', { id: project.id }) }}">{{ 'project.card.edit'|trans }}</a>
+                                {% endif %}
+                                <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
+                                    <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
+                                </form>
+                                {% if project.isArchived %}
+                                    <form class="hm-inline-form" method="post" action="{{ path('app_project_restore', { id: project.id }) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('restore_project_' ~ project.id) }}">
+                                        <button class="hm-link" type="submit">{{ 'project.card.restore'|trans }}</button>
+                                    </form>
+                                {% else %}
+                                    <form class="hm-inline-form" method="post" action="{{ path('app_project_archive', { id: project.id }) }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('archive_project_' ~ project.id) }}">
+                                        <button class="hm-link" type="submit">{{ 'project.card.archive'|trans }}</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <nav class="hm-pagination" aria-label="{{ 'project.index.pagination.aria'|trans }}">
+                    <div class="hm-actions">
+                        {% if hasPreviousPage %}
+                            <a class="hm-link" href="{{ path('app_project_index', baseQuery|merge({ page: currentPage - 1 })) }}">{{ 'project.index.pagination.previous'|trans }}</a>
+                        {% endif %}
+                        {% if hasNextPage %}
+                            <a class="hm-link" href="{{ path('app_project_index', baseQuery|merge({ page: currentPage + 1 })) }}">{{ 'project.index.pagination.next'|trans }}</a>
+                        {% endif %}
+                    </div>
+                    <span class="hm-muted">{{ 'project.index.pagination.summary'|trans({ '%page%': currentPage, '%pages%': totalPages }) }}</span>
+                </nav>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'project.share.meta_title'|trans({ '%title%': project.title }) }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard">
+            <header>
+                <div>
+                    <span class="hm-badge">{{ 'project.share.public_badge'|trans }}</span>
+                    <h1 class="hm-page-title">{{ project.title }}</h1>
+                    <p class="hm-copy">{{ 'project.share.public_copy'|trans }}</p>
+                </div>
+            </header>
+
+            <section class="hm-dashboard-grid">
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.show.card.provider'|trans }}</strong>
+                    <p class="hm-muted">{{ project.providerLabelKey|trans }}</p>
+                </article>
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.show.card.model'|trans }}</strong>
+                    <p class="hm-muted">{{ project.modelLabelKey|trans }}</p>
+                </article>
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.show.card.status'|trans }}</strong>
+                    <p class="hm-muted">{{ ('project.status.' ~ project.status)|trans }}</p>
+                </article>
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.show.card.slides'|trans }}</strong>
+                    <p class="hm-muted">{{ project.slidesCount }}</p>
+                </article>
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.show.card.media'|trans }}</strong>
+                    <p class="hm-muted">{{ project.mediaRefsCount }}</p>
+                </article>
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'project.share.public_expiry'|trans }}</strong>
+                    <p class="hm-muted">{{ project.shareExpiresAt|date('d/m/Y H:i') }}</p>
+                </article>
+            </section>
+
+            {% if project.slides is not empty %}
+                <section class="hm-dashboard">
+                    <span class="hm-badge">{{ 'project.share.slides_badge'|trans }}</span>
+                    <div class="hm-dashboard-grid">
+                        {% for slide in project.slides %}
+                            <article class="hm-dashboard-card">
+                                <strong>{{ slide.title ?? ('project.share.slide_fallback'|trans({ '%number%': loop.index })) }}</strong>
+                                <p class="hm-muted">{{ 'project.share.slide_identifier'|trans({ '%id%': slide.id ?? 'n/a' }) }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}

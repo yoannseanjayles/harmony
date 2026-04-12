@@ -1,0 +1,9 @@
+{% for message in messages %}
+    <article class="hm-chat-message hm-chat-message--{{ message.role }}" data-chat-message data-message-id="{{ message.id }}">
+        <div class="hm-chat-message__meta">
+            <strong>{{ ('chat.role.' ~ message.role)|trans }}</strong>
+            <time datetime="{{ message.createdAt|date('c') }}">{{ message.createdAt|date('d/m/Y H:i') }}</time>
+        </div>
+        <div class="hm-chat-message__body">{{ message.content|e|nl2br }}</div>
+    </article>
+{% endfor %}

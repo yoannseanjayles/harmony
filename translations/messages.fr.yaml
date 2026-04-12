@@ -1,0 +1,234 @@
+brand.kicker: Espace securise
+brand.title: Harmony
+
+registration.meta_title: Inscription | Harmony
+registration.badge: Nouvelle session
+registration.title: Creez votre compte
+registration.subtitle: Configurez votre acces a Harmony avec une adresse e-mail unique et un mot de passe robuste.
+registration.brand_copy: L'espace Harmony centralise votre travail en gardant une authentification lisible, protegee et agreable a utiliser.
+registration.metric.security: caracteres minimum recommandes
+registration.metric.session: duree de session avant expiration
+registration.metric.validation: validation cote serveur sur les mots de passe
+registration.metric.remember: option de connexion persistante
+registration.submit: Creer mon compte
+registration.login_link: J'ai deja un compte
+registration.help: Votre mot de passe doit contenir au moins 12 caracteres, une majuscule, une minuscule et un chiffre.
+registration.success: Votre compte a ete cree. Connectez-vous pour acceder a votre tableau de bord.
+registration.form.email: Adresse e-mail
+registration.form.password: Mot de passe
+registration.form.password_repeat: Confirmer le mot de passe
+
+login.meta_title: Connexion | Harmony
+login.badge: Acces membre
+login.title: Connectez-vous
+login.subtitle: Reprenez votre session, activez le remember-me si besoin et soyez redirige vers votre espace.
+login.brand_title: Revenir dans votre flux Harmony
+login.brand_copy: L'authentification Harmony conserve un parcours direct, securise et centre sur la continuite de travail.
+login.metric.remember: duree du remember-me actif
+login.metric.redirect: redirection vers le dashboard apres connexion
+login.metric.csrf: formulaire protege contre les soumissions illegitimes
+login.metric.session: regeneration de session a l'authentification
+login.form.email: Adresse e-mail
+login.form.password: Mot de passe
+login.form.remember_me: Se souvenir de moi pendant 7 jours
+login.submit: Se connecter
+login.register_link: Creer un compte
+login.help: Si vos identifiants ne sont pas corrects, Harmony vous renvoie un message localise sans exposer d'information sensible.
+
+dashboard.meta_title: Tableau de bord | Harmony
+dashboard.badge: Session ouverte
+dashboard.title: Bienvenue dans Harmony
+dashboard.subtitle: Votre session est active avec %email%.
+dashboard.logout: Se deconnecter
+dashboard.card.account: Compte actif
+dashboard.card.account_copy: Votre compte est authentifie avec le role utilisateur standard de la plateforme.
+dashboard.card.account_cta: Gerer mon profil
+dashboard.card.session: Session protegee
+dashboard.card.session_copy: L'identifiant de session est regenere a la connexion et expire apres 2 heures d'inactivite.
+dashboard.card.next: Suite du projet
+dashboard.card.next_copy: Vous pouvez maintenant brancher les prochaines features metier sur cette base d'authentification.
+dashboard.card.projects: Projets
+dashboard.card.projects_copy: Creez, modifiez et archivez vos projets en gardant une isolation stricte par proprietaire.
+dashboard.card.projects_cta: Ouvrir mes projets
+
+profile.meta_title: Profil | Harmony
+profile.badge: Profil utilisateur
+profile.title: Gerez votre configuration API
+profile.subtitle: Ajoutez votre cle API BYOK, faites-la pivoter sans exposer sa valeur en clair, ou retirez-la completement.
+profile.brand_title: Votre coffre BYOK Harmony
+profile.brand_copy: Harmony chiffre chaque cle API utilisateur avec libsodium, masque l'affichage et prepare la resolution propre entre cle plateforme et cle personnelle.
+profile.metric.status: statut actuel de la cle utilisateur
+profile.metric.masked: affichage masque de la cle active
+profile.metric.encryption: version du format de chiffrement
+profile.metric.owner: compte proprietaire de la cle
+profile.form.api_key: Nouvelle cle API
+profile.submit.save: Enregistrer ma cle
+profile.submit.rotate: Faire pivoter la cle
+profile.submit.delete: Supprimer la cle
+profile.back_dashboard: Retour au dashboard
+profile.current_key: Cle active :
+profile.no_key: Aucune cle API BYOK n'est enregistree pour le moment.
+profile.flash.saved: La cle API a ete enregistree et chiffree.
+profile.flash.rotated: La cle API a ete remplacee et l'ancienne invalidee.
+profile.flash.deleted: La cle API utilisateur a ete supprimee.
+profile.api_key.required: Veuillez saisir une cle API.
+profile.api_key.min_length: La cle API doit contenir au moins {{ limit }} caracteres.
+profile.api_key.no_spaces: La cle API ne doit contenir aucun espace.
+security.rate_limit.badge: Protection active
+security.rate_limit.title: Trop de requetes
+security.rate_limit.copy: Trop de tentatives ont ete detectees. Reessayez dans %seconds% secondes.
+security.rate_limit.help: Harmony applique un rate limiting sur les routes sensibles pour proteger les comptes et les operations couteuses.
+security.csrf.badge: Requete bloquee
+security.csrf.title: Jeton CSRF invalide
+security.csrf.copy: La requete a ete bloquee car le jeton de protection est manquant ou invalide.
+security.csrf.help: Rechargez la page pour obtenir un nouveau jeton, puis recommencez l'action.
+
+project.back_dashboard: Retour au dashboard
+project.back_index: Retour aux projets
+project.index.meta_title: Projets | Harmony
+project.index.badge: Espace projets
+project.index.title: Vos projets Harmony
+project.index.subtitle: Pilotez chaque projet avec son fournisseur IA, son modele, ses metriques d'usage, ses exports et une isolation stricte par proprietaire.
+project.index.cta: Nouveau projet
+project.index.empty_title: Aucun projet pour le moment.
+project.index.empty_copy: Creez votre premier projet pour commencer a structurer votre espace de travail Harmony.
+project.index.empty_archived_title: Aucune archive pour le moment.
+project.index.empty_archived_copy: Les projets archives apparaitront ici pour pouvoir etre restaures ou dupliques.
+project.index.empty_filtered_title: Aucun projet ne correspond a vos filtres.
+project.index.empty_filtered_copy: Essayez un autre nom, statut ou ordre de tri pour retrouver le bon projet.
+project.index.filter.active: Actifs
+project.index.filter.archived: Archives
+project.index.filter.all: Tous
+project.index.summary.projects: Projets visibles
+project.index.summary.slides: Slides sur la page
+project.index.summary.ai_cost: Cout IA cumule
+project.index.summary.export_html: Reussite HTML
+project.index.summary.export_pdf: Reussite PDF
+project.index.search_label: Recherche
+project.index.search_placeholder: Nom, fournisseur, modele ou statut
+project.index.sort_label: Tri
+project.index.sort.updated: Derniere modification
+project.index.sort.name: Nom
+project.index.sort.status: Statut
+project.index.direction_label: Ordre
+project.index.direction.desc: Plus recent d'abord
+project.index.direction.asc: Plus ancien d'abord
+project.index.apply_filters: Appliquer
+project.index.reset_filters: Reinitialiser
+project.index.results: "%count% projet(s) trouves."
+project.index.pagination.aria: Pagination des projets
+project.index.pagination.previous: Page precedente
+project.index.pagination.next: Page suivante
+project.index.pagination.summary: Page %page% sur %pages%
+project.card.meta: Fournisseur %provider% | Modele %model% | Statut %status%
+project.card.scope_active: Projet actif
+project.card.updated_at: Mis a jour le %date%
+project.card.ai_cost: Cout IA estime
+project.card.export_html: Export HTML
+project.card.export_pdf: Export PDF
+project.card.export_empty: Aucun export
+project.card.show: Ouvrir
+project.card.history: Historique
+project.card.edit: Modifier
+project.card.duplicate: Dupliquer
+project.card.archive: Archiver
+project.card.restore: Desarchiver
+project.new.meta_title: Nouveau projet | Harmony
+project.new.badge: Creation
+project.new.title: Lancez un nouveau projet
+project.new.copy: Chaque projet conserve son parametrage fournisseur et modele pour preparer les prochaines briques metier de Harmony.
+project.new.form_title: Configurer le projet
+project.new.subtitle: Renseignez un titre clair, choisissez le fournisseur et le modele, puis definissez l'etat initial du projet.
+project.new.submit: Creer le projet
+project.edit.meta_title: Modifier %title% | Harmony
+project.edit.badge: Edition
+project.edit.copy: Ajustez le cadrage du projet sans perdre son historique ni son proprietaire.
+project.edit.form_title: Mettre a jour le projet
+project.edit.subtitle: Les changements sont appliques immediatement et restent limites au proprietaire du projet.
+project.edit.submit: Enregistrer les changements
+project.show.meta_title: Projet %title% | Harmony
+project.show.badge: Projet actif
+project.show.archived_copy: Ce projet est archive. Il reste accessible, peut etre duplique et peut etre restaure a tout moment.
+project.show.card.provider: Fournisseur
+project.show.card.model: Modele
+project.show.card.status: Statut
+project.show.card.slides: Slides
+project.show.card.media: Medias references
+project.show.card.history: Historique
+project.show.card.history_copy: Consultez les snapshots precedents et restaurez une version anterieure si necessaire.
+project.show.card.share: Partage public
+project.show.card.share_active: Lien public actif jusqu'au %date%.
+project.show.card.share_inactive: Aucun lien public actif pour ce projet.
+project.show.card.share_open: Ouvrir le lien public
+project.show.delete: Supprimer le projet
+project.history.meta_title: Historique de %title% | Harmony
+project.history.badge: Historique des versions
+project.history.subtitle: "%count% snapshot(s) disponibles pour ce projet."
+project.history.back_project: Retour au projet
+project.history.empty_title: Aucune version enregistree.
+project.history.empty_copy: Les snapshots apparaitront ici apres la creation ou les modifications structurantes du projet.
+project.history.version_label: Version %number%
+project.history.restore: Restaurer cette version
+project.history.flash.restored: La version selectionnee a ete restauree avec succes.
+project.history.diff.none: Aucun ecart avec l'etat actuel.
+project.history.diff.empty: vide
+project.history.pagination.previous: Page precedente
+project.history.pagination.next: Page suivante
+project.history.pagination.summary: Page %page% sur %pages%
+project.history.field.title: Titre
+project.history.field.provider: Fournisseur
+project.history.field.model: Modele
+project.history.field.status: Statut
+project.history.field.archived: Archivage
+project.history.field.slides: Nombre de slides
+project.history.field.media: Nombre de medias
+project.history.field.theme: Theme
+project.history.field.metadata: Metadonnees
+project.share.meta_title: Partage de %title% | Harmony
+project.share.generate: Generer un lien public
+project.share.revoke: Revoquer le lien public
+project.share.flash.generated: Le lien public a ete genere.
+project.share.flash.revoked: Le lien public a ete revoque.
+project.share.public_badge: Partage lecture seule
+project.share.public_copy: Cette vue est publique, en lecture seule, et chaque acces est journalise.
+project.share.public_expiry: Expiration du lien
+project.share.slides_badge: Apercu des slides
+project.share.slide_fallback: Slide %number%
+project.share.slide_identifier: "Identifiant : %id%"
+chat.panel.badge: Conversation projet
+chat.panel.title: Panneau de chat
+chat.panel.subtitle: "%count% message(s) dans cette conversation."
+chat.panel.load_older: Afficher les messages precedents
+chat.panel.empty_title: Aucun message pour le moment.
+chat.panel.empty_copy: Lancez la conversation depuis ce projet. L'historique restera rattache au projet et pret pour l'orchestration IA.
+chat.panel.typing: Generation en cours
+chat.panel.input_label: Votre message
+chat.panel.placeholder: Donnez une instruction, un retour ou un besoin de modification pour ce projet
+chat.panel.submit: Envoyer
+chat.panel.help: Entree pour envoyer, Shift + Entree pour une nouvelle ligne.
+chat.panel.error_generic: Impossible de charger le chat pour le moment.
+chat.role.user: Vous
+chat.role.assistant: Assistant
+chat.role.invalid: Le role du message est invalide.
+chat.content.required: Saisissez un message avant l'envoi.
+chat.content.max_length: Le message ne peut pas depasser {{ limit }} caracteres.
+project.form.title: Titre du projet
+project.form.provider: Fournisseur IA
+project.form.model: Modele
+project.form.status: Statut
+project.archived.badge: Projet archive
+project.provider.openai: OpenAI
+project.provider.anthropic: Anthropic
+project.model.gpt41mini: GPT-4.1 mini
+project.model.gpt41: GPT-4.1
+project.model.claude37: Claude 3.7 Sonnet
+project.model.claude35: Claude 3.5 Sonnet
+project.status.draft: Brouillon
+project.status.active: Actif
+project.status.deleted: Supprime
+project.flash.created: Le projet a ete cree avec succes.
+project.flash.updated: Le projet a ete mis a jour.
+project.flash.duplicated: Le projet a ete duplique.
+project.flash.archived: Le projet a ete archive.
+project.flash.restored: Le projet a ete restaure.
+project.flash.deleted: Le projet a ete supprime.

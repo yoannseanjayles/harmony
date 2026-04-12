@@ -1,0 +1,14 @@
+app.user.email.required: Veuillez renseigner votre adresse e-mail.
+app.user.email.invalid: Veuillez saisir une adresse e-mail valide.
+app.user.email.unique: Cette adresse e-mail est deja utilisee.
+app.user.password.required: Veuillez choisir un mot de passe.
+app.user.password.min_length: Le mot de passe doit contenir au moins {{ limit }} caracteres.
+app.user.password.uppercase: Le mot de passe doit contenir au moins une lettre majuscule.
+app.user.password.lowercase: Le mot de passe doit contenir au moins une lettre minuscule.
+app.user.password.number: Le mot de passe doit contenir au moins un chiffre.
+app.user.password.mismatch: Les deux mots de passe doivent etre identiques.
+project.title.required: Veuillez saisir un titre de projet.
+project.title.min_length: Le titre du projet doit contenir au moins {{ limit }} caracteres.
+project.provider.invalid: Le fournisseur selectionne est invalide.
+project.model.invalid: Le modele selectionne est invalide.
+project.status.invalid: Le statut selectionne est invalide.

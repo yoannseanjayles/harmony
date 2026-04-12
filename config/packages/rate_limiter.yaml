@@ -1,0 +1,38 @@
+framework:
+    rate_limiter:
+        login_by_ip:
+            policy: fixed_window
+            limit: 5
+            interval: '15 minutes'
+        register_by_ip:
+            policy: fixed_window
+            limit: 3
+            interval: '1 hour'
+        ai_by_user:
+            policy: fixed_window
+            limit: 10
+            interval: '1 minute'
+        export_by_user:
+            policy: fixed_window
+            limit: 5
+            interval: '1 minute'
+
+when@test:
+    framework:
+        rate_limiter:
+            login_by_ip:
+                policy: fixed_window
+                limit: 2
+                interval: '1 hour'
+            register_by_ip:
+                policy: fixed_window
+                limit: 1
+                interval: '1 hour'
+            ai_by_user:
+                policy: fixed_window
+                limit: 1
+                interval: '1 hour'
+            export_by_user:
+                policy: fixed_window
+                limit: 1
+                interval: '1 hour'

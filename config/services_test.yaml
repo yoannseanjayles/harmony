@@ -1,0 +1,2 @@
+services:
+    App\AI\Http\AIHttpClientInterface: '@App\AI\Http\FakeAIHttpClient'

@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'security.csrf.title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard">
+            <span class="hm-badge">{{ 'security.csrf.badge'|trans }}</span>
+            <h1 class="hm-page-title">{{ 'security.csrf.title'|trans }}</h1>
+            <div class="hm-alert hm-alert--danger">
+                {{ 'security.csrf.copy'|trans }}
+            </div>
+            <p class="hm-help">{{ 'security.csrf.help'|trans }}</p>
+        </section>
+    </main>
+{% endblock %}

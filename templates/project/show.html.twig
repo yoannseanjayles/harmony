@@ -1,0 +1,459 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'project.show.meta_title'|trans({ '%title%': project.title }) }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .hm-project-show {
+            width: min(100%, 1180px);
+        }
+
+        .hm-project-stack {
+            display: grid;
+            gap: 22px;
+        }
+
+        .hm-chat-panel {
+            padding: 24px;
+            border-radius: 26px;
+            border: 1px solid rgba(23, 63, 53, 0.1);
+            background:
+                radial-gradient(circle at top right, rgba(191, 106, 61, 0.12), transparent 24%),
+                rgba(255, 252, 245, 0.92);
+            box-shadow: var(--hm-shadow);
+        }
+
+        .hm-chat-panel__header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .hm-chat-panel__title {
+            margin: 12px 0 6px;
+            font-family: var(--hm-font-title);
+            font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+            line-height: 1.05;
+        }
+
+        .hm-chat-feed {
+            display: grid;
+            gap: 14px;
+            min-height: 240px;
+            max-height: 520px;
+            overflow: auto;
+            padding: 10px 6px 10px 2px;
+            margin-bottom: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .hm-chat-empty {
+            padding: 22px;
+            border-radius: 20px;
+            border: 1px dashed rgba(23, 63, 53, 0.18);
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .hm-chat-empty strong {
+            display: block;
+            margin-bottom: 8px;
+            font-family: var(--hm-font-title);
+            font-size: 1.4rem;
+        }
+
+        .hm-chat-message {
+            width: min(78%, 620px);
+            padding: 16px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(23, 63, 53, 0.08);
+            background: rgba(255, 255, 255, 0.84);
+            box-shadow: 0 12px 28px rgba(23, 63, 53, 0.08);
+        }
+
+        .hm-chat-message--user {
+            margin-left: auto;
+            border-top-right-radius: 8px;
+            background: linear-gradient(135deg, rgba(191, 106, 61, 0.16), rgba(191, 106, 61, 0.08));
+        }
+
+        .hm-chat-message--assistant {
+            margin-right: auto;
+            border-top-left-radius: 8px;
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .hm-chat-message__meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--hm-ink-soft);
+            font-size: 0.85rem;
+        }
+
+        .hm-chat-message__body {
+            line-height: 1.7;
+            word-break: break-word;
+        }
+
+        .hm-chat-typing {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(23, 63, 53, 0.08);
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-chat-typing__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(23, 63, 53, 0.45);
+            animation: hm-chat-bounce 1s infinite ease-in-out;
+        }
+
+        .hm-chat-typing__dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .hm-chat-typing__dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .hm-chat-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .hm-chat-form__label {
+            font-weight: 700;
+        }
+
+        .hm-chat-form__textarea {
+            width: 100%;
+            min-height: 128px;
+            padding: 16px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(23, 63, 53, 0.18);
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--hm-ink);
+            font: inherit;
+            line-height: 1.6;
+            resize: vertical;
+        }
+
+        .hm-chat-form__textarea:focus {
+            outline: none;
+            border-color: rgba(191, 106, 61, 0.9);
+            box-shadow: 0 0 0 4px rgba(191, 106, 61, 0.12);
+        }
+
+        @keyframes hm-chat-bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+                opacity: 0.45;
+            }
+
+            40% {
+                transform: translateY(-4px);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .hm-chat-panel__header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hm-chat-message {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard hm-project-show">
+            <div class="hm-project-stack">
+                <header>
+                    <div>
+                        <span class="hm-badge">{{ project.isArchived ? 'project.archived.badge'|trans : 'project.show.badge'|trans }}</span>
+                        <h1 class="hm-page-title">{{ project.title }}</h1>
+                        <p class="hm-copy">{{ 'project.card.meta'|trans({
+                            '%provider%': project.providerLabelKey|trans,
+                            '%model%': project.modelLabelKey|trans,
+                            '%status%': ('project.status.' ~ project.status)|trans
+                        }) }}</p>
+                        {% if project.isArchived %}
+                            <p class="hm-copy">{{ 'project.show.archived_copy'|trans }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="hm-actions">
+                        <a class="hm-link" href="{{ path('app_project_index') }}">{{ 'project.back_index'|trans }}</a>
+                        <a class="hm-link" href="{{ path('app_project_versions', { id: project.id }) }}">{{ 'project.card.history'|trans }}</a>
+                        {% if not project.isArchived %}
+                            <a class="hm-link" href="{{ path('app_project_edit', { id: project.id }) }}">{{ 'project.card.edit'|trans }}</a>
+                        {% endif %}
+                    </div>
+                </header>
+
+                {% for flash in app.flashes('success') %}
+                    <div class="hm-alert hm-alert--success">{{ flash|trans }}</div>
+                {% endfor %}
+
+                {% for flash in app.flashes('error') %}
+                    <div class="hm-alert hm-alert--danger">{{ flash }}</div>
+                {% endfor %}
+
+                <section class="hm-dashboard-grid">
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.provider'|trans }}</strong>
+                        <p class="hm-muted">{{ project.providerLabelKey|trans }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.model'|trans }}</strong>
+                        <p class="hm-muted">{{ project.modelLabelKey|trans }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.status'|trans }}</strong>
+                        <p class="hm-muted">{{ ('project.status.' ~ project.status)|trans }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.slides'|trans }}</strong>
+                        <p class="hm-muted">{{ project.slidesCount }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.media'|trans }}</strong>
+                        <p class="hm-muted">{{ project.mediaRefsCount }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.history'|trans }}</strong>
+                        <p class="hm-muted">{{ 'project.show.card.history_copy'|trans }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.share'|trans }}</strong>
+                        {% if project.hasActiveShareLink %}
+                            <p class="hm-muted">{{ 'project.show.card.share_active'|trans({ '%date%': project.shareExpiresAt|date('d/m/Y H:i') }) }}</p>
+                            <p><a class="hm-link" href="{{ path('app_project_share_show', { token: project.shareToken }) }}" target="_blank" rel="noreferrer">{{ 'project.show.card.share_open'|trans }}</a></p>
+                            <p class="hm-muted">{{ absolute_url(path('app_project_share_show', { token: project.shareToken })) }}</p>
+                        {% else %}
+                            <p class="hm-muted">{{ 'project.show.card.share_inactive'|trans }}</p>
+                        {% endif %}
+                    </article>
+                </section>
+
+                {% include 'chat/panel.html.twig' with {
+                    project: project,
+                    chatHistory: chatHistory
+                } %}
+
+                <div class="hm-actions">
+                    <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
+                        <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
+                    </form>
+                    {% if project.isArchived %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_restore', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('restore_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.card.restore'|trans }}</button>
+                        </form>
+                    {% else %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_archive', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('archive_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.card.archive'|trans }}</button>
+                        </form>
+                    {% endif %}
+                    <form class="hm-inline-form" method="post" action="{{ path('app_project_delete', { id: project.id }) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_project_' ~ project.id) }}">
+                        <button class="hm-link" type="submit">{{ 'project.show.delete'|trans }}</button>
+                    </form>
+                    {% if project.hasActiveShareLink %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_revoke', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('revoke_share_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.share.revoke'|trans }}</button>
+                        </form>
+                    {% else %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_generate', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('share_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.share.generate'|trans }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        (() => {
+            const panel = document.querySelector('[data-chat-panel]');
+            if (!panel) {
+                return;
+            }
+
+            const feed = panel.querySelector('[data-chat-feed]');
+            const emptyState = panel.querySelector('[data-chat-empty]');
+            const typingIndicator = panel.querySelector('[data-chat-typing]');
+            const errorBox = panel.querySelector('[data-chat-error]');
+            const form = panel.querySelector('[data-chat-form]');
+            const input = panel.querySelector('[data-chat-input]');
+            const submitButton = panel.querySelector('[data-chat-submit]');
+            const loadOlderButton = panel.querySelector('[data-chat-load-older]');
+            const historyUrl = panel.dataset.historyUrl;
+            const emptyError = panel.dataset.emptyError || 'Le message est requis.';
+            const genericError = panel.dataset.genericError || 'Une erreur est survenue.';
+
+            const hideError = () => {
+                errorBox.hidden = true;
+                errorBox.textContent = '';
+            };
+
+            const showError = (message) => {
+                errorBox.textContent = message;
+                errorBox.hidden = false;
+            };
+
+            const setTyping = (isVisible) => {
+                typingIndicator.hidden = !isVisible;
+                if (isVisible) {
+                    feed.scrollTop = feed.scrollHeight;
+                }
+            };
+
+            const scrollToBottom = () => {
+                feed.scrollTop = feed.scrollHeight;
+            };
+
+            const updateLoadOlderState = (hasOlderMessages, nextPage) => {
+                if (!loadOlderButton) {
+                    return;
+                }
+
+                if (!hasOlderMessages) {
+                    loadOlderButton.hidden = true;
+                    return;
+                }
+
+                loadOlderButton.hidden = false;
+                loadOlderButton.dataset.nextPage = String(nextPage || 2);
+            };
+
+            if (feed.dataset.hasMessages === 'true') {
+                requestAnimationFrame(scrollToBottom);
+            }
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    form.requestSubmit();
+                }
+            });
+
+            if (loadOlderButton) {
+                loadOlderButton.addEventListener('click', async () => {
+                    if (loadOlderButton.hidden) {
+                        return;
+                    }
+
+                    hideError();
+                    loadOlderButton.disabled = true;
+
+                    const previousHeight = feed.scrollHeight;
+
+                    try {
+                        const response = await fetch(`${historyUrl}?page=${encodeURIComponent(loadOlderButton.dataset.nextPage)}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw data;
+                        }
+
+                        feed.insertAdjacentHTML('afterbegin', data.html);
+                        updateLoadOlderState(data.hasOlderMessages, data.nextPage);
+                        feed.scrollTop = feed.scrollHeight - previousHeight;
+                    } catch (error) {
+                        showError((error.errors && error.errors.join(' ')) || genericError);
+                    } finally {
+                        loadOlderButton.disabled = false;
+                    }
+                });
+            }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                hideError();
+
+                const trimmedMessage = input.value.trim();
+                if (trimmedMessage === '') {
+                    showError(emptyError);
+                    input.focus();
+                    return;
+                }
+
+                const startedAt = performance.now();
+                const formData = new FormData(form);
+                formData.set('message', trimmedMessage);
+
+                submitButton.disabled = true;
+                input.disabled = true;
+                emptyState.hidden = true;
+                setTyping(true);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw data;
+                    }
+
+                    feed.insertAdjacentHTML('beforeend', data.html);
+                    feed.dataset.hasMessages = 'true';
+                    input.value = '';
+                    updateLoadOlderState(data.hasOlderMessages, data.nextPage);
+
+                    const elapsed = performance.now() - startedAt;
+                    if (elapsed < 450) {
+                        await new Promise((resolve) => window.setTimeout(resolve, 450 - elapsed));
+                    }
+
+                    scrollToBottom();
+                } catch (error) {
+                    if (!feed.querySelector('[data-chat-message]')) {
+                        emptyState.hidden = false;
+                    }
+
+                    showError((error.errors && error.errors.join(' ')) || genericError);
+                } finally {
+                    setTyping(false);
+                    submitButton.disabled = false;
+                    input.disabled = false;
+                    input.focus();
+                }
+            });
+        })();
+    </script>
+{% endblock %}

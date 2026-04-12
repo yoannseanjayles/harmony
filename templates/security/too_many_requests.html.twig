@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'security.rate_limit.title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard">
+            <span class="hm-badge">{{ 'security.rate_limit.badge'|trans }}</span>
+            <h1 class="hm-page-title">{{ 'security.rate_limit.title'|trans }}</h1>
+            <div class="hm-alert hm-alert--danger">
+                {{ 'security.rate_limit.copy'|trans({ '%seconds%': retryAfter }) }}
+            </div>
+            <p class="hm-help">{{ 'security.rate_limit.help'|trans }}</p>
+        </section>
+    </main>
+{% endblock %}

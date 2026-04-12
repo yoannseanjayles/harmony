@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'project.history.meta_title'|trans({ '%title%': project.title }) }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard">
+            <header>
+                <div>
+                    <span class="hm-badge">{{ 'project.history.badge'|trans }}</span>
+                    <h1 class="hm-page-title">{{ project.title }}</h1>
+                    <p class="hm-copy">{{ 'project.history.subtitle'|trans({ '%count%': totalVersions }) }}</p>
+                </div>
+
+                <div class="hm-actions">
+                    <a class="hm-link" href="{{ path('app_project_show', { id: project.id }) }}">{{ 'project.history.back_project'|trans }}</a>
+                    <a class="hm-link" href="{{ path('app_project_index') }}">{{ 'project.back_index'|trans }}</a>
+                </div>
+            </header>
+
+            {% for flash in app.flashes('success') %}
+                <div class="hm-alert hm-alert--success">{{ flash|trans }}</div>
+            {% endfor %}
+
+            {% if versionEntries is empty %}
+                <div class="hm-dashboard-card">
+                    <strong>{{ 'project.history.empty_title'|trans }}</strong>
+                    <p class="hm-muted">{{ 'project.history.empty_copy'|trans }}</p>
+                </div>
+            {% else %}
+                <section class="hm-dashboard-grid">
+                    {% for entry in versionEntries %}
+                        {% set version = entry.version %}
+                        <article class="hm-dashboard-card">
+                            <strong>{{ 'project.history.version_label'|trans({ '%number%': version.versionNumber }) }}</strong>
+                            <p class="hm-muted">{{ version.createdAt|date('d/m/Y H:i') }}</p>
+
+                            {% if entry.diff is empty %}
+                                <p class="hm-muted">{{ 'project.history.diff.none'|trans }}</p>
+                            {% else %}
+                                {% for change in entry.diff %}
+                                    <p class="hm-muted">
+                                        {{ change.labelKey|trans }} :
+                                        <strong>{{ change.before == '' ? 'project.history.diff.empty'|trans : change.before }}</strong>
+                                        →
+                                        <strong>{{ change.after == '' ? 'project.history.diff.empty'|trans : change.after }}</strong>
+                                    </p>
+                                {% endfor %}
+                            {% endif %}
+
+                            <form class="hm-inline-form" method="post" action="{{ path('app_project_version_restore', { projectId: project.id, versionId: version.id }) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('restore_project_version_' ~ version.id) }}">
+                                <button class="hm-link" type="submit">{{ 'project.history.restore'|trans }}</button>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </section>
+
+                <div class="hm-actions">
+                    {% if hasPreviousPage %}
+                        <a class="hm-link" href="{{ path('app_project_versions', { id: project.id, page: currentPage - 1 }) }}">{{ 'project.history.pagination.previous'|trans }}</a>
+                    {% endif %}
+                    <span class="hm-muted">{{ 'project.history.pagination.summary'|trans({ '%page%': currentPage, '%pages%': totalPages }) }}</span>
+                    {% if hasNextPage %}
+                        <a class="hm-link" href="{{ path('app_project_versions', { id: project.id, page: currentPage + 1 }) }}">{{ 'project.history.pagination.next'|trans }}</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}

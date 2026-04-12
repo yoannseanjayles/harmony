@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'profile.meta_title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-card">
+            <aside class="hm-panel hm-panel--brand">
+                <span class="hm-kicker">{{ 'brand.kicker'|trans }}</span>
+                <h1 class="hm-brand-title">{{ 'profile.brand_title'|trans }}</h1>
+                <p>{{ 'profile.brand_copy'|trans }}</p>
+
+                <div class="hm-metrics">
+                    <div class="hm-metric">
+                        <strong>{{ hasApiKey ? 'BYOK' : 'OFF' }}</strong>
+                        <span>{{ 'profile.metric.status'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>{{ maskedApiKey ?? '----' }}</strong>
+                        <span>{{ 'profile.metric.masked'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>v1</strong>
+                        <span>{{ 'profile.metric.encryption'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>{{ app.user.email }}</strong>
+                        <span>{{ 'profile.metric.owner'|trans }}</span>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="hm-panel hm-form-wrap">
+                <span class="hm-badge">{{ 'profile.badge'|trans }}</span>
+                <h2 class="hm-page-title">{{ 'profile.title'|trans }}</h2>
+                <p class="hm-copy">{{ 'profile.subtitle'|trans }}</p>
+
+                {% for flash in app.flashes('success') %}
+                    <div class="hm-alert hm-alert--success">{{ flash|trans }}</div>
+                {% endfor %}
+
+                {{ form_start(profileForm, { attr: { class: 'hm-form', novalidate: 'novalidate' } }) }}
+                    <div class="hm-field">
+                        {{ form_label(profileForm.apiKey) }}
+                        {{ form_widget(profileForm.apiKey) }}
+                        {{ form_errors(profileForm.apiKey) }}
+                    </div>
+
+                    <div class="hm-actions">
+                        <button class="hm-button" type="submit">
+                            {{ hasApiKey ? 'profile.submit.rotate'|trans : 'profile.submit.save'|trans }}
+                        </button>
+                        <a class="hm-link" href="{{ path('app_dashboard') }}">{{ 'profile.back_dashboard'|trans }}</a>
+                    </div>
+                {{ form_end(profileForm) }}
+
+                <div class="hm-help">
+                    {% if hasApiKey %}
+                        <strong>{{ 'profile.current_key'|trans }}</strong> {{ maskedApiKey }}
+                    {% else %}
+                        {{ 'profile.no_key'|trans }}
+                    {% endif %}
+                </div>
+
+                {% if hasApiKey %}
+                    <form class="hm-form" method="post" action="{{ path('app_profile_api_key_delete') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete_api_key') }}">
+                        <div class="hm-actions">
+                            <button class="hm-link" type="submit">{{ 'profile.submit.delete'|trans }}</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </section>
+        </section>
+    </main>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'dashboard.meta_title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-dashboard">
+            <header>
+                <div>
+                    <span class="hm-badge">{{ 'dashboard.badge'|trans }}</span>
+                    <h1 class="hm-page-title">{{ 'dashboard.title'|trans }}</h1>
+                    <p class="hm-copy">{{ 'dashboard.subtitle'|trans({ '%email%': app.user.userIdentifier }) }}</p>
+                </div>
+
+                <form class="hm-inline-form" method="post" action="{{ path('app_logout') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                    <button class="hm-link" type="submit">{{ 'dashboard.logout'|trans }}</button>
+                </form>
+            </header>
+
+            <section class="hm-dashboard-grid">
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'dashboard.card.account'|trans }}</strong>
+                    <p class="hm-muted">{{ 'dashboard.card.account_copy'|trans }}</p>
+                    <p><a class="hm-link" href="{{ path('app_profile') }}">{{ 'dashboard.card.account_cta'|trans }}</a></p>
+                </article>
+
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'dashboard.card.session'|trans }}</strong>
+                    <p class="hm-muted">{{ 'dashboard.card.session_copy'|trans }}</p>
+                </article>
+
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'dashboard.card.next'|trans }}</strong>
+                    <p class="hm-muted">{{ 'dashboard.card.next_copy'|trans }}</p>
+                </article>
+
+                <article class="hm-dashboard-card">
+                    <strong>{{ 'dashboard.card.projects'|trans }}</strong>
+                    <p class="hm-muted">{{ 'dashboard.card.projects_copy'|trans }}</p>
+                    <p><a class="hm-link" href="{{ path('app_project_index') }}">{{ 'dashboard.card.projects_cta'|trans }}</a></p>
+                </article>
+            </section>
+        </section>
+    </main>
+{% endblock %}

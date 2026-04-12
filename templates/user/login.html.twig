@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'login.meta_title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-card">
+            <aside class="hm-panel hm-panel--brand">
+                <span class="hm-kicker">{{ 'brand.kicker'|trans }}</span>
+                <h1 class="hm-brand-title">{{ 'login.brand_title'|trans }}</h1>
+                <p>{{ 'login.brand_copy'|trans }}</p>
+
+                <div class="hm-metrics">
+                    <div class="hm-metric">
+                        <strong>7 jours</strong>
+                        <span>{{ 'login.metric.remember'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>1</strong>
+                        <span>{{ 'login.metric.redirect'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>CSRF</strong>
+                        <span>{{ 'login.metric.csrf'|trans }}</span>
+                    </div>
+                    <div class="hm-metric">
+                        <strong>ID+</strong>
+                        <span>{{ 'login.metric.session'|trans }}</span>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="hm-panel hm-form-wrap">
+                <span class="hm-badge">{{ 'login.badge'|trans }}</span>
+                <h2 class="hm-page-title">{{ 'login.title'|trans }}</h2>
+                <p class="hm-copy">{{ 'login.subtitle'|trans }}</p>
+
+                {% for flash in app.flashes('success') %}
+                    <div class="hm-alert hm-alert--success">{{ flash|trans }}</div>
+                {% endfor %}
+
+                {% if error %}
+                    <div class="hm-alert hm-alert--danger">
+                        {{ error.messageKey|trans(error.messageData, 'security') }}
+                    </div>
+                {% endif %}
+
+                <form method="post" class="hm-form">
+                    <div class="hm-form-grid">
+                        <div class="hm-field">
+                            <label for="email">{{ 'login.form.email'|trans }}</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="{{ last_username }}"
+                                autocomplete="email"
+                                required
+                            >
+                        </div>
+
+                        <div class="hm-field">
+                            <label for="password">{{ 'login.form.password'|trans }}</label>
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                autocomplete="current-password"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <label class="hm-check" for="remember_me">
+                        <input type="checkbox" id="remember_me" name="_remember_me">
+                        <span>{{ 'login.form.remember_me'|trans }}</span>
+                    </label>
+
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+
+                    <div class="hm-actions">
+                        <button class="hm-button" type="submit">{{ 'login.submit'|trans }}</button>
+                        <a class="hm-link" href="{{ path('app_register') }}">{{ 'login.register_link'|trans }}</a>
+                    </div>
+                </form>
+
+                <p class="hm-help">{{ 'login.help'|trans }}</p>
+            </section>
+        </section>
+    </main>
+{% endblock %}

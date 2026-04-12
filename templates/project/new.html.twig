@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'project.new.meta_title'|trans }}{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-card">
+            <aside class="hm-panel hm-panel--brand">
+                <span class="hm-kicker">{{ 'project.new.badge'|trans }}</span>
+                <h1 class="hm-brand-title">{{ 'project.new.title'|trans }}</h1>
+                <p>{{ 'project.new.copy'|trans }}</p>
+            </aside>
+
+            <section class="hm-panel hm-form-wrap">
+                <h2 class="hm-page-title">{{ 'project.new.form_title'|trans }}</h2>
+                <p class="hm-copy">{{ 'project.new.subtitle'|trans }}</p>
+                {% include 'project/_form.html.twig' with { submit_label: 'project.new.submit' } %}
+            </section>
+        </section>
+    </main>
+{% endblock %}

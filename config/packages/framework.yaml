@@ -1,0 +1,30 @@
+# see https://symfony.com/doc/current/reference/configuration/framework.html
+framework:
+    secret: '%env(APP_SECRET)%'
+    default_locale: fr
+
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks:
+            - fr
+
+    csrf_protection:
+        check_header: true
+
+    # Note that the session will be started ONLY if you read or write from it.
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
+        cookie_httponly: true
+        cookie_lifetime: 7200
+        gc_maxlifetime: 7200
+
+    #esi: true
+    #fragments: true
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

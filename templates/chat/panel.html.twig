@@ -1,0 +1,57 @@
+<section
+    class="hm-chat-panel"
+    id="chat-panel"
+    data-chat-panel
+    data-history-url="{{ path('app_chat_history', { projectId: project.id }) }}"
+    data-empty-error="{{ 'chat.content.required'|trans }}"
+    data-generic-error="{{ 'chat.panel.error_generic'|trans }}"
+>
+    <header class="hm-chat-panel__header">
+        <div>
+            <span class="hm-badge">{{ 'chat.panel.badge'|trans }}</span>
+            <h2 class="hm-chat-panel__title">{{ 'chat.panel.title'|trans }}</h2>
+            <p class="hm-muted">{{ 'chat.panel.subtitle'|trans({ '%count%': chatHistory.totalMessages }) }}</p>
+        </div>
+        <button
+            class="hm-link"
+            type="button"
+            data-chat-load-older
+            data-next-page="{{ chatHistory.nextPage ?? 2 }}"
+            {{ chatHistory.hasOlderMessages ? '' : 'hidden' }}
+        >{{ 'chat.panel.load_older'|trans }}</button>
+    </header>
+
+    <div class="hm-alert hm-alert--danger" data-chat-error hidden></div>
+
+    <div class="hm-chat-feed" data-chat-feed data-has-messages="{{ chatHistory.totalMessages > 0 ? 'true' : 'false' }}">
+        <div class="hm-chat-empty" data-chat-empty {{ chatHistory.totalMessages > 0 ? 'hidden' }}>
+            <strong>{{ 'chat.panel.empty_title'|trans }}</strong>
+            <p class="hm-muted">{{ 'chat.panel.empty_copy'|trans }}</p>
+        </div>
+        {% include 'chat/_messages.html.twig' with { messages: chatHistory.messages } %}
+        <div class="hm-chat-typing" data-chat-typing hidden>
+            <span class="hm-chat-typing__dot"></span>
+            <span class="hm-chat-typing__dot"></span>
+            <span class="hm-chat-typing__dot"></span>
+            <span>{{ 'chat.panel.typing'|trans }}</span>
+        </div>
+    </div>
+
+    <form class="hm-chat-form" method="post" action="{{ path('app_chat_send_message', { projectId: project.id }) }}" data-chat-form>
+        <input type="hidden" name="_token" value="{{ csrf_token('chat_send_' ~ project.id) }}">
+        <label class="hm-chat-form__label" for="chat-message">{{ 'chat.panel.input_label'|trans }}</label>
+        <textarea
+            id="chat-message"
+            class="hm-chat-form__textarea"
+            name="message"
+            rows="4"
+            maxlength="4000"
+            placeholder="{{ 'chat.panel.placeholder'|trans }}"
+            data-chat-input
+        ></textarea>
+        <div class="hm-actions">
+            <button class="hm-button" type="submit" data-chat-submit>{{ 'chat.panel.submit'|trans }}</button>
+            <p class="hm-help">{{ 'chat.panel.help'|trans }}</p>
+        </div>
+    </form>
+</section>

@@ -1,0 +1,32 @@
+{{ form_start(projectForm, { attr: { class: 'hm-form', novalidate: 'novalidate' } }) }}
+    <div class="hm-form-grid">
+        <div class="hm-field">
+            {{ form_label(projectForm.title) }}
+            {{ form_widget(projectForm.title) }}
+            {{ form_errors(projectForm.title) }}
+        </div>
+
+        <div class="hm-field">
+            {{ form_label(projectForm.provider) }}
+            {{ form_widget(projectForm.provider) }}
+            {{ form_errors(projectForm.provider) }}
+        </div>
+
+        <div class="hm-field">
+            {{ form_label(projectForm.model) }}
+            {{ form_widget(projectForm.model) }}
+            {{ form_errors(projectForm.model) }}
+        </div>
+
+        <div class="hm-field">
+            {{ form_label(projectForm.status) }}
+            {{ form_widget(projectForm.status) }}
+            {{ form_errors(projectForm.status) }}
+        </div>
+    </div>
+
+    <div class="hm-actions">
+        <button class="hm-button" type="submit">{{ submit_label|trans }}</button>
+        <a class="hm-link" href="{{ path('app_project_index') }}">{{ 'project.back_index'|trans }}</a>
+    </div>
+{{ form_end(projectForm) }}
