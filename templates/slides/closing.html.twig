@@ -1,0 +1,64 @@
+{#
+  Template for slide type "closing"
+  Expected content keys:
+    - message   (string, required): closing statement
+    - cta_label (string, optional): call-to-action button label
+    - cta_url   (string, optional): call-to-action URL (must be a safe, validated URL)
+#}
+<section class="hm-slide hm-slide--closing" data-slide-type="closing">
+    <div class="hm-slide__inner">
+        <p class="hm-slide__message">{{ message }}</p>
+        {% if cta_label is defined and cta_label is not empty %}
+            <div class="hm-slide__cta">
+                {% if cta_url is defined and cta_url is not empty %}
+                    <a class="hm-slide__cta-link" href="{{ cta_url }}">{{ cta_label }}</a>
+                {% else %}
+                    <span class="hm-slide__cta-link">{{ cta_label }}</span>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</section>
+<style>
+    .hm-slide--closing {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100%;
+        background: var(--hm-slide-bg, var(--hm-ink, #173f35));
+        color: var(--hm-slide-fg, #f8f4ea);
+        padding: var(--hm-slide-padding, 3rem 4rem);
+        text-align: center;
+    }
+
+    .hm-slide--closing .hm-slide__inner {
+        max-width: 680px;
+    }
+
+    .hm-slide--closing .hm-slide__message {
+        margin: 0 0 2rem;
+        font-family: var(--hm-font-title, Georgia, "Times New Roman", serif);
+        font-size: var(--hm-font-size-closing, clamp(1.6rem, 3.5vw, 2.6rem));
+        line-height: 1.25;
+        color: var(--hm-slide-fg, #f8f4ea);
+    }
+
+    .hm-slide--closing .hm-slide__cta {
+        display: flex;
+        justify-content: center;
+    }
+
+    .hm-slide--closing .hm-slide__cta-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.85rem 2rem;
+        border-radius: 999px;
+        font-family: var(--hm-font-body, "Aptos", "Segoe UI", sans-serif);
+        font-size: var(--hm-font-size-body, 1rem);
+        font-weight: 700;
+        text-decoration: none;
+        background: var(--hm-accent, #bf6a3d);
+        color: #fff;
+        letter-spacing: 0.03em;
+    }
+</style>
