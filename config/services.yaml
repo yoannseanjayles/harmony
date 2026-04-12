@@ -61,7 +61,7 @@ services:
             $openAiHttpClient: '@harmony.ai.http_client.openai'
             $anthropicHttpClient: '@harmony.ai.http_client.anthropic'
 
-    # T209 / T210 / T212 / T213 — Media upload service wiring.
+    # T209 / T210 / T212 / T213 / T230 — Media upload service wiring.
     App\Media\MediaUploadService:
         arguments:
             $maxUploadSizeBytes: '%harmony.media.max_upload_size_bytes%'

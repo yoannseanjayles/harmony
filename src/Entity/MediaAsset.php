@@ -13,6 +13,9 @@ use Doctrine\ORM\Mapping as ORM;
  * - mimeType:   validated MIME type from the whitelist
  * - size:       file size in bytes
  * - storageKey: UUID-based filename used on disk (T214 — avoids collisions and path traversal)
+ * - thumbKey:   storage key for the 120×90 thumbnail variant (T229)
+ * - previewKey: storage key for the 800×600 max preview variant (T229)
+ * - exportKey:  storage key for the 1920×1080 max export variant (T229)
  * - project:    owning project (required)
  * - slideRefs:  JSON array of slide IDs that reference this asset
  * - createdAt:  upload timestamp
@@ -37,6 +40,18 @@ class MediaAsset
     /** UUID-based storage key (e.g. "550e8400-e29b-41d4-a716-446655440000.jpg") */
     #[ORM\Column(length: 255)]
     private string $storageKey = '';
+
+    /** T229 — Storage key for the 120×90 thumbnail variant; null until generated. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $thumbKey = null;
+
+    /** T229 — Storage key for the 800×600 max preview variant; null until generated. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $previewKey = null;
+
+    /** T229 — Storage key for the 1920×1080 max export variant; null until generated. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $exportKey = null;
 
     #[ORM\ManyToOne(targetEntity: Project::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -105,6 +120,42 @@ class MediaAsset
     public function setStorageKey(string $storageKey): self
     {
         $this->storageKey = $storageKey;
+
+        return $this;
+    }
+
+    public function getThumbKey(): ?string
+    {
+        return $this->thumbKey;
+    }
+
+    public function setThumbKey(?string $thumbKey): self
+    {
+        $this->thumbKey = $thumbKey;
+
+        return $this;
+    }
+
+    public function getPreviewKey(): ?string
+    {
+        return $this->previewKey;
+    }
+
+    public function setPreviewKey(?string $previewKey): self
+    {
+        $this->previewKey = $previewKey;
+
+        return $this;
+    }
+
+    public function getExportKey(): ?string
+    {
+        return $this->exportKey;
+    }
+
+    public function setExportKey(?string $exportKey): self
+    {
+        $this->exportKey = $exportKey;
 
         return $this;
     }
