@@ -290,4 +290,206 @@ final class SlideContentFixtures
             'quote' => 'The best way to predict the future is to invent it.',
         ];
     }
+
+    // ── timeline ───────────────────────────────────────────────────────────
+
+    /**
+     * Timeline slide with all optional fields populated (4 items).
+     *
+     * @return array<string, mixed>
+     */
+    public static function timelineFull(): array
+    {
+        return [
+            'title' => 'Our Journey',
+            'items' => [
+                ['year' => '2020', 'label' => 'Founded', 'description' => 'Started with a vision to transform presentations.'],
+                ['year' => '2021', 'label' => 'Seed Round', 'description' => 'Raised $2M to build the core product.'],
+                ['year' => '2022', 'label' => 'Public Beta', 'description' => 'Launched to 5,000 early adopters worldwide.'],
+                ['year' => '2023', 'label' => 'Series A', 'description' => 'Raised $15M and expanded to 50+ markets.'],
+            ],
+        ];
+    }
+
+    /**
+     * Timeline slide with the minimum 2 items (no descriptions).
+     *
+     * @return array<string, mixed>
+     */
+    public static function timelineMinimal(): array
+    {
+        return [
+            'title' => 'Milestones',
+            'items' => [
+                ['year' => 'Q1', 'label' => 'Kickoff'],
+                ['year' => 'Q4', 'label' => 'Launch'],
+            ],
+        ];
+    }
+
+    /**
+     * Timeline slide with 6 items (maximum allowed).
+     *
+     * @return array<string, mixed>
+     */
+    public static function timelineMaxItems(): array
+    {
+        return [
+            'title' => 'Product Roadmap',
+            'items' => [
+                ['label' => 'Discovery phase', 'description' => 'Research and user interviews.'],
+                ['label' => 'MVP design', 'description' => 'Wireframes and prototypes.'],
+                ['label' => 'Engineering sprint', 'description' => 'Core feature development.'],
+                ['label' => 'QA & testing', 'description' => 'Automated and manual testing.'],
+                ['label' => 'Soft launch', 'description' => 'Beta to 500 selected users.'],
+                ['label' => 'General availability', 'description' => 'Open to all users.'],
+            ],
+        ];
+    }
+
+    // ── stats ──────────────────────────────────────────────────────────────
+
+    /**
+     * Stats slide with 4 key figures and all optional fields.
+     *
+     * @return array<string, mixed>
+     */
+    public static function statsFull(): array
+    {
+        return [
+            'title' => 'Impact in Numbers',
+            'stats' => [
+                ['value' => '10M+', 'label' => 'Users', 'detail' => 'Worldwide active users'],
+                ['value' => '98%', 'label' => 'Satisfaction', 'detail' => 'NPS score, 2025'],
+                ['value' => '$2B', 'label' => 'Revenue', 'detail' => 'ARR projected 2025'],
+                ['value' => '150+', 'label' => 'Countries', 'detail' => 'Global reach'],
+            ],
+        ];
+    }
+
+    /**
+     * Stats slide with the minimum 2 stats (no detail).
+     *
+     * @return array<string, mixed>
+     */
+    public static function statsMinimal(): array
+    {
+        return [
+            'title' => 'Key Metrics',
+            'stats' => [
+                ['value' => '3×', 'label' => 'Faster'],
+                ['value' => '99.9%', 'label' => 'Uptime'],
+            ],
+        ];
+    }
+
+    /**
+     * Stats slide with 6 items (maximum allowed).
+     *
+     * @return array<string, mixed>
+     */
+    public static function statsMaxItems(): array
+    {
+        return [
+            'title' => 'Platform at a Glance',
+            'stats' => [
+                ['value' => '500K+', 'label' => 'Decks created', 'detail' => 'Since launch'],
+                ['value' => '4.9★', 'label' => 'App rating', 'detail' => 'App Store & Play Store'],
+                ['value' => '<2s', 'label' => 'Generation time', 'detail' => 'Per slide, p95'],
+                ['value' => '40+', 'label' => 'Templates', 'detail' => 'Ready-to-use designs'],
+                ['value' => '3', 'label' => 'AI providers', 'detail' => 'Claude, OpenAI, Mistral'],
+                ['value' => 'SOC 2', 'label' => 'Certified', 'detail' => 'Type II compliance'],
+            ],
+        ];
+    }
+
+    // ── comparison ─────────────────────────────────────────────────────────
+
+    /**
+     * Comparison slide with both columns fully populated.
+     *
+     * @return array<string, mixed>
+     */
+    public static function comparisonFull(): array
+    {
+        return [
+            'title' => 'Harmony vs. Traditional Tools',
+            'left' => [
+                'heading' => 'Traditional Workflow',
+                'items' => [
+                    'Hours of manual design',
+                    'No AI assistance',
+                    'Static, hard to update',
+                    'Export only as PPTX',
+                ],
+                'highlight' => 'Slow & Costly',
+            ],
+            'right' => [
+                'heading' => 'With Harmony',
+                'items' => [
+                    'AI generates slides in minutes',
+                    'Conversational editing',
+                    'Live preview & instant updates',
+                    'HTML + PDF export in one click',
+                ],
+                'highlight' => 'Fast & Beautiful',
+            ],
+        ];
+    }
+
+    /**
+     * Comparison slide with minimal content (no highlights, single item per column).
+     *
+     * @return array<string, mixed>
+     */
+    public static function comparisonMinimal(): array
+    {
+        return [
+            'title' => 'Before & After',
+            'left' => [
+                'heading' => 'Before',
+                'items' => ['Manual process'],
+            ],
+            'right' => [
+                'heading' => 'After',
+                'items' => ['Automated'],
+            ],
+        ];
+    }
+
+    /**
+     * Comparison slide with 6 items per column (maximum allowed).
+     *
+     * @return array<string, mixed>
+     */
+    public static function comparisonMaxItems(): array
+    {
+        return [
+            'title' => 'Feature Comparison',
+            'left' => [
+                'heading' => 'Competitor',
+                'items' => [
+                    'Fixed templates only',
+                    'No AI generation',
+                    'Manual theme setup',
+                    'No real-time preview',
+                    'Basic export options',
+                    'No version history',
+                ],
+                'highlight' => 'Limited',
+            ],
+            'right' => [
+                'heading' => 'Harmony',
+                'items' => [
+                    'Unlimited custom layouts',
+                    'Conversational AI engine',
+                    'One-click theme presets',
+                    'Live slide preview',
+                    'HTML & PDF export',
+                    'Full version history',
+                ],
+                'highlight' => 'Complete',
+            ],
+        ];
+    }
 }

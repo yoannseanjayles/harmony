@@ -28,6 +28,9 @@ final class ResponseSchema
             'bullet_list',
             'quote',
             'summary',
+            'timeline',
+            'stats',
+            'comparison',
         ];
     }
 
@@ -100,6 +103,9 @@ final class ResponseSchema
             '- notes: up to 400 characters',
              '- items: 1..6 strings, each 1..140 characters',
              '- position: integer between 1 and 50',
+             'For type "timeline": {"title":"...","items":[{"year":"2020","label":"Founded","description":"optional"},...]}, 2..6 items.',
+             'For type "stats": {"title":"...","stats":[{"value":"98%","label":"Satisfaction","detail":"optional"},...]}, 2..6 stats.',
+             'For type "comparison": {"title":"...","left":{"heading":"Before","items":["..."],"highlight":"optional"},"right":{"heading":"After","items":["..."],"highlight":"optional"}}, 1..6 items per column.',
              'Use update_slide with {"slide_id":"existing-id","changes":{...}}.',
              'Use remove_slide with {"slide_id":"existing-id"}.',
              'Use reorder_slides with {"slide_ids":["slide-2","slide-1","slide-3"]}.',

@@ -15,6 +15,9 @@ class Slide
     public const TYPE_SPLIT = 'split';
     public const TYPE_IMAGE = 'image';
     public const TYPE_QUOTE = 'quote';
+    public const TYPE_TIMELINE = 'timeline';
+    public const TYPE_STATS = 'stats';
+    public const TYPE_COMPARISON = 'comparison';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -157,6 +160,9 @@ class Slide
             self::TYPE_SPLIT,
             self::TYPE_IMAGE,
             self::TYPE_QUOTE,
+            self::TYPE_TIMELINE,
+            self::TYPE_STATS,
+            self::TYPE_COMPARISON,
         ];
     }
 }

@@ -27,6 +27,9 @@ final class SlideBuilder
             Slide::TYPE_SPLIT => 'slides/split.html.twig',
             Slide::TYPE_IMAGE => 'slides/image.html.twig',
             Slide::TYPE_QUOTE => 'slides/quote.html.twig',
+            Slide::TYPE_TIMELINE => 'slides/timeline.html.twig',
+            Slide::TYPE_STATS => 'slides/stats.html.twig',
+            Slide::TYPE_COMPARISON => 'slides/comparison.html.twig',
             default => 'slides/content.html.twig',
         };
     }
@@ -44,6 +47,9 @@ final class SlideBuilder
             Slide::TYPE_SPLIT => $this->buildSplitContext($content),
             Slide::TYPE_IMAGE => $this->buildImageContext($content),
             Slide::TYPE_QUOTE => $this->buildQuoteContext($content),
+            Slide::TYPE_TIMELINE => $this->buildTimelineContext($content),
+            Slide::TYPE_STATS => $this->buildStatsContext($content),
+            Slide::TYPE_COMPARISON => $this->buildComparisonContext($content),
             default => $this->buildContentContext($content),
         };
     }
@@ -167,5 +173,121 @@ final class SlideBuilder
         }
 
         return '';
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>
+     */
+    private function buildTimelineContext(array $content): array
+    {
+        $rawItems = is_array($content['items'] ?? null) ? $content['items'] : [];
+
+        $items = [];
+        foreach ($rawItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $label = trim((string) ($item['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            $items[] = [
+                'year' => trim((string) ($item['year'] ?? '')),
+                'label' => $label,
+                'description' => trim((string) ($item['description'] ?? '')),
+            ];
+        }
+
+        // T149: enforce min 2, max 6 items; clamp silently
+        if (count($items) > 6) {
+            $items = array_slice($items, 0, 6);
+        }
+
+        return [
+            'title' => trim((string) ($content['title'] ?? '')),
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>
+     */
+    private function buildStatsContext(array $content): array
+    {
+        $rawStats = is_array($content['stats'] ?? null) ? $content['stats'] : [];
+
+        $stats = [];
+        foreach ($rawStats as $stat) {
+            if (!is_array($stat)) {
+                continue;
+            }
+            $value = trim((string) ($stat['value'] ?? ''));
+            $label = trim((string) ($stat['label'] ?? ''));
+            if ($value === '' || $label === '') {
+                continue;
+            }
+            $stats[] = [
+                'value' => $value,
+                'label' => $label,
+                'detail' => trim((string) ($stat['detail'] ?? '')),
+            ];
+        }
+
+        // T149: enforce min 2, max 6 stats; clamp silently
+        if (count($stats) > 6) {
+            $stats = array_slice($stats, 0, 6);
+        }
+
+        return [
+            'title' => trim((string) ($content['title'] ?? '')),
+            'stats' => $stats,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>
+     */
+    private function buildComparisonContext(array $content): array
+    {
+        return [
+            'title' => trim((string) ($content['title'] ?? '')),
+            'left' => $this->buildComparisonColumn($content['left'] ?? []),
+            'right' => $this->buildComparisonColumn($content['right'] ?? []),
+        ];
+    }
+
+    /**
+     * @param mixed $column
+     *
+     * @return array<string, mixed>
+     */
+    private function buildComparisonColumn(mixed $column): array
+    {
+        if (!is_array($column)) {
+            return ['heading' => '', 'items' => [], 'highlight' => ''];
+        }
+
+        $rawItems = is_array($column['items'] ?? null) ? $column['items'] : [];
+        $items = array_values(array_filter(
+            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
+            static fn (string $item): bool => $item !== '',
+        ));
+
+        // T149: max 6 items per column; clamp silently
+        if (count($items) > 6) {
+            $items = array_slice($items, 0, 6);
+        }
+
+        return [
+            'heading' => trim((string) ($column['heading'] ?? '')),
+            'items' => $items,
+            'highlight' => trim((string) ($column['highlight'] ?? '')),
+        ];
     }
 }
