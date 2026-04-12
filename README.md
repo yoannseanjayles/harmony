@@ -195,6 +195,79 @@ $this->responseValidator->validate($llmOutput); // JSON Schema strict
 
 ---
 
+## 🗄️ Stockage des assets — Configuration S3 (HRM-F27)
+
+Harmony supporte deux backends de stockage, sélectionnés via `APP_STORAGE_DRIVER` :
+
+| Valeur | Backend | Usage recommandé |
+|--------|---------|-----------------|
+| `local` (défaut) | Filesystem local (`public/uploads/media/`) | Développement / CI |
+| `s3` | S3-compatible (AWS, MinIO, Cloudflare R2…) | Production / staging |
+
+### Variables d'environnement
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `APP_STORAGE_DRIVER` | `local` ou `s3` | `local` |
+| `HARMONY_S3_BUCKET` | Nom du bucket S3 | *(vide)* |
+| `HARMONY_S3_REGION` | Région AWS (ex. `eu-west-3`) | `us-east-1` |
+| `HARMONY_S3_ACCESS_KEY_ID` | Access key AWS / service account | *(vide)* |
+| `HARMONY_S3_SECRET_ACCESS_KEY` | Secret access key | *(vide)* |
+| `HARMONY_S3_ENDPOINT` | Endpoint custom (MinIO, R2…) — laisser vide pour AWS | *(vide)* |
+
+### Configuration AWS S3
+
+```bash
+# .env.local (ne jamais versionner)
+APP_STORAGE_DRIVER=s3
+HARMONY_S3_BUCKET=my-harmony-assets
+HARMONY_S3_REGION=eu-west-3
+HARMONY_S3_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+HARMONY_S3_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+**Politique IAM minimale** à attacher à l'utilisateur/rôle IAM :
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::my-harmony-assets/*"
+    }
+  ]
+}
+```
+
+**Configuration CORS du bucket** (requise pour les pré-signed URLs consultées depuis le navigateur) :
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET"],
+    "AllowedOrigins": ["https://your-harmony-domain.com"],
+    "ExposeHeaders": [],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+### Configuration MinIO (développement S3-compatible)
+
+```bash
+APP_STORAGE_DRIVER=s3
+HARMONY_S3_BUCKET=harmony
+HARMONY_S3_REGION=us-east-1
+HARMONY_S3_ACCESS_KEY_ID=minioadmin
+HARMONY_S3_SECRET_ACCESS_KEY=minioadmin
+HARMONY_S3_ENDPOINT=http://localhost:9000
+```
+
+---
+
 ## 💾 Cache des slides — Stratégie déterministe
 
 ```php

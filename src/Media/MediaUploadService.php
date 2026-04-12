@@ -4,6 +4,7 @@ namespace App\Media;
 
 use App\Entity\MediaAsset;
 use App\Entity\Project;
+use App\Storage\StorageAdapterInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  *  - Optionally scan the file with an antivirus scanner (T213)
  *  - Rename the file using a UUID to avoid collisions and path traversal (T214)
  *  - Persist a MediaAsset entity and return the asset ID + preview URL (T215)
+ *  - Delegate physical storage to the active StorageAdapterInterface (T217–T220)
  */
 final class MediaUploadService
 {
@@ -38,7 +40,7 @@ final class MediaUploadService
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly AntivirusScannerInterface $antivirusScanner,
-        private readonly string $uploadDirectory,
+        private readonly StorageAdapterInterface $storageAdapter,
         private readonly int $maxUploadSizeBytes,
     ) {
     }
@@ -57,14 +59,14 @@ final class MediaUploadService
         $this->validatePhpUploadError($file);
         $this->validateMimeType($file);
 
-        // Capture size before move() — SplFileInfo::getSize() would fail on the moved path.
+        // Capture size before the adapter moves/uploads the file.
         $size = (int) $file->getSize();
         $this->validateSize($size);
 
         $this->antivirusScanner->scan($file);
 
         $storageKey = $this->buildStorageKey($file);
-        $file->move($this->uploadDirectory, $storageKey);
+        $this->storageAdapter->put($storageKey, $file->getPathname(), (string) $file->getClientMimeType());
 
         $asset = (new MediaAsset())
             ->setFilename($file->getClientOriginalName())
@@ -79,7 +81,7 @@ final class MediaUploadService
         return [
             'id'         => (int) $asset->getId(),
             'storageKey' => $storageKey,
-            'previewUrl' => '/uploads/media/'.$storageKey,
+            'previewUrl' => $this->storageAdapter->getSignedUrl($storageKey),
         ];
     }
 
