@@ -237,7 +237,7 @@ final class ChatController extends AbstractController
             ]);
         }
 
-        $this->addFlash('success', $decision === 'confirm' ? 'Proposition appliquee.' : 'Proposition annulee.');
+        $this->addFlash('success', $decision === 'confirm' ? 'Proposition appliquée.' : 'Proposition annulée.');
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }
@@ -512,7 +512,7 @@ final class ChatController extends AbstractController
 
     private function pendingConfirmationBlockedResponse(Request $request, Project $project): Response
     {
-        $message = 'Confirmez ou annulez la proposition en attente avant d\'envoyer un nouveau message.';
+        $message = 'Confirmez ou annulez la proposition en attente avant d’envoyer un nouveau message.';
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([
@@ -527,7 +527,7 @@ final class ChatController extends AbstractController
 
     private function pendingConfirmationUnavailableResponse(Request $request, Project $project): Response
     {
-        $message = 'Aucune proposition en attente a confirmer.';
+        $message = 'Aucune proposition en attente à confirmer.';
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([
@@ -542,7 +542,7 @@ final class ChatController extends AbstractController
 
     private function invalidConfirmationDecisionResponse(Request $request, Project $project): Response
     {
-        $message = 'La decision de confirmation est invalide.';
+        $message = 'La décision de confirmation est invalide.';
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([

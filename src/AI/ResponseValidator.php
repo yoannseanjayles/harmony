@@ -403,57 +403,12 @@ final class ResponseValidator
      */
     private function normalizePayload(array $payload): array
     {
-        $normalizedActions = [];
-
-        foreach ($payload['actions'] as $action) {
-            if (!is_array($action)) {
-                continue;
-            }
-
-            $normalizedAction = [
-                'action' => (string) $action['action'],
-            ];
-
-            if (isset($action['position']) && $this->isIntLike($action['position'])) {
-                $normalizedAction['position'] = (int) $action['position'];
-            }
-
-            if (isset($action['slide_id'])) {
-                $normalizedAction['slide_id'] = trim((string) $action['slide_id']);
-            }
-
-            if (isset($action['slide']) && is_array($action['slide'])) {
-                $normalizedAction['slide'] = $this->normalizeSlide($action['slide']);
-            }
-
-            if (isset($action['changes']) && is_array($action['changes'])) {
-                $normalizedAction['changes'] = $this->normalizeSlide($action['changes'], partial: true);
-            }
-
-            if (isset($action['slide_ids']) && is_array($action['slide_ids'])) {
-                $normalizedAction['slide_ids'] = array_values(array_map(
-                    static fn (string $slideId): string => trim($slideId),
-                    array_filter($action['slide_ids'], static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== ''),
-                ));
-            }
-
-            if (isset($action['summary']) && is_string($action['summary'])) {
-                $normalizedAction['summary'] = trim($action['summary']);
-            }
-
-            if (isset($action['proposed_actions']) && is_array($action['proposed_actions'])) {
-                $normalizedAction['proposed_actions'] = array_values(array_map(
-                    fn (array $proposedAction): array => $this->normalizeAction($proposedAction),
-                    array_filter($action['proposed_actions'], 'is_array'),
-                ));
-            }
-
-            $normalizedActions[] = $normalizedAction;
-        }
-
         return [
             'assistant_message' => trim((string) $payload['assistant_message']),
-            'actions' => $normalizedActions,
+            'actions' => array_values(array_map(
+                fn (array $action): array => $this->normalizeAction($action),
+                array_filter($payload['actions'], 'is_array'),
+            )),
         ];
     }
 
@@ -485,10 +440,7 @@ final class ResponseValidator
         }
 
         if (isset($action['slide_ids']) && is_array($action['slide_ids'])) {
-            $normalizedAction['slide_ids'] = array_values(array_map(
-                static fn (string $slideId): string => trim($slideId),
-                array_filter($action['slide_ids'], static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== ''),
-            ));
+            $normalizedAction['slide_ids'] = $this->normalizeSlideIdentifiers($action['slide_ids']);
         }
 
         if (isset($action['summary']) && is_string($action['summary'])) {
@@ -503,6 +455,19 @@ final class ResponseValidator
         }
 
         return $normalizedAction;
+    }
+
+    /**
+     * @param list<mixed> $slideIds
+     *
+     * @return list<string>
+     */
+    private function normalizeSlideIdentifiers(array $slideIds): array
+    {
+        return array_values(array_map(
+            static fn (string $slideId): string => trim($slideId),
+            array_filter($slideIds, static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== ''),
+        ));
     }
 
     /**
