@@ -451,7 +451,7 @@ final class ThemeEngineTest extends TestCase
 
     // ── T206 — Reproducibility ────────────────────────────────────────────────
 
-    public function testTwoCssBlockCallsWithSameTokensProduceDidenticalOutput(): void
+    public function testTwoCssBlockCallsWithSameTokensProduceIdenticalOutput(): void
     {
         $preset  = $this->loader->load('cinematic');
         $project = new Project();
