@@ -125,4 +125,62 @@ JSON);
             );
         }
     }
+
+    public function testValidateAcceptsRequestConfirmationWithNestedReorderAction(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())->method('warning');
+
+        $validator = new ResponseValidator(new ResponseSchema(), $logger);
+        $result = $validator->validate(json_encode([
+            'assistant_message' => 'Je peux reordonner les slides. Confirmez-vous ?',
+            'actions' => [[
+                'action' => 'request_confirmation',
+                'summary' => 'Reordonner les slides pour mettre la synthese en premier.',
+                'proposed_actions' => [[
+                    'action' => 'reorder_slides',
+                    'slide_ids' => ['slide-2', 'slide-1', 'slide-3'],
+                ]],
+            ]],
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertSame('request_confirmation', $result->actions()[0]['action']);
+        self::assertSame('reorder_slides', $result->actions()[0]['proposed_actions'][0]['action']);
+        self::assertSame(['slide-2', 'slide-1', 'slide-3'], $result->actions()[0]['proposed_actions'][0]['slide_ids']);
+    }
+
+    public function testValidateRejectsRequestConfirmationMixedWithOtherTopLevelActions(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning');
+
+        $validator = new ResponseValidator(new ResponseSchema(), $logger);
+
+        try {
+            $validator->validate(json_encode([
+                'assistant_message' => 'Payload invalide',
+                'actions' => [
+                    [
+                        'action' => 'request_confirmation',
+                        'summary' => 'Merci de confirmer.',
+                        'proposed_actions' => [[
+                            'action' => 'reorder_slides',
+                            'slide_ids' => ['slide-2', 'slide-1'],
+                        ]],
+                    ],
+                    [
+                        'action' => 'remove_slide',
+                        'slide_id' => 'slide-3',
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR));
+
+            self::fail('A ResponseValidationException should have been thrown.');
+        } catch (ResponseValidationException $exception) {
+            self::assertContains(
+                'request_confirmation must be the only top-level action.',
+                $exception->errors(),
+            );
+        }
+    }
 }

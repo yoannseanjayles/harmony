@@ -215,6 +215,9 @@ chat.panel.submit: Envoyer
 chat.panel.help: Entree pour envoyer, Shift + Entree pour une nouvelle ligne.
 chat.panel.error_generic: Impossible de charger le chat pour le moment.
 chat.panel.error_stream: Impossible de poursuivre la generation en streaming pour le moment.
+chat.confirmation.title: Confirmation requise
+chat.confirmation.confirm: Confirmer
+chat.confirmation.cancel: Annuler
 chat.role.user: Vous
 chat.role.assistant: Assistant
 chat.role.invalid: Le role du message est invalide.

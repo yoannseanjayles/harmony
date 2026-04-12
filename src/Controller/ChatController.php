@@ -68,6 +68,10 @@ final class ChatController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        if ($project->hasPendingConfirmation()) {
+            return $this->pendingConfirmationBlockedResponse($request, $project);
+        }
+
         $priorConversation = $chatMessageRepository->findRecentConversation($project, 8);
         $message = (new ChatMessage())
             ->setProject($project)
@@ -132,7 +136,9 @@ final class ChatController extends AbstractController
 
             $entityManager->persist($assistantMessage);
 
-            if ($generationResult->slidesChanged()) {
+            if ($generationResult->requiresConfirmation()) {
+                $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
+            } elseif ($generationResult->slidesChanged()) {
                 $project->setSlides($generationResult->slides());
             }
 
@@ -168,6 +174,70 @@ final class ChatController extends AbstractController
                 'assistantMessageId' => $assistantMessage?->getId(),
             ], Response::HTTP_CREATED);
         }
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    #[Route('/confirmation', name: 'app_chat_resolve_confirmation', methods: ['POST'])]
+    public function resolveConfirmation(
+        int $projectId,
+        Request $request,
+        ProjectRepository $projectRepository,
+        ChatEngine $chatEngine,
+        ProjectVersioning $projectVersioning,
+        EntityManagerInterface $entityManager,
+    ): Response {
+        $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
+        $token = (string) $request->request->get('_token');
+        if (!$this->isCsrfTokenValid('chat_confirmation_'.$project->getId(), $token)) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $pendingConfirmation = $project->getPendingConfirmation();
+        if ($pendingConfirmation === null) {
+            return $this->pendingConfirmationUnavailableResponse($request, $project);
+        }
+
+        $decision = trim((string) $request->request->get('decision', ''));
+        if (!in_array($decision, ['confirm', 'cancel'], true)) {
+            return $this->invalidConfirmationDecisionResponse($request, $project);
+        }
+
+        $slidesChanged = false;
+
+        if ($decision === 'confirm') {
+            $appliedActions = $chatEngine->applyConfirmedActions(
+                $project,
+                is_array($pendingConfirmation['proposed_actions'] ?? null) ? $pendingConfirmation['proposed_actions'] : [],
+            );
+            $slidesChanged = $appliedActions['changed'];
+            if ($slidesChanged) {
+                $project->setSlides($appliedActions['slides']);
+            }
+
+            $project->resolvePendingConfirmation('confirmed');
+        } else {
+            $project->resolvePendingConfirmation('cancelled');
+        }
+
+        $entityManager->flush();
+
+        if ($slidesChanged) {
+            $projectVersioning->captureSnapshot($project);
+        }
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json([
+                'decision' => $decision,
+                'pendingConfirmation' => null,
+                'previewHtml' => $this->renderView('project/_preview_list.html.twig', [
+                    'slides' => $project->getSlides(),
+                ]),
+                'slidesCount' => $project->getSlidesCount(),
+            ]);
+        }
+
+        $this->addFlash('success', $decision === 'confirm' ? 'Proposition appliquee.' : 'Proposition annulee.');
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }
@@ -272,7 +342,9 @@ final class ChatController extends AbstractController
 
                 $entityManager->persist($assistantMessage);
 
-                if ($generationResult->slidesChanged()) {
+                if ($generationResult->requiresConfirmation()) {
+                    $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
+                } elseif ($generationResult->slidesChanged()) {
                     $project->setSlides($generationResult->slides());
                 }
 
@@ -293,6 +365,7 @@ final class ChatController extends AbstractController
                     'hasOlderMessages' => $history['hasOlderMessages'],
                     'nextPage' => $history['nextPage'],
                     'slidesCount' => $project->getSlidesCount(),
+                    'pendingConfirmation' => $this->buildPendingConfirmationPayload($generationResult->pendingConfirmation()),
                 ]);
 
                 $this->emitSseEvent((int) $doneEvent['id'], 'generation_done', $doneEvent['payload']);
@@ -435,5 +508,71 @@ final class ChatController extends AbstractController
         }
 
         flush();
+    }
+
+    private function pendingConfirmationBlockedResponse(Request $request, Project $project): Response
+    {
+        $message = 'Confirmez ou annulez la proposition en attente avant d\'envoyer un nouveau message.';
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json([
+                'errors' => [$message],
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $this->addFlash('error', $message);
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    private function pendingConfirmationUnavailableResponse(Request $request, Project $project): Response
+    {
+        $message = 'Aucune proposition en attente a confirmer.';
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json([
+                'errors' => [$message],
+            ], Response::HTTP_CONFLICT);
+        }
+
+        $this->addFlash('error', $message);
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    private function invalidConfirmationDecisionResponse(Request $request, Project $project): Response
+    {
+        $message = 'La decision de confirmation est invalide.';
+
+        if ($request->isXmlHttpRequest()) {
+            return $this->json([
+                'errors' => [$message],
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $this->addFlash('error', $message);
+
+        return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * @param array<string, mixed>|null $pendingConfirmation
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildPendingConfirmationPayload(?array $pendingConfirmation): ?array
+    {
+        if ($pendingConfirmation === null) {
+            return null;
+        }
+
+        $summary = trim((string) ($pendingConfirmation['summary'] ?? ''));
+        $assistantMessage = trim((string) ($pendingConfirmation['assistant_message'] ?? ''));
+
+        return [
+            'summary' => $summary !== '' ? $summary : $assistantMessage,
+            'assistantMessage' => $assistantMessage,
+            'actionsCount' => count(is_array($pendingConfirmation['proposed_actions'] ?? null) ? $pendingConfirmation['proposed_actions'] : []),
+        ];
     }
 }

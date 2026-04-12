@@ -200,6 +200,30 @@
             gap: 12px;
         }
 
+        .hm-chat-confirmation {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(191, 106, 61, 0.18);
+            background: rgba(191, 106, 61, 0.08);
+        }
+
+        .hm-chat-confirmation__copy {
+            display: grid;
+            gap: 6px;
+        }
+
+        .hm-actions--inline {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
         .hm-chat-form__label {
             font-weight: 700;
         }
@@ -237,6 +261,11 @@
 
         @media (max-width: 900px) {
             .hm-chat-panel__header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .hm-chat-confirmation {
                 flex-direction: column;
                 align-items: flex-start;
             }
@@ -381,6 +410,9 @@
             const form = panel.querySelector('[data-chat-form]');
             const input = panel.querySelector('[data-chat-input]');
             const submitButton = panel.querySelector('[data-chat-submit]');
+            const confirmationForm = panel.querySelector('[data-chat-confirmation]');
+            const confirmationSummary = confirmationForm ? confirmationForm.querySelector('[data-chat-confirmation-summary]') : null;
+            const confirmationButtons = confirmationForm ? Array.from(confirmationForm.querySelectorAll('[data-chat-confirmation-submit]')) : [];
             const loadOlderButton = panel.querySelector('[data-chat-load-older]');
             const historyUrl = panel.dataset.historyUrl;
             const emptyError = panel.dataset.emptyError || 'Le message est requis.';
@@ -394,6 +426,11 @@
             const previewSummaryTemplate = previewPanel ? (previewPanel.dataset.summaryTemplate || '__COUNT__ slide(s) synchronisee(s) en direct.') : '__COUNT__ slide(s) synchronisee(s) en direct.';
             let activeEventSource = null;
             let streamCompleted = false;
+            let isStreaming = false;
+            let confirmationSubmitting = false;
+            let pendingConfirmation = confirmationForm && !confirmationForm.hidden
+                ? { summary: confirmationSummary ? confirmationSummary.textContent.trim() : '' }
+                : null;
 
             const hideError = () => {
                 errorBox.hidden = true;
@@ -429,6 +466,39 @@
                 if (previewSummary) {
                     previewSummary.textContent = previewSummaryTemplate.replace('__COUNT__', String(count));
                 }
+            };
+
+            const syncComposerState = () => {
+                const composerDisabled = isStreaming || confirmationSubmitting || Boolean(pendingConfirmation);
+                submitButton.disabled = composerDisabled;
+                input.disabled = composerDisabled;
+
+                confirmationButtons.forEach((button) => {
+                    button.disabled = isStreaming || confirmationSubmitting;
+                });
+            };
+
+            const setPendingConfirmation = (payload) => {
+                pendingConfirmation = payload && typeof payload === 'object'
+                    ? {
+                        summary: String(payload.summary || payload.assistantMessage || '').trim()
+                    }
+                    : null;
+
+                if (!confirmationForm || !confirmationSummary) {
+                    syncComposerState();
+                    return;
+                }
+
+                if (pendingConfirmation) {
+                    confirmationSummary.textContent = pendingConfirmation.summary;
+                    confirmationForm.hidden = false;
+                } else {
+                    confirmationSummary.textContent = '';
+                    confirmationForm.hidden = true;
+                }
+
+                syncComposerState();
             };
 
             const upsertPreviewSlide = (payload) => {
@@ -492,16 +562,21 @@
 
             const finishStreaming = () => {
                 streamCompleted = true;
+                isStreaming = false;
                 closeActiveEventSource();
                 setTyping(false);
-                submitButton.disabled = false;
-                input.disabled = false;
-                input.focus();
+                syncComposerState();
+
+                if (!pendingConfirmation) {
+                    input.focus();
+                }
             };
 
             const openStream = (streamUrl) => {
                 streamCompleted = false;
+                isStreaming = true;
                 closeActiveEventSource();
+                syncComposerState();
 
                 const eventSource = new EventSource(streamUrl);
                 activeEventSource = eventSource;
@@ -522,6 +597,7 @@
                         feed.insertAdjacentHTML('beforeend', payload.assistantHtml);
                     }
 
+                    setPendingConfirmation(payload.pendingConfirmation || null);
                     updateLoadOlderState(payload.hasOlderMessages, payload.nextPage);
                     updateSlidesCount();
                     scrollToBottom();
@@ -553,6 +629,7 @@
             if (feed.dataset.hasMessages === 'true') {
                 requestAnimationFrame(scrollToBottom);
             }
+            syncComposerState();
             updateSlidesCount();
 
             input.addEventListener('keydown', (event) => {
@@ -597,6 +674,59 @@
                 });
             }
 
+            if (confirmationForm) {
+                confirmationForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    hideError();
+
+                    const decision = event.submitter && event.submitter.dataset
+                        ? event.submitter.dataset.chatConfirmationSubmit
+                        : null;
+
+                    if (!decision) {
+                        return;
+                    }
+
+                    confirmationSubmitting = true;
+                    syncComposerState();
+
+                    try {
+                        const formData = new FormData(confirmationForm);
+                        formData.set('decision', decision);
+
+                        const response = await fetch(confirmationForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw data;
+                        }
+
+                        if (previewList && typeof data.previewHtml === 'string') {
+                            previewList.innerHTML = data.previewHtml;
+                        }
+
+                        if (previewEmpty) {
+                            previewEmpty.hidden = Number(data.slidesCount || 0) > 0;
+                        }
+
+                        updateSlidesCount();
+                        setPendingConfirmation(data.pendingConfirmation || null);
+                    } catch (error) {
+                        showError((error.errors && error.errors.join(' ')) || genericError);
+                    } finally {
+                        confirmationSubmitting = false;
+                        syncComposerState();
+                    }
+                });
+            }
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 hideError();
@@ -612,8 +742,8 @@
                 const formData = new FormData(form);
                 formData.set('message', trimmedMessage);
 
-                submitButton.disabled = true;
-                input.disabled = true;
+                isStreaming = true;
+                syncComposerState();
                 emptyState.hidden = true;
                 setTyping(true);
 
@@ -644,14 +774,14 @@
                         await new Promise((resolve) => window.setTimeout(resolve, 450 - elapsed));
                     }
                 } catch (error) {
+                    isStreaming = false;
                     if (!feed.querySelector('[data-chat-message]')) {
                         emptyState.hidden = false;
                     }
 
                     showError((error.errors && error.errors.join(' ')) || genericError);
                     setTyping(false);
-                    submitButton.disabled = false;
-                    input.disabled = false;
+                    syncComposerState();
                     input.focus();
                 }
             });

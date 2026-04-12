@@ -49,14 +49,53 @@ final class ChatEngine
     }
 
     /**
+     * @param list<array<string, mixed>> $actions
+     *
+     * @return array{slides: list<array<string, mixed>>, changed: bool}
+     */
+    public function applyConfirmedActions(Project $project, array $actions): array
+    {
+        return $this->applyActions($project, $actions, static function (): void {});
+    }
+
+    /**
      * @param callable(string, array<string, mixed>): void $onEvent
      */
     private function applyValidatedResponse(Project $project, ValidatedProviderResponse $validatedResponse, callable $onEvent): ChatGenerationResult
     {
+        $pendingConfirmation = $this->buildPendingConfirmation($validatedResponse->assistantMessage(), $validatedResponse->actions());
+        if ($pendingConfirmation !== null) {
+            return new ChatGenerationResult(
+                $validatedResponse->providerResponse(),
+                $validatedResponse->assistantMessage(),
+                $this->normalizeSlides($project->getSlides()),
+                false,
+                $pendingConfirmation,
+            );
+        }
+
+        $appliedActions = $this->applyActions($project, $validatedResponse->actions(), $onEvent);
+
+        return new ChatGenerationResult(
+            $validatedResponse->providerResponse(),
+            $validatedResponse->assistantMessage(),
+            $appliedActions['slides'],
+            $appliedActions['changed'],
+        );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $actions
+     * @param callable(string, array<string, mixed>): void $onEvent
+     *
+     * @return array{slides: list<array<string, mixed>>, changed: bool}
+     */
+    private function applyActions(Project $project, array $actions, callable $onEvent): array
+    {
         $currentSlides = $this->normalizeSlides($project->getSlides());
         $workingSlides = $currentSlides;
 
-        foreach ($validatedResponse->actions() as $action) {
+        foreach ($actions as $action) {
             $actionType = (string) ($action['action'] ?? '');
 
             switch ($actionType) {
@@ -69,17 +108,18 @@ final class ChatEngine
                 case 'remove_slide':
                     $this->applyRemoveSlide($workingSlides, $action, $onEvent);
                     break;
+                case 'reorder_slides':
+                    $this->applyReorderSlides($workingSlides, $action, $onEvent);
+                    break;
             }
         }
 
         $normalizedSlides = $this->reindexSlides($workingSlides);
 
-        return new ChatGenerationResult(
-            $validatedResponse->providerResponse(),
-            $validatedResponse->assistantMessage(),
-            $normalizedSlides,
-            $normalizedSlides !== $currentSlides,
-        );
+        return [
+            'slides' => $normalizedSlides,
+            'changed' => $normalizedSlides !== $currentSlides,
+        ];
     }
 
     /**
@@ -183,6 +223,55 @@ final class ChatEngine
                 'removed' => true,
             ],
         ]);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $slides
+     * @param array<string, mixed> $action
+     * @param callable(string, array<string, mixed>): void $onEvent
+     */
+    private function applyReorderSlides(array &$slides, array $action, callable $onEvent): void
+    {
+        $requestedOrder = array_values(array_filter(
+            is_array($action['slide_ids'] ?? null) ? $action['slide_ids'] : [],
+            static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== '',
+        ));
+
+        if ($requestedOrder === []) {
+            return;
+        }
+
+        $slidesById = [];
+        foreach ($slides as $slide) {
+            $slidesById[(string) ($slide['id'] ?? '')] = $slide;
+        }
+
+        $orderedSlides = [];
+        foreach ($requestedOrder as $slideId) {
+            if (!array_key_exists($slideId, $slidesById)) {
+                $this->logger->warning('ai_response_action_skipped', [
+                    'reason' => 'slide_not_found',
+                    'action' => $action,
+                ]);
+                continue;
+            }
+
+            $orderedSlides[] = $slidesById[$slideId];
+            unset($slidesById[$slideId]);
+        }
+
+        if ($orderedSlides === []) {
+            return;
+        }
+
+        $slides = array_values(array_merge($orderedSlides, array_values($slidesById)));
+        $slides = $this->reindexSlides($slides);
+
+        foreach ($slides as $slide) {
+            $onEvent('slide_updated', [
+                'slide' => $this->renderableSlide($slide),
+            ]);
+        }
     }
 
     /**
@@ -310,5 +399,28 @@ final class ChatEngine
         $slug = strtolower(trim((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $ascii ?: $value), '-'));
 
         return $slug !== '' ? $slug : 'slide-'.$fallbackIndex;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $actions
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildPendingConfirmation(string $assistantMessage, array $actions): ?array
+    {
+        foreach ($actions as $action) {
+            if (($action['action'] ?? null) !== 'request_confirmation') {
+                continue;
+            }
+
+            return [
+                'summary' => trim((string) ($action['summary'] ?? $assistantMessage)),
+                'assistant_message' => trim($assistantMessage),
+                'proposed_actions' => is_array($action['proposed_actions'] ?? null) ? $action['proposed_actions'] : [],
+                'requested_at' => (new \DateTimeImmutable())->format(DATE_ATOM),
+            ];
+        }
+
+        return null;
     }
 }

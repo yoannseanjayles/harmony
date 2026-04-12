@@ -17,12 +17,8 @@
     </div>
 
     <div class="hm-preview-grid" data-preview-list>
-        {% for slide in project.slides %}
-            {% include 'project/_preview_slide.html.twig' with {
-                slide: slide|merge({
-                    position: loop.index
-                })
-            } %}
-        {% endfor %}
+        {% include 'project/_preview_list.html.twig' with {
+            slides: project.slides
+        } %}
     </div>
 </section>

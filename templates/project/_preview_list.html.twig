@@ -1,0 +1,7 @@
+{% for slide in slides %}
+    {% include 'project/_preview_slide.html.twig' with {
+        slide: slide|merge({
+            position: loop.index
+        })
+    } %}
+{% endfor %}

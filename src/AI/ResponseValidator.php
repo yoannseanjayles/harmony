@@ -122,6 +122,8 @@ final class ResponseValidator
             $errors[] = 'actions cannot contain more than 12 entries.';
         }
 
+        $containsConfirmationRequest = false;
+
         foreach ($actions as $index => $action) {
             $path = sprintf('actions[%d]', $index);
             if (!is_array($action)) {
@@ -129,26 +131,58 @@ final class ResponseValidator
                 continue;
             }
 
-            $actionName = $action['action'] ?? null;
-            if (!is_string($actionName) || !in_array($actionName, $this->responseSchema->supportedActions(), true)) {
-                $errors[] = $path.'.action is invalid.';
-                continue;
-            }
-
-            switch ($actionName) {
-                case 'add_slide':
-                    $this->validateAddSlideAction($action, $path, $errors);
-                    break;
-                case 'update_slide':
-                    $this->validateUpdateSlideAction($action, $path, $errors);
-                    break;
-                case 'remove_slide':
-                    $this->validateRemoveSlideAction($action, $path, $errors);
-                    break;
+            $actionName = $this->validateAction($action, $path, $errors);
+            if ($actionName === 'request_confirmation') {
+                $containsConfirmationRequest = true;
             }
         }
 
+        if ($containsConfirmationRequest && count($actions) !== 1) {
+            $errors[] = 'request_confirmation must be the only top-level action.';
+        }
+
         return $errors;
+    }
+
+    /**
+     * @param array<string, mixed> $action
+     * @param list<string> $errors
+     */
+    private function validateAction(array $action, string $path, array &$errors, bool $allowConfirmation = true): ?string
+    {
+        $supportedActions = $allowConfirmation
+            ? $this->responseSchema->supportedActions()
+            : array_values(array_filter(
+                $this->responseSchema->supportedActions(),
+                static fn (string $supportedAction): bool => $supportedAction !== 'request_confirmation',
+            ));
+
+        $actionName = $action['action'] ?? null;
+        if (!is_string($actionName) || !in_array($actionName, $supportedActions, true)) {
+            $errors[] = $path.'.action is invalid.';
+
+            return null;
+        }
+
+        switch ($actionName) {
+            case 'add_slide':
+                $this->validateAddSlideAction($action, $path, $errors);
+                break;
+            case 'update_slide':
+                $this->validateUpdateSlideAction($action, $path, $errors);
+                break;
+            case 'remove_slide':
+                $this->validateRemoveSlideAction($action, $path, $errors);
+                break;
+            case 'reorder_slides':
+                $this->validateReorderSlidesAction($action, $path, $errors);
+                break;
+            case 'request_confirmation':
+                $this->validateRequestConfirmationAction($action, $path, $errors);
+                break;
+        }
+
+        return $actionName;
     }
 
     /**
@@ -211,6 +245,62 @@ final class ResponseValidator
         $slideId = $action['slide_id'] ?? null;
         if (!$this->isNonEmptyString($slideId, 1, 80)) {
             $errors[] = $path.'.slide_id must be a non-empty string with max 80 characters.';
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $action
+     * @param list<string> $errors
+     */
+    private function validateReorderSlidesAction(array $action, string $path, array &$errors): void
+    {
+        $slideIds = $action['slide_ids'] ?? null;
+        if (!is_array($slideIds) || $slideIds === [] || count($slideIds) > 50) {
+            $errors[] = $path.'.slide_ids must contain between 1 and 50 slide identifiers.';
+
+            return;
+        }
+
+        $normalizedIds = [];
+        foreach ($slideIds as $index => $slideId) {
+            if (!$this->isNonEmptyString($slideId, 1, 80)) {
+                $errors[] = sprintf('%s.slide_ids[%d] must be a non-empty string with max 80 characters.', $path, $index);
+                continue;
+            }
+
+            $normalizedIds[] = trim((string) $slideId);
+        }
+
+        if (count($normalizedIds) !== count(array_unique($normalizedIds))) {
+            $errors[] = $path.'.slide_ids must not contain duplicates.';
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $action
+     * @param list<string> $errors
+     */
+    private function validateRequestConfirmationAction(array $action, string $path, array &$errors): void
+    {
+        if (!$this->isNonEmptyString($action['summary'] ?? null, 3, 240)) {
+            $errors[] = $path.'.summary must contain between 3 and 240 characters.';
+        }
+
+        $proposedActions = $action['proposed_actions'] ?? null;
+        if (!is_array($proposedActions) || $proposedActions === [] || count($proposedActions) > 12) {
+            $errors[] = $path.'.proposed_actions must contain between 1 and 12 actions.';
+
+            return;
+        }
+
+        foreach ($proposedActions as $index => $proposedAction) {
+            $nestedPath = sprintf('%s.proposed_actions[%d]', $path, $index);
+            if (!is_array($proposedAction)) {
+                $errors[] = $nestedPath.' must be an object.';
+                continue;
+            }
+
+            $this->validateAction($proposedAction, $nestedPath, $errors, false);
         }
     }
 
@@ -340,6 +430,24 @@ final class ResponseValidator
                 $normalizedAction['changes'] = $this->normalizeSlide($action['changes'], partial: true);
             }
 
+            if (isset($action['slide_ids']) && is_array($action['slide_ids'])) {
+                $normalizedAction['slide_ids'] = array_values(array_map(
+                    static fn (string $slideId): string => trim($slideId),
+                    array_filter($action['slide_ids'], static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== ''),
+                ));
+            }
+
+            if (isset($action['summary']) && is_string($action['summary'])) {
+                $normalizedAction['summary'] = trim($action['summary']);
+            }
+
+            if (isset($action['proposed_actions']) && is_array($action['proposed_actions'])) {
+                $normalizedAction['proposed_actions'] = array_values(array_map(
+                    fn (array $proposedAction): array => $this->normalizeAction($proposedAction),
+                    array_filter($action['proposed_actions'], 'is_array'),
+                ));
+            }
+
             $normalizedActions[] = $normalizedAction;
         }
 
@@ -347,6 +455,54 @@ final class ResponseValidator
             'assistant_message' => trim((string) $payload['assistant_message']),
             'actions' => $normalizedActions,
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $action
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeAction(array $action): array
+    {
+        $normalizedAction = [
+            'action' => trim((string) ($action['action'] ?? '')),
+        ];
+
+        if (isset($action['position']) && $this->isIntLike($action['position'])) {
+            $normalizedAction['position'] = (int) $action['position'];
+        }
+
+        if (isset($action['slide_id'])) {
+            $normalizedAction['slide_id'] = trim((string) $action['slide_id']);
+        }
+
+        if (isset($action['slide']) && is_array($action['slide'])) {
+            $normalizedAction['slide'] = $this->normalizeSlide($action['slide']);
+        }
+
+        if (isset($action['changes']) && is_array($action['changes'])) {
+            $normalizedAction['changes'] = $this->normalizeSlide($action['changes'], partial: true);
+        }
+
+        if (isset($action['slide_ids']) && is_array($action['slide_ids'])) {
+            $normalizedAction['slide_ids'] = array_values(array_map(
+                static fn (string $slideId): string => trim($slideId),
+                array_filter($action['slide_ids'], static fn (mixed $slideId): bool => is_string($slideId) && trim($slideId) !== ''),
+            ));
+        }
+
+        if (isset($action['summary']) && is_string($action['summary'])) {
+            $normalizedAction['summary'] = trim($action['summary']);
+        }
+
+        if (isset($action['proposed_actions']) && is_array($action['proposed_actions'])) {
+            $normalizedAction['proposed_actions'] = array_values(array_map(
+                fn (array $proposedAction): array => $this->normalizeAction($proposedAction),
+                array_filter($action['proposed_actions'], 'is_array'),
+            ));
+        }
+
+        return $normalizedAction;
     }
 
     /**

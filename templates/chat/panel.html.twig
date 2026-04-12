@@ -7,6 +7,7 @@
     data-generic-error="{{ 'chat.panel.error_generic'|trans }}"
     data-stream-error="{{ 'chat.panel.error_stream'|trans }}"
 >
+    {% set pendingConfirmation = project.pendingConfirmation %}
     <header class="hm-chat-panel__header">
         <div>
             <span class="hm-badge">{{ 'chat.panel.badge'|trans }}</span>
@@ -23,6 +24,24 @@
     </header>
 
     <div class="hm-alert hm-alert--danger" data-chat-error hidden></div>
+
+    <form
+        class="hm-chat-confirmation"
+        method="post"
+        action="{{ path('app_chat_resolve_confirmation', { projectId: project.id }) }}"
+        data-chat-confirmation
+        {{ pendingConfirmation ? '' : 'hidden' }}
+    >
+        <input type="hidden" name="_token" value="{{ csrf_token('chat_confirmation_' ~ project.id) }}">
+        <div class="hm-chat-confirmation__copy">
+            <strong>{{ 'chat.confirmation.title'|trans }}</strong>
+            <p class="hm-muted" data-chat-confirmation-summary>{{ pendingConfirmation.summary|default('') }}</p>
+        </div>
+        <div class="hm-actions hm-actions--inline">
+            <button class="hm-button" type="submit" name="decision" value="confirm" data-chat-confirmation-submit="confirm">{{ 'chat.confirmation.confirm'|trans }}</button>
+            <button class="hm-link" type="submit" name="decision" value="cancel" data-chat-confirmation-submit="cancel">{{ 'chat.confirmation.cancel'|trans }}</button>
+        </div>
+    </form>
 
     <div class="hm-chat-feed" data-chat-feed data-has-messages="{{ chatHistory.totalMessages > 0 ? 'true' : 'false' }}">
         <div class="hm-chat-empty" data-chat-empty {{ chatHistory.totalMessages > 0 ? 'hidden' }}>
@@ -49,9 +68,10 @@
             maxlength="4000"
             placeholder="{{ 'chat.panel.placeholder'|trans }}"
             data-chat-input
+            {{ pendingConfirmation ? 'disabled' }}
         ></textarea>
         <div class="hm-actions">
-            <button class="hm-button" type="submit" data-chat-submit>{{ 'chat.panel.submit'|trans }}</button>
+            <button class="hm-button" type="submit" data-chat-submit {{ pendingConfirmation ? 'disabled' }}>{{ 'chat.panel.submit'|trans }}</button>
             <p class="hm-help">{{ 'chat.panel.help'|trans }}</p>
         </div>
     </form>
