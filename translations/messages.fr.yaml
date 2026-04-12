@@ -233,7 +233,7 @@ project.provider.openai: OpenAI
 project.provider.anthropic: Anthropic
 project.model.gpt41mini: GPT-4.1 mini
 project.model.gpt41: GPT-4.1
-project.model.claude37: Claude 3.7 Sonnet
+project.model.claudesonnet46: Claude Sonnet 4.6
 project.model.claude35: Claude 3.5 Sonnet
 project.status.draft: Brouillon
 project.status.active: Actif

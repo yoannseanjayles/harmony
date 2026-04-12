@@ -8,13 +8,13 @@
 
         <div class="hm-field">
             {{ form_label(projectForm.provider) }}
-            {{ form_widget(projectForm.provider) }}
+            {{ form_widget(projectForm.provider, { attr: { 'data-provider-select': '' } }) }}
             {{ form_errors(projectForm.provider) }}
         </div>
 
         <div class="hm-field">
             {{ form_label(projectForm.model) }}
-            {{ form_widget(projectForm.model) }}
+            {{ form_widget(projectForm.model, { attr: { 'data-model-select': '' } }) }}
             {{ form_errors(projectForm.model) }}
         </div>
 
@@ -30,3 +30,32 @@
         <a class="hm-link" href="{{ path('app_project_index') }}">{{ 'project.back_index'|trans }}</a>
     </div>
 {{ form_end(projectForm) }}
+
+<script>
+    (() => {
+        const providerSelect = document.querySelector('[data-provider-select]');
+        const modelSelect = document.querySelector('[data-model-select]');
+        if (!providerSelect || !modelSelect) return;
+
+        const modelsByProvider = {{ modelsByProvider|default('{}')|raw }};
+        const allOptions = Array.from(modelSelect.options).map(o => ({ value: o.value, text: o.text }));
+
+        function filterModels() {
+            const allowed = modelsByProvider[providerSelect.value] || [];
+            const currentValue = modelSelect.value;
+            modelSelect.innerHTML = '';
+            allOptions.forEach(opt => {
+                if (allowed.length === 0 || allowed.includes(opt.value)) {
+                    const o = new Option(opt.text, opt.value);
+                    modelSelect.add(o);
+                }
+            });
+            if (Array.from(modelSelect.options).some(o => o.value === currentValue)) {
+                modelSelect.value = currentValue;
+            }
+        }
+
+        providerSelect.addEventListener('change', filterModels);
+        filterModels();
+    })();
+</script>

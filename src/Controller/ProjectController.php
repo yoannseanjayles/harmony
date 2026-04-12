@@ -447,6 +447,7 @@ final class ProjectController extends AbstractController
         return $this->render($template, [
             ...$parameters,
             'projectForm' => $form,
+            'modelsByProvider' => json_encode(Project::modelsByProvider(), JSON_THROW_ON_ERROR),
         ], new Response(status: $statusCode));
     }
 }
