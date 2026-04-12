@@ -2,3 +2,13 @@ services:
     App\AI\Http\AIHttpClientInterface: '@App\AI\Http\FakeAIHttpClient'
     harmony.ai.http_client.openai: '@App\AI\Http\FakeAIHttpClient'
     harmony.ai.http_client.anthropic: '@App\AI\Http\FakeAIHttpClient'
+
+    # Public aliases for integration tests (HRM-F19 — T158)
+    # The test container exposes private services but not inlined/removed ones;
+    # these aliases make SlideBuilder and ResponseValidator reachable via getContainer()->get().
+    test.slide_builder_alias:
+        alias: App\Slide\SlideBuilder
+        public: true
+    test.response_validator_alias:
+        alias: App\AI\ResponseValidator
+        public: true
