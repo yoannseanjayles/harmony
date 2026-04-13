@@ -587,6 +587,10 @@
                         <p class="hm-muted">{{ project.mediaRefsCount }}</p>
                     </article>
                     <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.ai_cost'|trans }}</strong>
+                        <p class="hm-muted" data-ai-cost-total>{{ totalAiCostUsd|number_format(4, '.', '') }} USD</p>
+                    </article>
+                    <article class="hm-dashboard-card">
                         <strong>{{ 'project.show.card.history'|trans }}</strong>
                         <p class="hm-muted">{{ 'project.show.card.history_copy'|trans }}</p>
                     </article>
@@ -620,6 +624,10 @@
                     project:     project,
                     mediaAssets: mediaAssets,
                     slides:      slides
+                } %}
+
+                {% include 'project/_ai_provider_drawer.html.twig' with {
+                    project: project
                 } %}
 
                 <div class="hm-actions">

@@ -19,8 +19,10 @@ use App\Repository\SlideRepository;
 use App\Theme\ThemeEngine;
 use App\Theme\ThemePresetLoader;
 use App\Theme\ThemeTokenValidator;
+use App\Repository\ProjectGenerationMetricRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -103,6 +105,8 @@ final class ProjectController extends AbstractController
     public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, MediaAssetRepository $mediaAssetRepository, SlideRepository $slideRepository): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
+        $costMap = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
+        $totalAiCostUsd = round(($costMap[$project->getId() ?? 0] ?? 0) / 100, 4);
 
         $projectId = (int) $project->getId();
         $aiTotals  = $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
@@ -130,6 +134,7 @@ final class ProjectController extends AbstractController
         return $this->render('project/editor.html.twig', [
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+            'totalAiCostUsd' => $totalAiCostUsd,
             'aiCostUsd' => $aiCostUsd,
         ]);
     }
@@ -393,6 +398,43 @@ final class ProjectController extends AbstractController
         $this->addFlash('success', 'project.theme.reset.flash.done');
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
+    }
+
+    /**
+     * T318 — Persist the chosen AI provider and model via AJAX.
+     *
+     * Accepts form-encoded body: provider, model, _token.
+     * Returns JSON `{success: true, provider, model}`.
+     */
+    #[Route('/{id}/ai/settings', name: 'app_project_ai_settings', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function saveAiSettings(
+        int $id,
+        Request $request,
+        ProjectRepository $projectRepository,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $project = $this->findOwnedEditableProjectOr404($id, $projectRepository);
+        $this->denyInvalidToken('ai_settings_'.$project->getId(), (string) $request->request->get('_token'));
+
+        $provider = trim((string) $request->request->get('provider', $project->getProvider()));
+        $model    = trim((string) $request->request->get('model', $project->getModel()));
+
+        if (!in_array($provider, Project::providerValues(), true)) {
+            return $this->json(['error' => 'project.provider.invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (!in_array($model, Project::modelValues(), true)) {
+            return $this->json(['error' => 'project.model.invalid'], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $project->setProvider($provider)->setModel($model);
+        $entityManager->flush();
+
+        return $this->json([
+            'success'  => true,
+            'provider' => $provider,
+            'model'    => $model,
+        ]);
     }
 
     private function requireUser(): User
