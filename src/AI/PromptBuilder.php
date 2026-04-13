@@ -36,7 +36,7 @@ final class PromptBuilder
                 (string) ($slide['title'] ?? 'Slide'),
                 (string) ($slide['type'] ?? 'content'),
             ),
-            array_slice($slides, 0, 6),
+            $slides,
         );
 
         $lines = [
@@ -53,9 +53,8 @@ final class PromptBuilder
             $lines[] = 'Current slides (format: [id] Title (type)): <slides_summary>'.implode(' | ', $slidesSummary).'</slides_summary>';
         }
 
-        $slidesData = array_slice($slides, 0, 12);
-        if ($slidesData !== []) {
-            $lines[] = 'Current slides JSON (use these ids for update_slide and remove_slide): <slides_json>'.json_encode($slidesData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE).'</slides_json>';
+        if ($slides !== []) {
+            $lines[] = 'Current slides JSON (use these ids for update_slide and remove_slide): <slides_json>'.json_encode($slides, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE).'</slides_json>';
         }
 
         $metadata = $project->getMetadata();
@@ -79,7 +78,7 @@ final class PromptBuilder
             'provider' => $project->getProvider(),
             'model' => $project->getModel(),
             'slidesCount' => $project->getSlidesCount(),
-            'slides' => array_slice($project->getSlides(), 0, 12),
+            'slides' => $project->getSlides(),
             'theme' => $project->getThemeConfig(),
             'metadata' => $project->getMetadata(),
         ];

@@ -614,7 +614,7 @@ final class ResponseValidator
     {
         $normalized = [];
 
-        foreach (['id', 'title', 'type', 'subtitle', 'body', 'notes'] as $field) {
+        foreach (['id', 'title', 'type', 'subtitle', 'body', 'notes', 'label', 'quote', 'author', 'role', 'source', 'image_url', 'image_alt', 'overlay_text', 'caption', 'message', 'cta_label', 'cta_url', 'layout'] as $field) {
             if (array_key_exists($field, $slide) && is_string($slide[$field])) {
                 $normalized[$field] = trim($slide[$field]);
             }

@@ -33,7 +33,7 @@ final class RetryPolicy
         $currentPrompt = $promptRequest;
         $lastException = null;
 
-        while ($attempt <= 2) {
+        while ($attempt <= 3) {
             try {
                 $providerResponse = $stream
                     ? $provider->streamPrompt($currentPrompt, static function (): void {})
@@ -53,7 +53,7 @@ final class RetryPolicy
                     'provider_timeout',
                 );
 
-                if ($attempt === 2 || $currentPrompt->model() === $fallbackModel) {
+                if ($attempt === 3 || $currentPrompt->model() === $fallbackModel) {
                     throw $exception;
                 }
 
@@ -84,7 +84,7 @@ final class RetryPolicy
                     'validation_failure',
                 );
 
-                if ($attempt === 2) {
+                if ($attempt === 3) {
                     throw $exception;
                 }
 
