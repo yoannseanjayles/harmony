@@ -181,6 +181,14 @@ final class ChatEngine
             ));
         }
 
+        // Pass through type-specific fields not covered by the base whitelist above
+        $baseFields = ['title', 'type', 'subtitle', 'body', 'notes', 'items', 'position', 'action', 'slide_id', 'changes'];
+        foreach ($changes as $key => $value) {
+            if (!in_array($key, $baseFields, true)) {
+                $updatedSlide[$key] = $value;
+            }
+        }
+
         $slides[$index] = $this->normalizeSlide($updatedSlide, $index + 1, $existingSlide['id']);
 
         if (isset($changes['position'])) {
@@ -312,7 +320,7 @@ final class ChatEngine
             array_filter($rawItems, static fn (mixed $item): bool => is_string($item) && trim($item) !== ''),
         ));
 
-        $normalized = [
+        $normalized = array_merge($slide, [
             'id' => $forcedId ?? $this->buildSlideIdentifier((string) ($slide['id'] ?? $title), $position),
             'title' => $title,
             'type' => $type,
@@ -321,7 +329,7 @@ final class ChatEngine
             'items' => $items,
             'notes' => trim((string) ($slide['notes'] ?? '')),
             'position' => $position,
-        ];
+        ]);
 
         if ($normalized['body'] === '' && $items !== []) {
             $normalized['body'] = implode("\n", array_map(static fn (string $item): string => '- '.$item, $items));
@@ -384,7 +392,7 @@ final class ChatEngine
      */
     private function renderableSlide(array $slide): array
     {
-        return [
+        return array_merge($slide, [
             'id' => (string) ($slide['id'] ?? ''),
             'title' => (string) ($slide['title'] ?? 'Slide'),
             'type' => (string) ($slide['type'] ?? 'content'),
@@ -393,7 +401,7 @@ final class ChatEngine
             'items' => $slide['items'] ?? [],
             'notes' => (string) ($slide['notes'] ?? ''),
             'position' => (int) ($slide['position'] ?? 1),
-        ];
+        ]);
     }
 
     private function buildSlideIdentifier(string $value, int $fallbackIndex): string
