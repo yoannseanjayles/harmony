@@ -684,7 +684,7 @@ a {
 
 .hm-dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
 }
 
@@ -781,12 +781,56 @@ hr {
 .hm-form > *:nth-child(5) { animation: hm-fade-up 0.4s 0.25s both ease; }
 .hm-form > *:nth-child(6) { animation: hm-fade-up 0.4s 0.30s both ease; }
 
+/* ── Mobile nav ────────────────────────────────────────── */
+
+.hm-topbar__burger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--hm-border);
+    border-radius: 8px;
+    color: var(--hm-ink-soft);
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+
+.hm-topbar__burger:hover {
+    background: var(--hm-accent-soft);
+    color: var(--hm-ink);
+}
+
+.hm-mobile-nav {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    background: var(--hm-surface-strong);
+    border-bottom: 1px solid var(--hm-border);
+    backdrop-filter: blur(24px) saturate(1.3);
+    padding: 8px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 999;
+}
+
+.hm-mobile-nav[hidden] {
+    display: none;
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 
 @media (max-width: 900px) {
-    .hm-card {
-        grid-template-columns: 1fr;
-        border-radius: 18px;
+    .hm-topbar__nav {
+        display: none;
+    }
+
+    .hm-topbar__burger {
+        display: inline-flex;
     }
 
     .hm-panel {
@@ -799,15 +843,28 @@ hr {
 
     .hm-dashboard header {
         flex-direction: column;
+        gap: 14px;
     }
 
-    .hm-dashboard-grid,
+    .hm-metrics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 720px) {
+    .hm-card {
+        grid-template-columns: 1fr;
+        border-radius: 18px;
+    }
+}
+
+@media (max-width: 600px) {
     .hm-metrics {
         grid-template-columns: 1fr;
     }
 
-    .hm-topbar__nav {
-        display: none;
+    .hm-dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -830,6 +887,10 @@ hr {
         width: 100%;
         justify-content: center;
     }
+
+    .hm-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
 }
             </style>
         {% endblock %}
@@ -838,7 +899,7 @@ hr {
     <body>
         {% block navigation %}
             {% if app.user is defined and app.user %}
-                <nav class="hm-topbar" role="navigation">
+                <nav class="hm-topbar" role="navigation" style="position: relative;">
                     <a class="hm-topbar__brand" href="{{ path('app_dashboard') }}">
                         <svg viewBox="0 0 120 120" fill="none"><rect width="120" height="120" rx="28" fill="#7c3aed"/><path d="M24 82V38h12v16h16V38h12v44H52V66H36v16H24zm48 0V38h12v44H72z" fill="#e8e4ff"/></svg>
                         Harmony
@@ -857,8 +918,38 @@ hr {
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
                             <button class="hm-topbar__link" type="submit">{{ 'navigation.logout'|trans }}</button>
                         </form>
+                        <button class="hm-topbar__burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="hm-mobile-nav" id="hm-burger-btn">&#9776;</button>
+                    </div>
+
+                    <div class="hm-mobile-nav" id="hm-mobile-nav" hidden>
+                        <a class="hm-topbar__link" href="{{ path('app_dashboard') }}">{{ 'navigation.dashboard'|trans }}</a>
+                        <a class="hm-topbar__link" href="{{ path('app_project_index') }}">{{ 'navigation.projects'|trans }}</a>
+                        <a class="hm-topbar__link" href="{{ path('app_profile') }}">{{ 'navigation.profile'|trans }}</a>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <a class="hm-topbar__link" href="{{ path('app_admin_dashboard') }}">{{ 'navigation.admin'|trans }}</a>
+                        {% endif %}
                     </div>
                 </nav>
+
+                <script>
+                    (function() {
+                        var btn = document.getElementById('hm-burger-btn');
+                        var menu = document.getElementById('hm-mobile-nav');
+                        if (!btn || !menu) return;
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            var open = !menu.hidden;
+                            menu.hidden = open;
+                            btn.setAttribute('aria-expanded', String(!open));
+                        });
+                        document.addEventListener('click', function(e) {
+                            if (!menu.hidden && !menu.contains(e.target) && e.target !== btn) {
+                                menu.hidden = true;
+                                btn.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                    })();
+                </script>
             {% endif %}
         {% endblock %}
 

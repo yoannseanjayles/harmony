@@ -26,6 +26,10 @@
             .hm-split-pane {
                 grid-template-columns: 1fr;
             }
+
+            .hm-preview-panel {
+                position: static;
+            }
         }
 
         .hm-chat-panel {
@@ -497,6 +501,36 @@
             }
         }
 
+        /* ── Actions secondary group ──────────────────────────────── */
+        .hm-actions--secondary {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .hm-project-show__header .hm-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hm-project-show__header .hm-actions .hm-button,
+            .hm-project-show__header .hm-actions .hm-link {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .hm-actions--secondary {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hm-actions--secondary .hm-link,
+            .hm-actions--secondary .hm-button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
         /* HRM-T270 — PDF failure notice */
         .hm-pdf-failure {
             padding: 12px 16px;
@@ -530,7 +564,7 @@
     <main class="hm-shell hm-shell--top">
         <section class="hm-dashboard hm-project-show">
             <div class="hm-project-stack">
-                <header>
+                <header class="hm-project-show__header">
                     <div>
                         <span class="hm-badge">{{ project.isArchived ? 'project.archived.badge'|trans : 'project.show.badge'|trans }}</span>
                         <h1 class="hm-page-title">{{ project.title }}</h1>
@@ -657,21 +691,39 @@
                     project: project
                 } %}
 
+                {# Export actions — primary group #}
                 <div class="hm-actions">
                     <a class="hm-link" href="{{ path('app_export_html_download', { id: project.id }) }}">{{ 'project.export.html'|trans }}</a>
                     <button
                         type="button"
-                        class="hm-link"
+                        class="hm-button"
                         data-pdf-export-btn
                         data-pdf-url="{{ path('app_export_pdf_download', { id: project.id }) }}"
                         data-html-fallback-url="{{ path('app_export_html_download', { id: project.id }) }}"
                         data-retry-label="{{ 'project.export.pdf_retry'|trans }}"
                         data-html-label="{{ 'project.export.pdf_fallback_html'|trans }}"
                     >{{ 'project.export.pdf'|trans }}</button>
+                </div>
+
+                <hr>
+
+                {# Secondary & destructive actions #}
+                <div class="hm-actions hm-actions--secondary">
                     <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
                         <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
                     </form>
+                    {% if project.hasActiveShareLink %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_revoke', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('revoke_share_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.share.revoke'|trans }}</button>
+                        </form>
+                    {% else %}
+                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_generate', { id: project.id }) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('share_project_' ~ project.id) }}">
+                            <button class="hm-link" type="submit">{{ 'project.share.generate'|trans }}</button>
+                        </form>
+                    {% endif %}
                     {% if project.isArchived %}
                         <form class="hm-inline-form" method="post" action="{{ path('app_project_restore', { id: project.id }) }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('restore_project_' ~ project.id) }}">
@@ -687,17 +739,6 @@
                         <input type="hidden" name="_token" value="{{ csrf_token('delete_project_' ~ project.id) }}">
                         <button class="hm-link" type="submit">{{ 'project.show.delete'|trans }}</button>
                     </form>
-                    {% if project.hasActiveShareLink %}
-                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_revoke', { id: project.id }) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('revoke_share_project_' ~ project.id) }}">
-                            <button class="hm-link" type="submit">{{ 'project.share.revoke'|trans }}</button>
-                        </form>
-                    {% else %}
-                        <form class="hm-inline-form" method="post" action="{{ path('app_project_share_generate', { id: project.id }) }}">
-                            <input type="hidden" name="_token" value="{{ csrf_token('share_project_' ~ project.id) }}">
-                            <button class="hm-link" type="submit">{{ 'project.share.generate'|trans }}</button>
-                        </form>
-                    {% endif %}
                 </div>
             </div>
         </section>

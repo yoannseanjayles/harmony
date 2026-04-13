@@ -61,7 +61,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 260px;
+            max-width: clamp(100px, 20vw, 260px);
         }
 
         .hm-editor-nav__right {
@@ -195,16 +195,86 @@
             padding-right: 4px;
         }
 
+        /* ── Editor tabs bar (mobile only) ─────────────────────────── */
+        .hm-editor-tabs {
+            display: none;
+            flex-shrink: 0;
+            border-bottom: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+        }
+
+        .hm-editor-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 44px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--hm-ink-soft);
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .hm-editor-tab--active {
+            color: var(--hm-ink);
+            border-bottom-color: var(--hm-accent-primary);
+        }
+
         /* ── Responsive (T286): min-width 1280px enforced ──────────── */
         @media (max-width: 1279px) {
             .hm-editor-body {
                 grid-template-columns: 1fr;
-                grid-template-rows: 1fr 1fr;
+                grid-template-rows: 45vh 55vh;
             }
 
             .hm-editor-chat {
                 border-right: none;
                 border-bottom: 1px solid var(--hm-border);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hm-editor {
+                grid-template-rows: auto auto 1fr;
+            }
+
+            .hm-editor-tabs {
+                display: flex;
+            }
+
+            .hm-editor-body {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr;
+            }
+
+            .hm-editor-chat,
+            .hm-editor-preview {
+                height: 100%;
+            }
+
+            .hm-editor-chat--hidden,
+            .hm-editor-preview--hidden {
+                display: none;
+            }
+
+            .hm-editor-nav__btn--ghost[data-hide-mobile] {
+                display: none;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hm-editor-nav__right {
+                gap: 4px;
+            }
+
+            .hm-editor-nav__btn {
+                padding: 0 10px;
+                font-size: 0.8rem;
             }
         }
 
@@ -488,6 +558,7 @@
             <a
                 class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
                 href="{{ path('app_project_versions', { id: project.id }) }}"
+                data-hide-mobile
             >{{ 'project.editor.nav.history'|trans }}</a>
 
             {% if not project.isArchived %}
@@ -497,6 +568,7 @@
                     type="button"
                     data-drawer-open="hm-customization-drawer"
                     aria-controls="hm-customization-drawer"
+                    data-hide-mobile
                 >{{ 'project.editor.nav.theme'|trans }}</button>
 
                 <span class="hm-editor-nav__divider" aria-hidden="true"></span>
@@ -517,6 +589,16 @@
             {% endif %}
         </div>
     </nav>
+
+    {# ── Mobile tab bar (visible under 768px) ─────────────────────── #}
+    <div class="hm-editor-tabs" id="hm-editor-tabs" aria-label="Panneaux">
+        <button class="hm-editor-tab hm-editor-tab--active" type="button" data-editor-tab="chat" aria-pressed="true">
+            💬 {{ 'project.editor.tab.chat'|trans|default('Chat') }}
+        </button>
+        <button class="hm-editor-tab" type="button" data-editor-tab="preview" aria-pressed="false">
+            🖼 {{ 'project.editor.tab.preview'|trans|default('Aperçu') }}
+        </button>
+    </div>
 
     {# Flash messages (outside panels so they remain visible) #}
     {% for flash in app.flashes('success') %}
@@ -1303,5 +1385,36 @@
             });
         })();
 
+    </script>
+
+    <script>
+        // ── Mobile tab switching (visible under 768px) ──────────────────
+        (function() {
+            var tabs = document.querySelectorAll('[data-editor-tab]');
+            var chatPanel = document.querySelector('.hm-editor-chat');
+            var previewPanel = document.querySelector('.hm-editor-preview');
+            if (!tabs.length || !chatPanel || !previewPanel) return;
+
+            function activateTab(name) {
+                tabs.forEach(function(t) {
+                    var isActive = t.dataset.editorTab === name;
+                    t.classList.toggle('hm-editor-tab--active', isActive);
+                    t.setAttribute('aria-pressed', String(isActive));
+                });
+                if (name === 'chat') {
+                    chatPanel.classList.remove('hm-editor-chat--hidden');
+                    previewPanel.classList.add('hm-editor-preview--hidden');
+                } else {
+                    previewPanel.classList.remove('hm-editor-preview--hidden');
+                    chatPanel.classList.add('hm-editor-chat--hidden');
+                }
+            }
+
+            tabs.forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    activateTab(tab.dataset.editorTab);
+                });
+            });
+        })();
     </script>
 {% endblock %}
