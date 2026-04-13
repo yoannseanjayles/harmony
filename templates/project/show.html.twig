@@ -6,61 +6,75 @@
     {{ parent() }}
     <style>
         .hm-project-show {
-            width: min(100%, 1180px);
+            width: min(100%, 1320px);
         }
 
         .hm-project-stack {
             display: grid;
-            gap: 22px;
+            gap: 16px;
+        }
+
+        /* Split pane: chat left, preview right */
+        .hm-split-pane {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 1100px) {
+            .hm-split-pane {
+                grid-template-columns: 1fr;
+            }
         }
 
         .hm-chat-panel {
-            padding: 24px;
-            border-radius: 26px;
+            padding: 20px;
+            border-radius: 16px;
             border: 1px solid var(--hm-border);
-            background:
-                radial-gradient(circle at top right, rgba(124, 58, 237, 0.10), transparent 28%),
-                var(--hm-surface-strong);
-            box-shadow: var(--hm-shadow);
+            background: var(--hm-surface-strong);
+            box-shadow: var(--hm-shadow-card);
         }
 
         .hm-preview-panel {
-            padding: 24px;
-            border-radius: 26px;
+            padding: 20px;
+            border-radius: 16px;
             border: 1px solid var(--hm-border);
-            background:
-                radial-gradient(circle at top left, rgba(16, 185, 129, 0.07), transparent 28%),
-                var(--hm-surface-strong);
-            box-shadow: var(--hm-shadow);
+            background: var(--hm-surface-strong);
+            box-shadow: var(--hm-shadow-card);
+            position: sticky;
+            top: 72px;
         }
 
         .hm-preview-panel__header {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: flex-start;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .hm-preview-panel__title {
-            margin: 12px 0 6px;
+            margin: 8px 0 4px;
             font-family: var(--hm-font-title);
-            font-size: clamp(1.8rem, 2.4vw, 2.3rem);
-            line-height: 1.05;
+            font-size: clamp(1.4rem, 2vw, 1.8rem);
+            font-weight: 600;
+            line-height: 1.1;
         }
 
         .hm-preview-empty {
-            padding: 20px 22px;
-            border-radius: 20px;
+            padding: 18px 20px;
+            border-radius: 14px;
             border: 1px dashed var(--hm-border);
             background: var(--hm-surface);
         }
 
         .hm-preview-empty strong {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-family: var(--hm-font-title);
-            font-size: 1.3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         /* T291 — Live preview zone */
@@ -69,17 +83,18 @@
         }
 
         .hm-live-preview__empty {
-            padding: 20px 22px;
-            border-radius: 20px;
+            padding: 18px 20px;
+            border-radius: 14px;
             border: 1px dashed var(--hm-border);
             background: var(--hm-surface);
         }
 
         .hm-live-preview__empty strong {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-family: var(--hm-font-title);
-            font-size: 1.3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .hm-live-preview__frame {
@@ -87,9 +102,9 @@
             width: 100%;
             aspect-ratio: 16 / 9;
             overflow: hidden;
-            border-radius: 16px;
+            border-radius: 12px;
             background: var(--hm-bg, #0c0c14);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.24);
         }
 
         .hm-live-preview__inner {
@@ -121,19 +136,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 999px;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
             border: 1px solid var(--hm-border);
             background: var(--hm-surface-strong);
             color: var(--hm-ink);
-            font-size: 1.1rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s;
         }
 
         .hm-btn-icon:hover {
-            background: var(--hm-surface-lift, rgba(124, 58, 237, 0.15));
+            background: rgba(139, 92, 246, 0.10);
             border-color: var(--hm-accent-primary);
         }
 
@@ -166,9 +181,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
-            padding: 4px;
-            border-radius: 10px;
+            gap: 4px;
+            padding: 3px;
+            border-radius: 8px;
             border: 2px solid transparent;
             background: transparent;
             cursor: pointer;
@@ -176,21 +191,21 @@
         }
 
         .hm-thumbnail:hover {
-            border-color: rgba(124, 58, 237, 0.35);
+            border-color: rgba(139, 92, 246, 0.28);
         }
 
         /* T293 — Active slide indicator */
         .hm-thumbnail--active {
-            border-color: rgba(124, 58, 237, 0.7);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+            border-color: rgba(139, 92, 246, 0.6);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.10);
         }
 
         .hm-thumbnail__frame {
             position: relative;
-            width: 160px;
-            height: 90px;
+            width: 140px;
+            height: 79px;
             overflow: hidden;
-            border-radius: 7px;
+            border-radius: 6px;
             background: var(--hm-bg, #0c0c14);
         }
 
@@ -207,15 +222,15 @@
 
         /* Text-based placeholder shown before rendered HTML arrives */
         .hm-thumbnail__inner--text {
-            width: 160px;
-            height: 90px;
+            width: 140px;
+            height: 79px;
             transform: none;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             justify-content: flex-end;
             padding: 8px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(16, 185, 129, 0.08));
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(52, 211, 153, 0.06));
         }
 
         .hm-thumbnail__type {
@@ -253,14 +268,14 @@
 
         .hm-thumbnail-skeleton {
             flex: 0 0 auto;
-            width: 160px;
-            height: 90px;
-            border-radius: 7px;
+            width: 140px;
+            height: 79px;
+            border-radius: 6px;
             background: linear-gradient(
                 90deg,
-                rgba(124, 58, 237, 0.08) 25%,
-                rgba(124, 58, 237, 0.18) 50%,
-                rgba(124, 58, 237, 0.08) 75%
+                rgba(139, 92, 246, 0.06) 25%,
+                rgba(139, 92, 246, 0.14) 50%,
+                rgba(139, 92, 246, 0.06) 75%
             );
             background-size: 200% 100%;
             animation: hm-skeleton-shimmer 1.4s infinite;
@@ -272,11 +287,11 @@
         }
 
         .hm-preview-card {
-            padding: 18px;
-            border-radius: 22px;
+            padding: 16px;
+            border-radius: 14px;
             border: 1px solid var(--hm-border);
             background: var(--hm-surface-strong);
-            box-shadow: var(--hm-shadow);
+            box-shadow: var(--hm-shadow-card);
         }
 
         .hm-preview-card__meta {
@@ -297,62 +312,65 @@
         .hm-chat-panel__header {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: flex-start;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .hm-chat-panel__title {
-            margin: 12px 0 6px;
+            margin: 8px 0 4px;
             font-family: var(--hm-font-title);
-            font-size: clamp(1.8rem, 2.5vw, 2.4rem);
-            line-height: 1.05;
+            font-size: clamp(1.4rem, 2vw, 1.8rem);
+            font-weight: 600;
+            line-height: 1.1;
         }
 
         .hm-chat-feed {
             display: grid;
-            gap: 14px;
-            min-height: 240px;
-            max-height: 520px;
+            gap: 10px;
+            min-height: 200px;
+            max-height: 560px;
             overflow: auto;
-            padding: 10px 6px 10px 2px;
-            margin-bottom: 16px;
+            padding: 8px 4px 8px 2px;
+            margin-bottom: 12px;
             scroll-behavior: smooth;
         }
 
         .hm-chat-empty {
-            padding: 22px;
-            border-radius: 20px;
+            padding: 20px;
+            border-radius: 14px;
             border: 1px dashed var(--hm-border);
             background: var(--hm-surface);
         }
 
         .hm-chat-empty strong {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-family: var(--hm-font-title);
-            font-size: 1.4rem;
+            font-size: 1.2rem;
+            font-weight: 600;
         }
 
         .hm-chat-message {
-            width: min(78%, 620px);
-            padding: 16px 18px;
-            border-radius: 20px;
-            border: 1px solid var(--hm-border);
+            width: min(85%, 580px);
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid transparent;
             background: var(--hm-surface-strong);
-            box-shadow: var(--hm-shadow);
         }
 
         .hm-chat-message--user {
             margin-left: auto;
-            border-top-right-radius: 8px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(124, 58, 237, 0.08));
+            border-top-right-radius: 6px;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(139, 92, 246, 0.06));
+            border-color: rgba(139, 92, 246, 0.10);
         }
 
         .hm-chat-message--assistant {
             margin-right: auto;
-            border-top-left-radius: 8px;
+            border-top-left-radius: 6px;
             background: var(--hm-surface);
+            border-color: var(--hm-border);
         }
 
         .hm-chat-message__meta {
@@ -373,17 +391,18 @@
         .hm-chat-typing {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             width: fit-content;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 999px;
             background: var(--hm-accent-soft);
             color: var(--hm-ink-soft);
+            font-size: 0.85rem;
         }
 
         .hm-chat-typing__dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 999px;
             background: var(--hm-accent-primary);
             animation: hm-chat-bounce 1s infinite ease-in-out;
@@ -405,13 +424,13 @@
         .hm-chat-confirmation {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
-            padding: 18px 20px;
-            margin-bottom: 16px;
-            border-radius: 20px;
-            border: 1px solid rgba(124, 58, 237, 0.28);
-            background: rgba(124, 58, 237, 0.08);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(139, 92, 246, 0.20);
+            background: rgba(139, 92, 246, 0.06);
         }
 
         .hm-chat-confirmation__copy {
@@ -432,21 +451,22 @@
 
         .hm-chat-form__textarea {
             width: 100%;
-            min-height: 128px;
-            padding: 16px 18px;
-            border-radius: 20px;
+            min-height: 100px;
+            padding: 14px 16px;
+            border-radius: 14px;
             border: 1px solid var(--hm-border);
             background: var(--hm-surface);
             color: var(--hm-ink);
             font: inherit;
-            line-height: 1.6;
+            font-size: 0.93rem;
+            line-height: 1.55;
             resize: vertical;
         }
 
         .hm-chat-form__textarea:focus {
             outline: none;
             border-color: var(--hm-accent-primary);
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.18);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12);
         }
 
         @keyframes hm-chat-bounce {
@@ -479,10 +499,10 @@
 
         /* HRM-T270 — PDF failure notice */
         .hm-pdf-failure {
-            padding: 14px 18px;
-            border-radius: 16px;
-            border: 1px solid rgba(239, 68, 68, 0.22);
-            background: rgba(239, 68, 68, 0.07);
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(239, 68, 68, 0.18);
+            background: rgba(239, 68, 68, 0.05);
             color: var(--hm-danger);
         }
 
@@ -606,15 +626,21 @@
                     </article>
                 </section>
 
-                {% include 'chat/panel.html.twig' with {
-                    project: project,
-                    chatHistory: chatHistory
-                } %}
+                <div class="hm-split-pane">
+                    <div>
+                        {% include 'chat/panel.html.twig' with {
+                            project: project,
+                            chatHistory: chatHistory
+                        } %}
+                    </div>
 
-                {% include 'project/_slides_preview.html.twig' with {
-                    project: project,
-                    slidesHtml: slidesHtml
-                } %}
+                    <div>
+                        {% include 'project/_slides_preview.html.twig' with {
+                            project: project,
+                            slidesHtml: slidesHtml
+                        } %}
+                    </div>
+                </div>
 
                 {% include 'project/_customization_drawer.html.twig' with {
                     project: project,
