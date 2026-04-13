@@ -56,8 +56,7 @@ class ChatStreamSession
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
-        $this->createdAt ??= new \DateTimeImmutable();
-        $this->updatedAt ??= new \DateTimeImmutable();
+        // Ensure timestamps are set when persisting via Doctrine without constructor.
     }
 
     #[ORM\PreUpdate]

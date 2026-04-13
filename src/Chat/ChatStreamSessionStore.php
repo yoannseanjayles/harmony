@@ -56,26 +56,34 @@ final class ChatStreamSessionStore
     /**
      * Acquires a logical lock on a stream session.
      *
-     * Uses an optimistic locking approach: marks the session as 'streaming'
-     * atomically, returning false if already locked by another process.
+     * Uses an atomic UPDATE with a WHERE condition to prevent two workers
+     * from processing the same stream session concurrently.
      *
-     * @return resource|true|false  Returns true on success, false if already locked.
-     *                              (The return type includes resource for backward compatibility
-     *                              with the old filesystem-based store.)
+     * @return true|false  Returns true on success, false if already locked.
      */
     public function acquireLock(string $streamId): mixed
     {
+        // Atomic conditional update: only mark as 'streaming' if currently 'pending'.
+        $rowsAffected = $this->entityManager->getConnection()->executeStatement(
+            'UPDATE chat_stream_session SET status = :newStatus, updated_at = :now WHERE stream_id = :id AND status = :currentStatus',
+            [
+                'newStatus' => 'streaming',
+                'now' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'id' => $streamId,
+                'currentStatus' => 'pending',
+            ],
+        );
+
+        if ($rowsAffected === 0) {
+            return false;
+        }
+
+        // Refresh the entity manager's view of this entity.
         $session = $this->findSession($streamId);
-        if ($session === null) {
-            return false;
+        if ($session !== null) {
+            $this->entityManager->refresh($session);
         }
 
-        // If already streaming, another process owns it.
-        if ($session->getStatus() === 'streaming') {
-            return false;
-        }
-
-        // Mark as streaming atomically via an optimistic check
         return true;
     }
 
