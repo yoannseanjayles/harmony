@@ -2,28 +2,24 @@
 
 namespace App\Controller;
 
-use App\AI\AiTokenCostCalculator;
-use App\AI\AICostCalculator;
-use App\AI\ChatCompletionService;
 use App\AI\ChatEngine;
 use App\AI\EmptyAIResponseException;
+use App\Chat\ChatGenerationOrchestrator;
+use App\Chat\Message\GenerateChatReplyMessage;
 use App\Entity\ChatMessage;
 use App\Entity\Project;
-use App\Entity\Slide;
 use App\Entity\User;
 use App\Chat\ChatStreamSessionStore;
-use App\Project\ProjectMetricsRecorder;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ProjectRepository;
-use App\Slide\SlideBuilder;
-use App\Slide\UnsupportedSlideTypeException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -63,14 +59,10 @@ final class ChatController extends AbstractController
         ProjectRepository $projectRepository,
         ChatMessageRepository $chatMessageRepository,
         ChatStreamSessionStore $chatStreamSessionStore,
-        ChatCompletionService $chatCompletionService,
-        ProjectVersioning $projectVersioning,
+        ChatGenerationOrchestrator $orchestrator,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
-        AiTokenCostCalculator $costCalculator,
-        ProjectMetricsRecorder $metricsRecorder,
-        AICostCalculator $aiCostCalculator,
-        ProjectMetricsRecorder $projectMetricsRecorder,
+        MessageBusInterface $messageBus,
     ): Response {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -112,6 +104,14 @@ final class ChatController extends AbstractController
 
         if ($request->isXmlHttpRequest()) {
             $streamId = $chatStreamSessionStore->create($project, $user, $message);
+
+            $messageBus->dispatch(new GenerateChatReplyMessage(
+                $project->getId(),
+                $user->getId(),
+                $message->getId(),
+                $streamId,
+            ));
+
             $history = $chatMessageRepository->paginateProjectConversation($project, 1, self::MESSAGES_PER_PAGE);
 
             return $this->json([
@@ -131,63 +131,16 @@ final class ChatController extends AbstractController
         }
 
         $assistantMessage = null;
-        $generationStartedAt = microtime(true);
 
         try {
-            $generationResult = $chatCompletionService->generateAssistantReply(
+            $result = $orchestrator->generateSync(
                 $project,
                 $user,
-                $message->getContent(),
+                $message,
                 $priorConversation,
             );
 
-            $assistantMessage = (new ChatMessage())
-                ->setProject($project)
-                ->setRole(ChatMessage::ROLE_ASSISTANT)
-                ->setContent($generationResult->assistantContent());
-
-            $entityManager->persist($assistantMessage);
-
-            if ($generationResult->requiresConfirmation()) {
-                $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
-            } elseif ($generationResult->slidesChanged()) {
-                $project->setSlides($generationResult->slides());
-            }
-
-            $entityManager->flush();
-
-            if ($generationResult->slidesChanged()) {
-                $projectVersioning->captureSnapshot($project);
-            }
-
-            try {
-                $providerResponse = $generationResult->providerResponse();
-                $estimatedCost = $costCalculator->calculate(
-                    $providerResponse->model(),
-                    $providerResponse->inputTokens(),
-                    $providerResponse->outputTokens(),
-                );
-                $metricsRecorder->recordGeneration(
-                    project: $project,
-                    provider: $providerResponse->provider(),
-                    model: $providerResponse->model(),
-                    estimatedCostUsd: $estimatedCost,
-                    slideCount: $project->getSlidesCount(),
-                    durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
-                    iterationCount: count($priorConversation) + 1,
-                    errorCount: $generationResult->errorCount(),
-                );
-            } catch (\Throwable) {
-                // Metric recording must never block generation
-            }
-            // T321 — Record estimated generation cost
-            $pr = $generationResult->providerResponse();
-            $estimatedCostUsd = $aiCostCalculator->calculateUsd(
-                $pr->model(),
-                $pr->inputTokens() ?? 0,
-                $pr->outputTokens() ?? 0,
-            );
-            $projectMetricsRecorder->recordGeneration($project, $pr->provider(), $pr->model(), $estimatedCostUsd);
+            $assistantMessage = $result->assistantMessage();
         } catch (\Throwable $e) {
             $isEmptyResponse = $e instanceof EmptyAIResponseException;
 
@@ -234,6 +187,7 @@ final class ChatController extends AbstractController
         ProjectRepository $projectRepository,
         ChatMessageRepository $chatMessageRepository,
         ChatStreamSessionStore $chatStreamSessionStore,
+        MessageBusInterface $messageBus,
     ): JsonResponse {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -251,6 +205,13 @@ final class ChatController extends AbstractController
         }
 
         $streamId = $chatStreamSessionStore->create($project, $user, $userMessage);
+
+        $messageBus->dispatch(new GenerateChatReplyMessage(
+            $project->getId(),
+            $user->getId(),
+            $userMessage->getId(),
+            $streamId,
+        ));
 
         return $this->json([
             'streamUrl' => $this->generateUrl('app_chat_stream', [
@@ -329,14 +290,7 @@ final class ChatController extends AbstractController
         int $projectId,
         Request $request,
         ProjectRepository $projectRepository,
-        ChatMessageRepository $chatMessageRepository,
         ChatStreamSessionStore $chatStreamSessionStore,
-        ChatEngine $chatEngine,
-        ProjectVersioning $projectVersioning,
-        EntityManagerInterface $entityManager,
-        SlideBuilder $slideBuilder,
-        AICostCalculator $aiCostCalculator,
-        ProjectMetricsRecorder $projectMetricsRecorder,
     ): StreamedResponse {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -354,161 +308,17 @@ final class ChatController extends AbstractController
 
         return new StreamedResponse(function () use (
             $streamId,
-            $project,
-            $user,
             $lastEventId,
-            $chatMessageRepository,
             $chatStreamSessionStore,
-            $chatEngine,
-            $projectVersioning,
-            $entityManager,
-            $slideBuilder,
-            $aiCostCalculator,
-            $projectMetricsRecorder,
         ): void {
             $this->prepareSseStream();
             echo 'retry: '.self::STREAM_RETRY_MILLISECONDS."\n\n";
             $this->flushSseBuffers();
 
             $lastSentEventId = $lastEventId;
-            $state = $chatStreamSessionStore->load($streamId);
-            if (!is_array($state)) {
-                return;
-            }
 
-            $this->emitStoredEvents($chatStreamSessionStore, $state, $lastSentEventId);
-            if (in_array((string) ($state['status'] ?? 'pending'), ['done', 'error'], true)) {
-                return;
-            }
-
-            $lockHandle = $chatStreamSessionStore->acquireLock($streamId);
-            if ($lockHandle === false) {
-                $this->followStreamSession($streamId, $chatStreamSessionStore, $lastSentEventId);
-
-                return;
-            }
-
-            try {
-                $state = $chatStreamSessionStore->load($streamId);
-                if (!is_array($state)) {
-                    return;
-                }
-
-                $this->emitStoredEvents($chatStreamSessionStore, $state, $lastSentEventId);
-                if (in_array((string) ($state['status'] ?? 'pending'), ['done', 'error'], true)) {
-                    return;
-                }
-
-                $chatStreamSessionStore->markStatus($streamId, 'streaming');
-
-                $userMessage = $chatMessageRepository->findProjectMessage($project, (int) ($state['userMessageId'] ?? 0));
-                if (!$userMessage instanceof ChatMessage) {
-                    throw new \RuntimeException('Chat stream user message not found.');
-                }
-
-                $priorConversation = $chatMessageRepository->findConversationBeforeMessage($project, $userMessage, 8);
-                $generationStartedAt = microtime(true);
-                $generationResult = $chatEngine->streamAssistantReply(
-                    $project,
-                    $user,
-                    $userMessage,
-                    $priorConversation,
-                    function (string $type, array $payload) use ($chatStreamSessionStore, $streamId, &$lastSentEventId, $project, $slideBuilder): void {
-                        $event = $chatStreamSessionStore->appendEvent(
-                            $streamId,
-                            $type,
-                            $this->buildSlideEventPayload($payload['slide'] ?? [], $project, $slideBuilder),
-                        );
-                        $this->emitSseEvent((int) $event['id'], $type, $event['payload']);
-                        $lastSentEventId = (int) $event['id'];
-                    },
-                );
-
-                $assistantMessage = (new ChatMessage())
-                    ->setProject($project)
-                    ->setRole(ChatMessage::ROLE_ASSISTANT)
-                    ->setContent($generationResult->assistantContent());
-
-                // Wrap slide persistence in a transaction to guarantee no partial slide state
-                // is committed in case of a flush failure (T124)
-                $entityManager->wrapInTransaction(function () use (
-                    $entityManager,
-                    $project,
-                    $projectVersioning,
-                    $generationResult,
-                    $assistantMessage,
-                ): void {
-                    $entityManager->persist($assistantMessage);
-
-                    if ($generationResult->requiresConfirmation()) {
-                        $project->storePendingConfirmation($generationResult->pendingConfirmation() ?? []);
-                    } elseif ($generationResult->slidesChanged()) {
-                        $project->setSlides($generationResult->slides());
-                    }
-
-                    $entityManager->flush();
-
-                    if ($generationResult->slidesChanged()) {
-                        $projectVersioning->captureSnapshot($project);
-                    }
-                });
-
-                // T319/T321 — Record estimated generation cost and include it in the SSE event
-                $pr = $generationResult->providerResponse();
-                $estimatedCostUsd = $aiCostCalculator->calculateUsd(
-                    $pr->model(),
-                    $pr->inputTokens() ?? 0,
-                    $pr->outputTokens() ?? 0,
-                );
-
-                $chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
-
-                try {
-                    $projectMetricsRecorder->recordGeneration(
-                        project: $project,
-                        provider: $pr->provider(),
-                        model: $pr->model(),
-                        estimatedCostUsd: $estimatedCostUsd,
-                        slideCount: $project->getSlidesCount(),
-                        durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
-                        iterationCount: count($priorConversation) + 1,
-                        errorCount: $generationResult->errorCount(),
-                    );
-                } catch (\Throwable) {
-                    // Metric recording must never block generation
-                }
-
-                $history = $chatMessageRepository->paginateProjectConversation($project, 1, self::MESSAGES_PER_PAGE);
-                $doneEvent = $chatStreamSessionStore->appendEvent($streamId, 'generation_done', [
-                    'assistantHtml' => $this->renderView('chat/_messages.html.twig', [
-                        'messages' => [$assistantMessage],
-                    ]),
-                    'assistantMessageId' => $assistantMessage->getId(),
-                    'totalMessages' => $history['totalMessages'],
-                    'hasOlderMessages' => $history['hasOlderMessages'],
-                    'nextPage' => $history['nextPage'],
-                    'slidesCount' => $project->getSlidesCount(),
-                    'estimatedCostUsd' => number_format($estimatedCostUsd, 4, '.', ''),
-                    'pendingConfirmation' => $this->buildPendingConfirmationPayload($generationResult->pendingConfirmation()),
-                ]);
-
-                $this->emitSseEvent((int) $doneEvent['id'], 'generation_done', $doneEvent['payload']);
-            } catch (\Throwable $e) {
-                $isEmptyResponse = $e instanceof EmptyAIResponseException;
-                $userMessageId = (int) ($state['userMessageId'] ?? 0);
-
-                $chatStreamSessionStore->markStatus($streamId, 'error');
-                $errorEvent = $chatStreamSessionStore->appendEvent($streamId, 'error', [
-                    'message' => $isEmptyResponse
-                        ? 'Harmony n\'a pas recu de reponse de l\'IA. Vous pouvez relancer la generation.'
-                        : 'Harmony n\'a pas pu terminer la generation en streaming.',
-                    'retryAvailable' => $isEmptyResponse,
-                    'userMessageId' => $userMessageId > 0 ? $userMessageId : null,
-                ]);
-                $this->emitSseEvent((int) $errorEvent['id'], 'error', $errorEvent['payload']);
-            } finally {
-                $chatStreamSessionStore->releaseLock($lockHandle);
-            }
+            // Poll the DB-backed stream store for events published by the Messenger handler.
+            $this->followStreamSession($streamId, $chatStreamSessionStore, $lastSentEventId);
         }, Response::HTTP_OK, [
             'Content-Type' => 'text/event-stream; charset=UTF-8',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
@@ -573,101 +383,6 @@ final class ChatController extends AbstractController
 
             usleep(self::STREAM_POLLING_MICROSECONDS);
         }
-    }
-
-    /**
-     * T166 — Build the SSE slide payload and pre-warm the slide render cache.
-     *
-     * A transient (non-persisted) Slide entity is created from the chat JSON payload so that
-     * SlideBuilder can compute the renderHash and populate the Symfony cache pool.  When the
-     * same slide is later rendered from a persisted entity the cache pool will be warm.
-     *
-     * @param array<string, mixed> $slide
-     *
-     * @return array<string, mixed>
-     */
-    private function buildSlideEventPayload(array $slide, Project $project, SlideBuilder $slideBuilder): array
-    {
-        if (($slide['removed'] ?? false) === true) {
-            return [
-                'slide' => [
-                    'id' => (string) ($slide['id'] ?? ''),
-                    'removed' => true,
-                ],
-                'html' => '',
-            ];
-        }
-
-        $normalizedSlide = [
-            'id' => (string) ($slide['id'] ?? ''),
-            'title' => (string) ($slide['title'] ?? 'Slide'),
-            'body' => (string) ($slide['body'] ?? ''),
-            'position' => (int) ($slide['position'] ?? 1),
-        ];
-
-        // T166 — Attempt to pre-warm the slide render cache by building a transient Slide entity.
-        // If the slide type is unsupported (e.g. "summary" used internally by ChatEngine) or if
-        // rendering fails for any reason, fall back to the lightweight preview template gracefully.
-        $previewHtml = null;
-        $type = trim((string) ($slide['type'] ?? ''));
-        if ($type !== '' && in_array($type, Slide::supportedTypes(), true)) {
-            try {
-                $transientSlide = $this->buildTransientSlide($slide, $project);
-                $previewHtml = $slideBuilder->buildSlide($transientSlide);
-            } catch (UnsupportedSlideTypeException) {
-                // Fall through to lightweight preview below.
-            } catch (\Throwable) {
-                // Never let a cache warm-up failure break the SSE stream.
-            }
-        }
-
-        if ($previewHtml === null) {
-            $previewHtml = $this->renderView('project/_preview_slide.html.twig', [
-                'slide' => $normalizedSlide,
-            ]);
-        }
-
-        return [
-            'slide' => $normalizedSlide,
-            'html' => $previewHtml,
-        ];
-    }
-
-    /**
-     * Build a transient (non-persisted) Slide entity from a chat JSON payload for cache pre-warming.
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function buildTransientSlide(array $payload, Project $project): Slide
-    {
-        $type = trim((string) ($payload['type'] ?? 'content'));
-        $title = trim((string) ($payload['title'] ?? ''));
-        $subtitle = trim((string) ($payload['subtitle'] ?? ''));
-        $body = trim((string) ($payload['body'] ?? ''));
-        $rawItems = is_array($payload['items'] ?? null) ? $payload['items'] : [];
-        $items = array_values(array_filter(
-            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
-            static fn (string $item): bool => $item !== '',
-        ));
-
-        $content = match ($type) {
-            Slide::TYPE_TITLE => ['label' => '', 'title' => $title, 'subtitle' => $subtitle],
-            Slide::TYPE_CONTENT => ['title' => $title, 'body' => $body, 'items' => $items],
-            Slide::TYPE_CLOSING => ['message' => $body ?: $title, 'cta_label' => '', 'cta_url' => ''],
-            Slide::TYPE_QUOTE => ['quote' => $body ?: $title, 'author' => '', 'role' => '', 'source' => ''],
-            Slide::TYPE_SPLIT => ['title' => $title, 'body' => $body, 'items' => $items, 'image_url' => '', 'image_alt' => '', 'layout' => 'text-left'],
-            Slide::TYPE_IMAGE => ['image_url' => '', 'image_alt' => $title, 'overlay_text' => $title, 'caption' => ''],
-            Slide::TYPE_TIMELINE => ['title' => $title, 'items' => []],
-            Slide::TYPE_STATS => ['title' => $title, 'stats' => []],
-            Slide::TYPE_COMPARISON => ['title' => $title, 'left' => ['heading' => '', 'items' => [], 'highlight' => ''], 'right' => ['heading' => '', 'items' => [], 'highlight' => '']],
-            default => ['title' => $title, 'body' => $body, 'items' => $items],
-        };
-
-        return (new Slide())
-            ->setProject($project)
-            ->setType($type)
-            ->setContent($content)
-            ->setPosition((int) ($payload['position'] ?? 1));
     }
 
     /**
@@ -747,26 +462,5 @@ final class ChatController extends AbstractController
         $this->addFlash('error', $message);
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
-    }
-
-    /**
-     * @param array<string, mixed>|null $pendingConfirmation
-     *
-     * @return array<string, mixed>|null
-     */
-    private function buildPendingConfirmationPayload(?array $pendingConfirmation): ?array
-    {
-        if ($pendingConfirmation === null) {
-            return null;
-        }
-
-        $summary = trim((string) ($pendingConfirmation['summary'] ?? ''));
-        $assistantMessage = trim((string) ($pendingConfirmation['assistant_message'] ?? ''));
-
-        return [
-            'summary' => $summary !== '' ? $summary : $assistantMessage,
-            'assistantMessage' => $assistantMessage,
-            'actionsCount' => count(is_array($pendingConfirmation['proposed_actions'] ?? null) ? $pendingConfirmation['proposed_actions'] : []),
-        ];
     }
 }

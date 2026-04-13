@@ -3,36 +3,39 @@
 namespace App\Chat;
 
 use App\Entity\ChatMessage;
+use App\Entity\ChatStreamSession;
 use App\Entity\Project;
 use App\Entity\User;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * Manages chat stream sessions backed by Doctrine (DB table).
+ *
+ * This replaces the previous filesystem-based implementation to support
+ * cross-process communication between Messenger workers and the SSE endpoint.
+ *
+ * The public API is preserved so that ChatController and
+ * GenerateChatReplyHandler continue to work without changes.
+ */
 final class ChatStreamSessionStore
 {
     public function __construct(
-        #[Autowire('%kernel.project_dir%/var/chat_streams')]
-        private readonly string $streamDirectory,
+        private readonly EntityManagerInterface $entityManager,
     ) {
     }
 
     public function create(Project $project, User $user, ChatMessage $userMessage): string
     {
-        $this->ensureDirectoryExists();
-
         $streamId = bin2hex(random_bytes(18));
-        $now = (new \DateTimeImmutable())->format(DATE_ATOM);
 
-        $this->writeState($streamId, [
-            'streamId' => $streamId,
-            'projectId' => $project->getId(),
-            'userId' => $user->getId(),
-            'userMessageId' => $userMessage->getId(),
-            'status' => 'pending',
-            'assistantMessageId' => null,
-            'events' => [],
-            'createdAt' => $now,
-            'updatedAt' => $now,
-        ]);
+        $session = new ChatStreamSession();
+        $session->setStreamId($streamId);
+        $session->setProject($project);
+        $session->setUser($user);
+        $session->setUserMessageId($userMessage->getId());
+
+        $this->entityManager->persist($session);
+        $this->entityManager->flush();
 
         return $streamId;
     }
@@ -42,69 +45,69 @@ final class ChatStreamSessionStore
      */
     public function load(string $streamId): ?array
     {
-        $path = $this->statePath($streamId);
-        if (!is_file($path)) {
+        $session = $this->findSession($streamId);
+        if ($session === null) {
             return null;
         }
 
-        $raw = file_get_contents($path);
-        if (!is_string($raw) || $raw === '') {
-            return null;
-        }
-
-        try {
-            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            return null;
-        }
-
-        return is_array($decoded) ? $decoded : null;
+        return $this->toStateArray($session);
     }
 
     /**
-     * @return resource
+     * Acquires a logical lock on a stream session.
+     *
+     * Uses an atomic UPDATE with a WHERE condition to prevent two workers
+     * from processing the same stream session concurrently.
+     *
+     * @return true|false  Returns true on success, false if already locked.
      */
-    public function acquireLock(string $streamId)
+    public function acquireLock(string $streamId): mixed
     {
-        $this->ensureDirectoryExists();
+        // Atomic conditional update: only mark as 'streaming' if currently 'pending'.
+        $rowsAffected = $this->entityManager->getConnection()->executeStatement(
+            'UPDATE chat_stream_session SET status = :newStatus, updated_at = :now WHERE stream_id = :id AND status = :currentStatus',
+            [
+                'newStatus' => 'streaming',
+                'now' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'id' => $streamId,
+                'currentStatus' => 'pending',
+            ],
+        );
 
-        $handle = fopen($this->lockPath($streamId), 'c+');
-        if ($handle === false) {
-            throw new \RuntimeException('Unable to create chat stream lock file.');
-        }
-
-        if (!flock($handle, LOCK_EX | LOCK_NB)) {
-            fclose($handle);
-
+        if ($rowsAffected === 0) {
             return false;
         }
 
-        return $handle;
+        // Refresh the entity manager's view of this entity.
+        $session = $this->findSession($streamId);
+        if ($session !== null) {
+            $this->entityManager->refresh($session);
+        }
+
+        return true;
     }
 
     /**
-     * @param resource $handle
+     * @param mixed $handle  The lock handle returned by acquireLock (true or a file resource for backwards compat).
      */
-    public function releaseLock($handle): void
+    public function releaseLock(mixed $handle): void
     {
-        flock($handle, LOCK_UN);
-        fclose($handle);
+        // No-op for the DB-backed store — lock state is managed by markStatus.
     }
 
     public function markStatus(string $streamId, string $status, ?int $assistantMessageId = null): void
     {
-        $state = $this->load($streamId);
-        if (!is_array($state)) {
+        $session = $this->findSession($streamId);
+        if ($session === null) {
             return;
         }
 
-        $state['status'] = $status;
-        $state['updatedAt'] = (new \DateTimeImmutable())->format(DATE_ATOM);
+        $session->setStatus($status);
         if ($assistantMessageId !== null) {
-            $state['assistantMessageId'] = $assistantMessageId;
+            $session->setAssistantMessageId($assistantMessageId);
         }
 
-        $this->writeState($streamId, $state);
+        $this->entityManager->flush();
     }
 
     /**
@@ -114,25 +117,13 @@ final class ChatStreamSessionStore
      */
     public function appendEvent(string $streamId, string $type, array $payload): array
     {
-        $state = $this->load($streamId);
-        if (!is_array($state)) {
+        $session = $this->findSession($streamId);
+        if ($session === null) {
             throw new \RuntimeException('Chat stream session not found.');
         }
 
-        $events = is_array($state['events'] ?? null) ? $state['events'] : [];
-        $lastEvent = $events === [] ? null : $events[array_key_last($events)];
-        $nextId = is_array($lastEvent) ? ((int) ($lastEvent['id'] ?? 0)) + 1 : 1;
-
-        $event = [
-            'id' => $nextId,
-            'type' => $type,
-            'payload' => $payload,
-        ];
-
-        $events[] = $event;
-        $state['events'] = $events;
-        $state['updatedAt'] = (new \DateTimeImmutable())->format(DATE_ATOM);
-        $this->writeState($streamId, $state);
+        $event = $session->appendEvent($type, $payload);
+        $this->entityManager->flush();
 
         return $event;
     }
@@ -146,43 +137,41 @@ final class ChatStreamSessionStore
     {
         $events = is_array($state['events'] ?? null) ? $state['events'] : [];
 
-        return array_values(array_filter($events, static fn (mixed $event): bool => is_array($event) && (int) ($event['id'] ?? 0) > $lastEventId));
+        return array_values(array_filter(
+            $events,
+            static fn (mixed $event): bool => is_array($event) && (int) ($event['id'] ?? 0) > $lastEventId,
+        ));
     }
 
+    /**
+     * @param array<string, mixed> $state
+     */
     public function isOwnedBy(array $state, Project $project, User $user): bool
     {
         return (int) ($state['projectId'] ?? 0) === $project->getId()
             && (int) ($state['userId'] ?? 0) === $user->getId();
     }
 
-    private function ensureDirectoryExists(): void
+    private function findSession(string $streamId): ?ChatStreamSession
     {
-        if (is_dir($this->streamDirectory)) {
-            return;
-        }
-
-        mkdir($this->streamDirectory, 0777, true);
+        return $this->entityManager->getRepository(ChatStreamSession::class)->find($streamId);
     }
 
     /**
-     * @param array<string, mixed> $state
+     * @return array<string, mixed>
      */
-    private function writeState(string $streamId, array $state): void
+    private function toStateArray(ChatStreamSession $session): array
     {
-        file_put_contents(
-            $this->statePath($streamId),
-            json_encode($state, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT),
-            LOCK_EX,
-        );
-    }
-
-    private function statePath(string $streamId): string
-    {
-        return rtrim($this->streamDirectory, '\\/').DIRECTORY_SEPARATOR.$streamId.'.json';
-    }
-
-    private function lockPath(string $streamId): string
-    {
-        return rtrim($this->streamDirectory, '\\/').DIRECTORY_SEPARATOR.$streamId.'.lock';
+        return [
+            'streamId' => $session->getStreamId(),
+            'projectId' => $session->getProject()->getId(),
+            'userId' => $session->getUser()->getId(),
+            'userMessageId' => $session->getUserMessageId(),
+            'status' => $session->getStatus(),
+            'assistantMessageId' => $session->getAssistantMessageId(),
+            'events' => $session->getEvents(),
+            'createdAt' => $session->getCreatedAt()->format(DATE_ATOM),
+            'updatedAt' => $session->getUpdatedAt()->format(DATE_ATOM),
+        ];
     }
 }
