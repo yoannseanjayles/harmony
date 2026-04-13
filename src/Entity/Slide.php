@@ -207,7 +207,7 @@ class Slide
             $this->mediaRefsJson = '[]';
         }
 
-        return $this;
+        return $this->invalidateRenderCache();
     }
 
     /**

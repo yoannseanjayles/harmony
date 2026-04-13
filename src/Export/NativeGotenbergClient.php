@@ -67,7 +67,7 @@ final class NativeGotenbergClient implements GotenbergClientInterface
         }
 
         if ($statusCode >= 400) {
-            throw new GotenbergServerException($statusCode);
+            throw new GotenbergUnavailableException($statusCode);
         }
 
         return $response;
