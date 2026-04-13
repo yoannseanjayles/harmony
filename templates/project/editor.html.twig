@@ -580,9 +580,11 @@
             const confirmationButtons = confirmationForm ? Array.from(confirmationForm.querySelectorAll('[data-chat-confirmation-submit]')) : [];
             const loadOlderButton = panel.querySelector('[data-chat-load-older]');
             const historyUrl = panel.dataset.historyUrl;
+            const retryUrl = panel.dataset.retryUrl;
             const emptyError = panel.dataset.emptyError || 'Le message est requis.';
             const genericError = panel.dataset.genericError || 'Une erreur est survenue.';
             const streamError = panel.dataset.streamError || 'Le streaming est indisponible pour le moment.';
+            const retryLabel = panel.dataset.retryLabel || 'Relancer la generation';
 
             // Preview panel refs
             const previewPanel = document.querySelector('[data-preview-panel]');
@@ -613,6 +615,7 @@
             let streamCompleted = false;
             let isStreaming = false;
             let confirmationSubmitting = false;
+            let lastUserMessageId = null;
             let pendingConfirmation = confirmationForm && !confirmationForm.hidden
                 ? { summary: confirmationSummary ? confirmationSummary.textContent.trim() : '' }
                 : null;
@@ -622,9 +625,23 @@
                 errorBox.textContent = '';
             };
 
-            const showError = (message) => {
-                errorBox.textContent = message;
+            const showError = (message, retryPayload = null) => {
+                errorBox.textContent = '';
                 errorBox.hidden = false;
+
+                const msgSpan = document.createElement('span');
+                msgSpan.textContent = message;
+                errorBox.appendChild(msgSpan);
+
+                if (retryPayload && retryPayload.retryAvailable && retryPayload.userMessageId) {
+                    const retryBtn = document.createElement('button');
+                    retryBtn.type = 'button';
+                    retryBtn.className = 'hm-link';
+                    retryBtn.textContent = retryLabel;
+                    retryBtn.style.marginLeft = '8px';
+                    retryBtn.addEventListener('click', () => handleRetry(retryPayload.userMessageId));
+                    errorBox.appendChild(retryBtn);
+                }
             };
 
             const setTyping = (isVisible) => {
@@ -749,6 +766,40 @@
                 const count = thumbnailStrip.querySelectorAll('[data-preview-slide]').length;
                 if (previewCount) previewCount.textContent = String(count);
                 if (previewSummary) previewSummary.textContent = previewSummaryTemplate.replace('__COUNT__', String(count));
+            };
+
+            const handleRetry = async (userMessageId) => {
+                hideError();
+                setTyping(true);
+                isStreaming = true;
+                syncComposerState();
+
+                try {
+                    const formData = new FormData();
+                    formData.set('_token', form.querySelector('[name="_token"]').value);
+                    formData.set('userMessageId', String(userMessageId));
+
+                    const response = await fetch(retryUrl, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw data;
+                    }
+
+                    openStream(data.streamUrl);
+                } catch (error) {
+                    isStreaming = false;
+                    setTyping(false);
+                    syncComposerState();
+                    showError((error.errors && error.errors.join(' ')) || genericError);
+                }
             };
 
             const syncComposerState = () => {
@@ -918,7 +969,7 @@
                 eventSource.addEventListener('error', (event) => {
                     if (typeof event.data === 'string' && event.data !== '') {
                         const payload = JSON.parse(event.data);
-                        showError(payload.message || streamError);
+                        showError(payload.message || streamError, payload);
                         finishStreaming();
                     }
                 });
@@ -931,7 +982,7 @@
                     closeActiveEventSource();
 
                     if (retryCount >= maxRetries) {
-                        showError(streamError);
+                        showError(streamError, lastUserMessageId ? { retryAvailable: true, userMessageId: lastUserMessageId } : null);
                         finishStreaming();
                         return;
                     }
@@ -1187,6 +1238,7 @@
                     feed.insertAdjacentHTML('beforeend', data.html);
                     feed.dataset.hasMessages = 'true';
                     input.value = '';
+                    lastUserMessageId = data.messageId || null;
                     updateLoadOlderState(data.hasOlderMessages, data.nextPage);
                     scrollToBottom();
                     openStream(data.streamUrl);

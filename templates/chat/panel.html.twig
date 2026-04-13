@@ -3,9 +3,11 @@
     id="chat-panel"
     data-chat-panel
     data-history-url="{{ path('app_chat_history', { projectId: project.id }) }}"
+    data-retry-url="{{ path('app_chat_retry', { projectId: project.id }) }}"
     data-empty-error="{{ 'chat.content.required'|trans }}"
     data-generic-error="{{ 'chat.panel.error_generic'|trans }}"
     data-stream-error="{{ 'chat.panel.error_stream'|trans }}"
+    data-retry-label="{{ 'chat.panel.retry'|trans }}"
 >
     {% set pendingConfirmation = project.pendingConfirmation %}
     <header class="hm-chat-panel__header">
