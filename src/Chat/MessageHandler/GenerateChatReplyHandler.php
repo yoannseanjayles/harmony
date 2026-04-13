@@ -203,32 +203,11 @@ final class GenerateChatReplyHandler
     private function buildTransientSlide(array $payload, Project $project): Slide
     {
         $type = trim((string) ($payload['type'] ?? 'content'));
-        $title = trim((string) ($payload['title'] ?? ''));
-        $subtitle = trim((string) ($payload['subtitle'] ?? ''));
-        $body = trim((string) ($payload['body'] ?? ''));
-        $rawItems = is_array($payload['items'] ?? null) ? $payload['items'] : [];
-        $items = array_values(array_filter(
-            array_map(static fn (mixed $item): string => trim((string) $item), $rawItems),
-            static fn (string $item): bool => $item !== '',
-        ));
-
-        $content = match ($type) {
-            Slide::TYPE_TITLE => ['label' => '', 'title' => $title, 'subtitle' => $subtitle],
-            Slide::TYPE_CONTENT => ['title' => $title, 'body' => $body, 'items' => $items],
-            Slide::TYPE_CLOSING => ['message' => $body ?: $title, 'cta_label' => '', 'cta_url' => ''],
-            Slide::TYPE_QUOTE => ['quote' => $body ?: $title, 'author' => '', 'role' => '', 'source' => ''],
-            Slide::TYPE_SPLIT => ['title' => $title, 'body' => $body, 'items' => $items, 'image_url' => '', 'image_alt' => '', 'layout' => 'text-left'],
-            Slide::TYPE_IMAGE => ['image_url' => '', 'image_alt' => $title, 'overlay_text' => $title, 'caption' => ''],
-            Slide::TYPE_TIMELINE => ['title' => $title, 'items' => []],
-            Slide::TYPE_STATS => ['title' => $title, 'stats' => []],
-            Slide::TYPE_COMPARISON => ['title' => $title, 'left' => ['heading' => '', 'items' => [], 'highlight' => ''], 'right' => ['heading' => '', 'items' => [], 'highlight' => '']],
-            default => ['title' => $title, 'body' => $body, 'items' => $items],
-        };
 
         return (new Slide())
             ->setProject($project)
             ->setType($type)
-            ->setContent($content)
+            ->setContent($payload)
             ->setPosition((int) ($payload['position'] ?? 1));
     }
 
