@@ -363,8 +363,6 @@ final class ChatController extends AbstractController
             $projectVersioning,
             $entityManager,
             $slideBuilder,
-            $costCalculator,
-            $metricsRecorder,
             $aiCostCalculator,
             $projectMetricsRecorder,
         ): void {
@@ -462,22 +460,15 @@ final class ChatController extends AbstractController
                     $pr->inputTokens() ?? 0,
                     $pr->outputTokens() ?? 0,
                 );
-                $projectMetricsRecorder->recordGeneration($project, $pr->provider(), $pr->model(), $estimatedCostUsd);
 
                 $chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
 
                 try {
-                    $providerResponse = $generationResult->providerResponse();
-                    $estimatedCost = $costCalculator->calculate(
-                        $providerResponse->model(),
-                        $providerResponse->inputTokens(),
-                        $providerResponse->outputTokens(),
-                    );
-                    $metricsRecorder->recordGeneration(
+                    $projectMetricsRecorder->recordGeneration(
                         project: $project,
-                        provider: $providerResponse->provider(),
-                        model: $providerResponse->model(),
-                        estimatedCostUsd: $estimatedCost,
+                        provider: $pr->provider(),
+                        model: $pr->model(),
+                        estimatedCostUsd: $estimatedCostUsd,
                         slideCount: $project->getSlidesCount(),
                         durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
                         iterationCount: count($priorConversation) + 1,

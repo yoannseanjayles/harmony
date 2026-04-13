@@ -60,9 +60,13 @@ final class ExportService
         // T250 — render each slide; T252 — inline media as base64
         $renderedSlides = [];
         foreach ($slides as $slide) {
-            $html = $this->slideBuilder->buildSlide($slide);
-            $html = $this->inlineMediaBase64($html, $slide, $mediaAssetCache);
-            $renderedSlides[] = $html;
+            try {
+                $html = $this->slideBuilder->buildSlide($slide);
+                $html = $this->inlineMediaBase64($html, $slide, $mediaAssetCache);
+                $renderedSlides[] = $html;
+            } catch (\Throwable) {
+                // Skip unrenderable slides — same graceful degradation as ProjectController
+            }
         }
 
         // T251 — get the project theme CSS tokens block
