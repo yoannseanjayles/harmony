@@ -1,21 +1,21 @@
 framework:
     messenger:
-        # Uncomment this (and the failed transport below) to send failed messages to this transport for later handling.
-        # failure_transport: failed
+        failure_transport: failed
 
         transports:
-            # https://symfony.com/doc/current/messenger.html#transport-configuration
-            # In production replace with: '%env(MESSENGER_TRANSPORT_DSN)%' (e.g. Doctrine or Redis)
-            # async: '%env(MESSENGER_TRANSPORT_DSN)%'
-            # failed: 'doctrine://default?queue_name=failed'
+            async: '%env(MESSENGER_TRANSPORT_DSN)%'
+            failed: 'doctrine://default?queue_name=failed'
             sync: 'sync://'
 
         routing:
             # T230 — Route variant generation to the async transport (sync in dev/test).
             App\Media\Message\GenerateImageVariantsMessage: sync
+            # Route chat generation to async transport for non-blocking AI calls.
+            App\Chat\Message\GenerateChatReplyMessage: async
 
 when@test:
     framework:
         messenger:
             transports:
+                async: 'sync://'
                 sync: 'sync://'
