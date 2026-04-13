@@ -332,6 +332,31 @@ project.theme.anim.intensity.reduced: "Réduit"
 project.theme.anim.intensity.normal: Normal
 project.theme.anim.intensity.max: Maximal
 
+# T299–T306 — Unified customization drawer (HRM-F37)
+project.drawer.open: "Personnaliser"
+project.drawer.close: "Fermer"
+project.drawer.title: "Personnalisation du projet"
+project.drawer.tab.theme: "Thème"
+project.drawer.tab.animations: "Animations"
+project.drawer.tab.ai: "IA"
+project.drawer.tab.export: "Export"
+
+project.drawer.ai.badge: "Intelligence artificielle"
+project.drawer.ai.title: "Paramètres IA"
+project.drawer.ai.subtitle: "Fournisseur, modèle et coût estimé des générations de ce projet."
+project.drawer.ai.provider: "Fournisseur"
+project.drawer.ai.model: "Modèle"
+project.drawer.ai.cost: "Coût IA estimé"
+project.drawer.ai.cost.value: "%amount% $"
+
+project.drawer.export.badge: "Export"
+project.drawer.export.title: "Exporter le projet"
+project.drawer.export.subtitle: "Générez une version autonome de votre projet."
+project.drawer.export.html.button: "Exporter en HTML"
+project.drawer.export.pdf.button: "Exporter en PDF"
+project.drawer.export.html.success: "Export HTML lancé avec succès."
+project.drawer.export.pdf.success: "Export PDF lancé avec succès."
+project.drawer.export.error.generic: "Une erreur est survenue lors de l'export."
 # HRM-F35 — Editor two-panel layout (T283–T290)
 project.editor.meta_title: "Éditeur — %title% | Harmony"
 project.editor.nav.back: Retour au projet

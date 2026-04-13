@@ -529,6 +529,11 @@
                         <a class="hm-link" href="{{ path('app_project_versions', { id: project.id }) }}">{{ 'project.card.history'|trans }}</a>
                         {% if not project.isArchived %}
                             <a class="hm-link" href="{{ path('app_project_edit', { id: project.id }) }}">{{ 'project.card.edit'|trans }}</a>
+                            <button
+                                class="hm-button"
+                                type="button"
+                                data-drawer-open="hm-customization-drawer"
+                            >{{ 'project.drawer.open'|trans }}</button>
                         {% endif %}
                     </div>
                 </header>
@@ -606,16 +611,9 @@
                     project: project
                 } %}
 
-                {% include 'project/_theme_preset_drawer.html.twig' with {
-                    project: project
-                } %}
-
-                {% include 'project/_theme_customization_drawer.html.twig' with {
-                    project: project
-                } %}
-
-                {% include 'project/_animation_control_drawer.html.twig' with {
-                    project: project
+                {% include 'project/_customization_drawer.html.twig' with {
+                    project: project,
+                    aiCostUsd: aiCostUsd
                 } %}
 
                 {% include 'project/_media_drawer.html.twig' with {

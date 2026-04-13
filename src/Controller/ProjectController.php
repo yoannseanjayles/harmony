@@ -11,6 +11,7 @@ use App\Project\ProjectDuplicator;
 use App\Project\ProjectShareLinkGenerator;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
+use App\Repository\ProjectGenerationMetricRepository;
 use App\Repository\MediaAssetRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
@@ -103,6 +104,10 @@ final class ProjectController extends AbstractController
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
 
+        $projectId = (int) $project->getId();
+        $aiTotals  = $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
+        $aiCostUsd = round(((int) ($aiTotals[$projectId] ?? 0)) / 100, 4);
+
         return $this->render('project/show.html.twig', [
             'project'     => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
@@ -125,6 +130,7 @@ final class ProjectController extends AbstractController
         return $this->render('project/editor.html.twig', [
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+            'aiCostUsd' => $aiCostUsd,
         ]);
     }
 
