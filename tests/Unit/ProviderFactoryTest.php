@@ -87,7 +87,7 @@ final class ProviderFactoryTest extends TestCase
         $project = (new Project())
             ->setTitle('Projet Claude')
             ->setProvider('anthropic')
-            ->setModel('claude-3-7-sonnet');
+            ->setModel('claude-sonnet-4-6');
 
         self::assertInstanceOf(ClaudeProvider::class, $this->buildFactory($userApiKeyManager)->createForProject($project, null));
     }

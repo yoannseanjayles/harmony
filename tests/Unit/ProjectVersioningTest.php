@@ -96,7 +96,7 @@ final class ProjectVersioningTest extends TestCase
         $project
             ->setTitle('Etat courant')
             ->setProvider('anthropic')
-            ->setModel('claude-3-7-sonnet')
+            ->setModel('claude-sonnet-4-6')
             ->setSlides([['id' => 'slide-live']])
             ->setMediaRefs([['id' => 'media-live', 'path' => '/uploads/live.png']])
             ->archive();

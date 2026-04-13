@@ -1,0 +1,432 @@
+{#
+  Export template — self-contained, single-file HTML presentation.
+
+  Variables:
+    project         (Project)                 — the exported project
+    renderedSlides  (string[])                — pre-rendered slide HTML snippets
+    themeStyle      (string)                  — <style>:root{...}</style> theme block
+    harmonyCss      (string)                  — full harmony.css content for inline embedding
+    mediaBase64Map  (array<string, string>)   — signedUrl → data URI for media assets
+#}
+<!doctype html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.title|e }}</title>
+    <style>
+        /* ── Harmony CSS ──────────────────────────────────────────── */
+        {{ harmonyCss|raw }}
+
+        /* ── Export layout ────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--hm-bg, #0c0c14);
+            color: var(--hm-ink, #e8e4ff);
+            font-family: var(--hm-font-body, "Inter", "Segoe UI", sans-serif);
+        }
+
+        .hm-export-deck {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .hm-export-slide-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        .hm-export-slide-wrapper > * {
+            flex: 1;
+        }
+
+        /* ── Print / PDF layout ───────────────────────────────────── */
+        @media print {
+            .hm-export-slide-wrapper {
+                height: 100vh;
+                min-height: 100vh;
+                page-break-after: always;
+                break-after: page;
+                overflow: hidden;
+            }
+        }
+
+        @page {
+            size: 16in 9in;
+            margin: 0;
+        }
+    </style>
+    {{ themeStyle|raw }}
+</head>
+<body>
+    <div class="hm-export-deck" data-export-deck>
+        {% for slideHtml in renderedSlides %}
+            <div class="hm-export-slide-wrapper">
+                {#
+                  Replace signed media URLs with inline base64 data URIs
+                  so the exported file is fully self-contained.
+                #}
+                {% set resolvedHtml = slideHtml %}
+                {% for signedUrl, dataUri in mediaBase64Map %}
+                    {% set resolvedHtml = resolvedHtml|replace({(signedUrl): dataUri}) %}
+                {% endfor %}
+                {{ resolvedHtml|raw }}
+            </div>
+        {% endfor %}
+    </div>
+    <meta name="generator" content="Harmony">
+    <title>{{ project.title }}</title>
+    <style>
+        /* ── Reset & base ──────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--hm-bg, #0c0c14);
+            font-family: var(--hm-font-body, "Inter", "Segoe UI", system-ui, sans-serif);
+            color: var(--hm-ink, #e8e4ff);
+        }
+
+        /* ── Deck (full-viewport slide container) ──────────────────── */
+        .hm-deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── Individual slide wrapper ──────────────────────────────── */
+        .hm-deck__slide {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            overflow: hidden;
+        }
+
+        .hm-deck__slide--active {
+            display: block;
+        }
+
+        /* ── Slide content fills the wrapper ───────────────────────── */
+        .hm-deck__slide > .hm-slide {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── Navigation bar (bottom) ───────────────────────────────── */
+        .hm-export-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 12px 24px;
+            background: linear-gradient(to top, rgba(12, 12, 20, 0.85) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .hm-export-nav:hover,
+        .hm-deck:focus-within .hm-export-nav {
+            opacity: 1;
+        }
+
+        .hm-export-nav__btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .hm-export-nav__btn:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        .hm-export-nav__btn:focus-visible {
+            outline: 2px solid var(--hm-accent-primary, #7c3aed);
+            outline-offset: 2px;
+        }
+
+        .hm-export-nav__btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .hm-export-nav__counter {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.6);
+            min-width: 64px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── Navigation dots ───────────────────────────────────────── */
+        .hm-export-dots {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hm-export-dot {
+            display: block;
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: rgba(232, 228, 255, 0.28);
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            transition: width 0.25s ease, background 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .hm-export-dot:hover {
+            background: rgba(232, 228, 255, 0.55);
+        }
+
+        .hm-export-dot--active {
+            width: 22px;
+            background: var(--hm-accent-primary, #7c3aed);
+        }
+
+        .hm-export-dot:focus-visible {
+            outline: 2px solid var(--hm-accent-primary, #7c3aed);
+            outline-offset: 2px;
+        }
+
+        /* ── Keyboard hint (visible briefly on load) ───────────────── */
+        .hm-export-hint {
+            position: fixed;
+            bottom: 64px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(12, 12, 20, 0.80);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 0.74rem;
+            color: rgba(232, 228, 255, 0.65);
+            letter-spacing: 0.06em;
+            pointer-events: none;
+            animation: hm-hint-fade 3.5s ease forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes hm-hint-fade {
+            0%   { opacity: 0; }
+            10%  { opacity: 1; }
+            70%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+    </style>
+
+    {# T256 — embed harmony.css for offline use #}
+    {% if harmonyCss is not empty %}
+        <style>{{ harmonyCss|raw }}</style>
+    {% endif %}
+
+    {# T251 — inject project theme CSS tokens #}
+    {% if themeCssBlock is not empty %}
+        {{ themeCssBlock|raw }}
+    {% endif %}
+</head>
+<body>
+
+{# T254 — keyboard hint #}
+{% if renderedSlides|length > 1 %}
+<p class="hm-export-hint" aria-hidden="true">← → Arrow keys to navigate</p>
+{% endif %}
+
+{# T254 — slide deck #}
+<div
+    class="hm-deck"
+    id="hm-deck"
+    tabindex="0"
+    role="region"
+    aria-label="{{ project.title }}"
+    aria-roledescription="presentation"
+>
+    {% for slideHtml in renderedSlides %}
+        <div
+            class="hm-deck__slide{% if loop.first %} hm-deck__slide--active{% endif %}"
+            id="hm-slide-{{ loop.index }}"
+            role="group"
+            aria-roledescription="slide"
+            aria-label="Slide {{ loop.index }} / {{ renderedSlides|length }}"
+            {% if not loop.first %}hidden{% endif %}
+        >
+            {{ slideHtml|raw }}
+        </div>
+    {% else %}
+        <div class="hm-deck__slide hm-deck__slide--active" style="display:flex;align-items:center;justify-content:center;">
+            <p style="color:rgba(232,228,255,0.4);font-size:1.1rem;">This presentation has no slides.</p>
+        </div>
+    {% endfor %}
+</div>
+
+{# T254 — navigation bar with prev/next buttons and slide dots #}
+{% if renderedSlides|length > 1 %}
+<nav class="hm-export-nav" aria-label="Slide navigation">
+    <button class="hm-export-nav__btn" id="hm-prev" aria-label="Previous slide" disabled>&#8592;</button>
+
+    <div class="hm-export-dots" role="tablist" aria-label="Slides">
+        {% for i in 1..renderedSlides|length %}
+            <button
+                class="hm-export-dot{% if i == 1 %} hm-export-dot--active{% endif %}"
+                id="hm-dot-{{ i }}"
+                role="tab"
+                aria-selected="{{ i == 1 ? 'true' : 'false' }}"
+                aria-controls="hm-slide-{{ i }}"
+                data-slide="{{ i }}"
+                title="Slide {{ i }}"
+            ></button>
+        {% endfor %}
+    </div>
+
+    <button class="hm-export-nav__btn" id="hm-next" aria-label="Next slide" {% if renderedSlides|length <= 1 %}disabled{% endif %}>&#8594;</button>
+
+    <span class="hm-export-nav__counter" id="hm-counter" aria-live="polite">
+        1 / {{ renderedSlides|length }}
+    </span>
+</nav>
+{% endif %}
+
+<script>
+(function () {
+    'use strict';
+
+    var total   = {{ renderedSlides|length }};
+    var current = 1;
+
+    if (total <= 1) { return; }
+
+    var deck    = document.getElementById('hm-deck');
+    var btnPrev = document.getElementById('hm-prev');
+    var btnNext = document.getElementById('hm-next');
+    var counter = document.getElementById('hm-counter');
+
+    function getSlide(n) { return document.getElementById('hm-slide-' + n); }
+    function getDot(n)   { return document.getElementById('hm-dot-' + n); }
+
+    function goTo(n) {
+        if (n < 1 || n > total || n === current) { return; }
+
+        var prev = current;
+        current  = n;
+
+        // Hide previous slide
+        var prevSlide = getSlide(prev);
+        if (prevSlide) {
+            prevSlide.classList.remove('hm-deck__slide--active');
+            prevSlide.hidden = true;
+        }
+        var prevDot = getDot(prev);
+        if (prevDot) {
+            prevDot.classList.remove('hm-export-dot--active');
+            prevDot.setAttribute('aria-selected', 'false');
+        }
+
+        // Show new slide
+        var nextSlide = getSlide(current);
+        if (nextSlide) {
+            nextSlide.hidden = false;
+            nextSlide.classList.add('hm-deck__slide--active');
+        }
+        var nextDot = getDot(current);
+        if (nextDot) {
+            nextDot.classList.add('hm-export-dot--active');
+            nextDot.setAttribute('aria-selected', 'true');
+        }
+
+        // Update counter and buttons
+        if (counter) { counter.textContent = current + ' / ' + total; }
+        if (btnPrev) { btnPrev.disabled = (current === 1); }
+        if (btnNext) { btnNext.disabled = (current === total); }
+    }
+
+    // Button listeners
+    if (btnPrev) { btnPrev.addEventListener('click', function () { goTo(current - 1); }); }
+    if (btnNext) { btnNext.addEventListener('click', function () { goTo(current + 1); }); }
+
+    // Dot listeners
+    for (var i = 1; i <= total; i++) {
+        (function (idx) {
+            var dot = getDot(idx);
+            if (dot) {
+                dot.addEventListener('click', function () { goTo(idx); });
+            }
+        }(i));
+    }
+
+    // T254 — Keyboard navigation: ArrowLeft / ArrowRight / Home / End / digit keys
+    document.addEventListener('keydown', function (e) {
+        switch (e.key) {
+            case 'ArrowLeft':
+            case 'ArrowUp':
+            case 'PageUp':
+                e.preventDefault();
+                goTo(current - 1);
+                break;
+            case 'ArrowRight':
+            case 'ArrowDown':
+            case 'PageDown':
+            case ' ':
+                e.preventDefault();
+                goTo(current + 1);
+                break;
+            case 'Home':
+                e.preventDefault();
+                goTo(1);
+                break;
+            case 'End':
+                e.preventDefault();
+                goTo(total);
+                break;
+            default:
+                // Digit keys 1-9 jump to slide N
+                if (/^[1-9]$/.test(e.key)) {
+                    goTo(parseInt(e.key, 10));
+                }
+                break;
+        }
+    });
+
+    // Focus the deck on load so keyboard events are captured immediately
+    if (deck) { deck.focus({ preventScroll: true }); }
+}());
+</script>
+
+</body>
+</html>

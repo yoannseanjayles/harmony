@@ -1,0 +1,821 @@
+{% extends 'base.html.twig' %}
+
+{#
+  HRM-F35 — Two-panel editor layout (chat + preview).
+
+  T283 — CSS Grid deux colonnes 40/60.
+  T284 — Panneau gauche (chat) : hauteur 100vh, scroll interne.
+  T285 — Panneau droit (preview) : hauteur 100vh, scroll interne.
+  T286 — Responsive min-width:1280px, pas de scroll de page.
+  T287 — Barre de navigation supérieure : titre projet, tiroir thème, exports.
+  T288 — Tokens --hm- appliqués sur le layout global.
+#}
+
+{% block title %}{{ 'project.editor.meta_title'|trans({ '%title%': project.title }) }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        /* ── Global editor reset ───────────────────────────────────── */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* ── Editor shell: full-viewport, no scroll ────────────────── */
+        .hm-editor {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--hm-bg);
+        }
+
+        /* ── Top navigation bar (T287) ─────────────────────────────── */
+        .hm-editor-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--hm-space-md);
+            padding: 0 var(--hm-space-lg);
+            height: 56px;
+            flex-shrink: 0;
+            background: var(--hm-surface-strong);
+            border-bottom: 1px solid var(--hm-border);
+            backdrop-filter: blur(12px);
+        }
+
+        .hm-editor-nav__left {
+            display: flex;
+            align-items: center;
+            gap: var(--hm-space-md);
+            min-width: 0;
+        }
+
+        .hm-editor-nav__title {
+            font-family: var(--hm-font-title);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--hm-ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 260px;
+        }
+
+        .hm-editor-nav__right {
+            display: flex;
+            align-items: center;
+            gap: var(--hm-space-sm);
+            flex-shrink: 0;
+        }
+
+        .hm-editor-nav__btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            padding: 0 var(--hm-space-md);
+            border-radius: var(--hm-radius-sm);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+            white-space: nowrap;
+        }
+
+        .hm-editor-nav__btn--ghost {
+            border: 1px solid var(--hm-border);
+            background: transparent;
+            color: var(--hm-ink-soft);
+        }
+
+        .hm-editor-nav__btn--ghost:hover {
+            background: var(--hm-surface);
+            color: var(--hm-ink);
+            transform: translateY(-1px);
+        }
+
+        .hm-editor-nav__btn--accent {
+            border: 0;
+            background: linear-gradient(135deg, var(--hm-accent-primary), var(--hm-accent-primary-deep));
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.28);
+        }
+
+        .hm-editor-nav__btn--accent:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.38);
+        }
+
+        .hm-editor-nav__btn--accent:disabled,
+        .hm-editor-nav__btn--accent[aria-busy="true"] {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .hm-editor-nav__divider {
+            width: 1px;
+            height: 22px;
+            background: var(--hm-border);
+            flex-shrink: 0;
+        }
+
+        /* ── Two-panel body (T283) ──────────────────────────────────── */
+        .hm-editor-body {
+            display: grid;
+            grid-template-columns: 2fr 3fr;   /* 40 % / 60 % */
+            overflow: hidden;
+        }
+
+        /* ── Left panel — chat (T284) ──────────────────────────────── */
+        .hm-editor-chat {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            border-right: 1px solid var(--hm-border);
+            background:
+                radial-gradient(circle at top right, rgba(124, 58, 237, 0.10), transparent 32%),
+                var(--hm-surface);
+        }
+
+        .hm-editor-chat .hm-chat-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            height: 100%;
+            overflow: hidden;
+            padding: var(--hm-space-lg);
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        /* Chat feed scrolls inside the panel, form stays at bottom */
+        .hm-editor-chat .hm-chat-feed {
+            flex: 1 1 0;
+            min-height: 0;
+            max-height: none;
+            overflow-y: auto;
+        }
+
+        /* ── Right panel — preview (T285) ──────────────────────────── */
+        .hm-editor-preview {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(16, 185, 129, 0.07), transparent 30%),
+                var(--hm-surface-muted);
+        }
+
+        .hm-editor-preview .hm-preview-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            height: 100%;
+            overflow: hidden;
+            padding: var(--hm-space-lg);
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+
+        /* Preview grid scrolls, header stays visible */
+        .hm-editor-preview .hm-preview-grid {
+            flex: 1 1 0;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        /* ── Responsive (T286): min-width 1280px enforced ──────────── */
+        @media (max-width: 1279px) {
+            .hm-editor-body {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+
+            .hm-editor-chat {
+                border-right: none;
+                border-bottom: 1px solid var(--hm-border);
+            }
+        }
+
+        /* ── Export status toast (T287) ────────────────────────────── */
+        .hm-editor-export-toast {
+            position: fixed;
+            bottom: var(--hm-space-lg);
+            right: var(--hm-space-lg);
+            padding: 12px 18px;
+            border-radius: var(--hm-radius-sm);
+            background: var(--hm-surface-strong);
+            border: 1px solid var(--hm-border);
+            color: var(--hm-ink);
+            font-size: 0.9rem;
+            box-shadow: var(--hm-shadow);
+            z-index: 200;
+        }
+
+        .hm-editor-export-toast--error {
+            border-color: rgba(239, 68, 68, 0.35);
+            color: var(--hm-danger);
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="hm-editor" data-editor>
+
+    {# ── Top navigation bar (T287) ─────────────────────────────── #}
+    <nav class="hm-editor-nav" aria-label="{{ project.title }}">
+        <div class="hm-editor-nav__left">
+            <a
+                class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
+                href="{{ path('app_project_show', { id: project.id }) }}"
+            >← {{ 'project.editor.nav.back'|trans }}</a>
+
+            <span class="hm-editor-nav__divider" aria-hidden="true"></span>
+
+            <span class="hm-editor-nav__title" title="{{ project.title }}">{{ project.title }}</span>
+
+            {% if project.isArchived %}
+                <span class="hm-badge">{{ 'project.archived.badge'|trans }}</span>
+            {% endif %}
+        </div>
+
+        <div class="hm-editor-nav__right">
+            <a
+                class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
+                href="{{ path('app_project_versions', { id: project.id }) }}"
+            >{{ 'project.editor.nav.history'|trans }}</a>
+
+            {% if not project.isArchived %}
+                {# Theme drawer toggle #}
+                <button
+                    class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
+                    type="button"
+                    data-theme-drawer-toggle
+                    aria-expanded="false"
+                    aria-controls="theme-preset-drawer"
+                >{{ 'project.editor.nav.theme'|trans }}</button>
+
+                <span class="hm-editor-nav__divider" aria-hidden="true"></span>
+
+                {# HTML export #}
+                <button
+                    class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
+                    type="button"
+                    data-export-btn
+                    data-export-format="html"
+                    data-project-id="{{ project.id }}"
+                    data-export-url="{{ path('app_export_html') }}"
+                    data-label-default="{{ 'project.editor.nav.export_html'|trans }}"
+                    data-label-processing="{{ 'project.editor.nav.export_processing'|trans }}"
+                    data-label-error="{{ 'project.editor.nav.export_error'|trans }}"
+                >{{ 'project.editor.nav.export_html'|trans }}</button>
+
+                {# PDF export #}
+                <button
+                    class="hm-editor-nav__btn hm-editor-nav__btn--accent"
+                    type="button"
+                    data-export-btn
+                    data-export-format="pdf"
+                    data-project-id="{{ project.id }}"
+                    data-export-url="{{ path('app_export_pdf') }}"
+                    data-label-default="{{ 'project.editor.nav.export_pdf'|trans }}"
+                    data-label-processing="{{ 'project.editor.nav.export_processing'|trans }}"
+                    data-label-error="{{ 'project.editor.nav.export_error'|trans }}"
+                >{{ 'project.editor.nav.export_pdf'|trans }}</button>
+            {% endif %}
+        </div>
+    </nav>
+
+    {# Flash messages (outside panels so they remain visible) #}
+    {% for flash in app.flashes('success') %}
+        <div class="hm-alert hm-alert--success" style="margin: 8px var(--hm-space-lg) 0; border-radius: var(--hm-radius-sm);">{{ flash|trans }}</div>
+    {% endfor %}
+    {% for flash in app.flashes('error') %}
+        <div class="hm-alert hm-alert--danger" style="margin: 8px var(--hm-space-lg) 0; border-radius: var(--hm-radius-sm);">{{ flash }}</div>
+    {% endfor %}
+
+    {# ── Two-panel body (T283) ─────────────────────────────────── #}
+    <div class="hm-editor-body">
+
+        {# Left panel — chat (T284) #}
+        <div class="hm-editor-chat">
+            {% include 'chat/panel.html.twig' with {
+                project: project,
+                chatHistory: chatHistory
+            } %}
+        </div>
+
+        {# Right panel — preview (T285) #}
+        <div class="hm-editor-preview">
+            {% include 'project/_slides_preview.html.twig' with {
+                project: project
+            } %}
+        </div>
+    </div>
+
+    {# ── Drawers (theme preset, customisation, animation) ──────── #}
+    {% if not project.isArchived %}
+        {% include 'project/_theme_preset_drawer.html.twig' with {
+            project: project
+        } %}
+
+        {% include 'project/_theme_customization_drawer.html.twig' with {
+            project: project
+        } %}
+
+        {% include 'project/_animation_control_drawer.html.twig' with {
+            project: project
+        } %}
+    {% endif %}
+
+    {# Export toast #}
+    <div class="hm-editor-export-toast" data-export-toast hidden role="status" aria-live="polite"></div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        (() => {
+            // ── Chat panel wiring (identical logic to show.html.twig) ──────────
+            const panel = document.querySelector('[data-chat-panel]');
+            if (!panel) {
+                return;
+            }
+
+            const feed = panel.querySelector('[data-chat-feed]');
+            const emptyState = panel.querySelector('[data-chat-empty]');
+            const typingIndicator = panel.querySelector('[data-chat-typing]');
+            const errorBox = panel.querySelector('[data-chat-error]');
+            const form = panel.querySelector('[data-chat-form]');
+            const input = panel.querySelector('[data-chat-input]');
+            const submitButton = panel.querySelector('[data-chat-submit]');
+            const confirmationForm = panel.querySelector('[data-chat-confirmation]');
+            const confirmationSummary = confirmationForm ? confirmationForm.querySelector('[data-chat-confirmation-summary]') : null;
+            const confirmationButtons = confirmationForm ? Array.from(confirmationForm.querySelectorAll('[data-chat-confirmation-submit]')) : [];
+            const loadOlderButton = panel.querySelector('[data-chat-load-older]');
+            const historyUrl = panel.dataset.historyUrl;
+            const emptyError = panel.dataset.emptyError || 'Le message est requis.';
+            const genericError = panel.dataset.genericError || 'Une erreur est survenue.';
+            const streamError = panel.dataset.streamError || 'Le streaming est indisponible pour le moment.';
+            const previewPanel = document.querySelector('[data-preview-panel]');
+            const previewList = previewPanel ? previewPanel.querySelector('[data-preview-list]') : null;
+            const previewEmpty = previewPanel ? previewPanel.querySelector('[data-preview-empty]') : null;
+            const previewSummary = previewPanel ? previewPanel.querySelector('[data-preview-summary]') : null;
+            const previewCount = document.querySelector('[data-preview-count]');
+            const previewSummaryTemplate = previewPanel ? (previewPanel.dataset.summaryTemplate || '__COUNT__ slide(s) synchronisee(s) en direct.') : '__COUNT__ slide(s) synchronisee(s) en direct.';
+            let activeEventSource = null;
+            let streamCompleted = false;
+            let isStreaming = false;
+            let confirmationSubmitting = false;
+            let pendingConfirmation = confirmationForm && !confirmationForm.hidden
+                ? { summary: confirmationSummary ? confirmationSummary.textContent.trim() : '' }
+                : null;
+
+            const hideError = () => {
+                errorBox.hidden = true;
+                errorBox.textContent = '';
+            };
+
+            const showError = (message) => {
+                errorBox.textContent = message;
+                errorBox.hidden = false;
+            };
+
+            const setTyping = (isVisible) => {
+                typingIndicator.hidden = !isVisible;
+                if (isVisible) {
+                    feed.scrollTop = feed.scrollHeight;
+                }
+            };
+
+            const scrollToBottom = () => {
+                feed.scrollTop = feed.scrollHeight;
+            };
+
+            const updateSlidesCount = () => {
+                if (!previewList) {
+                    return;
+                }
+
+                const count = previewList.querySelectorAll('[data-preview-slide]').length;
+                if (previewCount) {
+                    previewCount.textContent = String(count);
+                }
+
+                if (previewSummary) {
+                    previewSummary.textContent = previewSummaryTemplate.replace('__COUNT__', String(count));
+                }
+            };
+
+            const syncComposerState = () => {
+                const composerDisabled = isStreaming || confirmationSubmitting || Boolean(pendingConfirmation);
+                submitButton.disabled = composerDisabled;
+                input.disabled = composerDisabled;
+
+                confirmationButtons.forEach((button) => {
+                    button.disabled = isStreaming || confirmationSubmitting;
+                });
+            };
+
+            const setPendingConfirmation = (payload) => {
+                pendingConfirmation = payload && typeof payload === 'object'
+                    ? {
+                        summary: String(payload.summary || payload.assistantMessage || '').trim()
+                    }
+                    : null;
+
+                if (!confirmationForm || !confirmationSummary) {
+                    syncComposerState();
+                    return;
+                }
+
+                if (pendingConfirmation) {
+                    confirmationSummary.textContent = pendingConfirmation.summary;
+                    confirmationForm.hidden = false;
+                } else {
+                    confirmationSummary.textContent = '';
+                    confirmationForm.hidden = true;
+                }
+
+                syncComposerState();
+            };
+
+            const upsertPreviewSlide = (payload) => {
+                if (!previewList || !payload || !payload.slide || !payload.html) {
+                    if (!previewList || !payload || !payload.slide) {
+                        return;
+                    }
+                }
+
+                if (previewEmpty) {
+                    previewEmpty.hidden = true;
+                }
+
+                const slideId = String(payload.slide.id || '');
+                const cards = Array.from(previewList.querySelectorAll('[data-preview-slide]'));
+                const existingCard = cards.find((card) => card.dataset.previewSlideId === slideId);
+
+                if (payload.slide.removed) {
+                    if (existingCard) {
+                        existingCard.remove();
+                    }
+
+                    if (previewEmpty && previewList.querySelectorAll('[data-preview-slide]').length === 0) {
+                        previewEmpty.hidden = false;
+                    }
+
+                    updateSlidesCount();
+
+                    return;
+                }
+
+                if (existingCard) {
+                    existingCard.outerHTML = payload.html;
+                } else {
+                    previewList.insertAdjacentHTML('beforeend', payload.html);
+                }
+
+                updateSlidesCount();
+            };
+
+            const updateLoadOlderState = (hasOlderMessages, nextPage) => {
+                if (!loadOlderButton) {
+                    return;
+                }
+
+                if (!hasOlderMessages) {
+                    loadOlderButton.hidden = true;
+                    return;
+                }
+
+                loadOlderButton.hidden = false;
+                loadOlderButton.dataset.nextPage = String(nextPage || 2);
+            };
+
+            const closeActiveEventSource = () => {
+                if (activeEventSource) {
+                    activeEventSource.close();
+                    activeEventSource = null;
+                }
+            };
+
+            const finishStreaming = () => {
+                streamCompleted = true;
+                isStreaming = false;
+                closeActiveEventSource();
+                setTyping(false);
+                syncComposerState();
+
+                if (!pendingConfirmation) {
+                    input.focus();
+                }
+            };
+
+            const openStream = (streamUrl) => {
+                streamCompleted = false;
+                isStreaming = true;
+                closeActiveEventSource();
+                syncComposerState();
+
+                const eventSource = new EventSource(streamUrl);
+                activeEventSource = eventSource;
+
+                eventSource.addEventListener('slide_added', (event) => {
+                    const payload = JSON.parse(event.data);
+                    upsertPreviewSlide(payload);
+                });
+
+                eventSource.addEventListener('slide_updated', (event) => {
+                    const payload = JSON.parse(event.data);
+                    upsertPreviewSlide(payload);
+                });
+
+                eventSource.addEventListener('generation_done', (event) => {
+                    const payload = JSON.parse(event.data);
+                    if (payload.assistantHtml) {
+                        feed.insertAdjacentHTML('beforeend', payload.assistantHtml);
+                    }
+
+                    setPendingConfirmation(payload.pendingConfirmation || null);
+                    updateLoadOlderState(payload.hasOlderMessages, payload.nextPage);
+                    updateSlidesCount();
+                    scrollToBottom();
+                    finishStreaming();
+                });
+
+                eventSource.addEventListener('error', (event) => {
+                    if (typeof event.data === 'string' && event.data !== '') {
+                        const payload = JSON.parse(event.data);
+                        showError(payload.message || streamError);
+                        finishStreaming();
+                    }
+                });
+
+                eventSource.onerror = () => {
+                    if (streamCompleted) {
+                        return;
+                    }
+
+                    closeActiveEventSource();
+                    window.setTimeout(() => {
+                        if (!streamCompleted) {
+                            openStream(streamUrl);
+                        }
+                    }, 1000);
+                };
+            };
+
+            if (feed.dataset.hasMessages === 'true') {
+                requestAnimationFrame(scrollToBottom);
+            }
+            syncComposerState();
+            updateSlidesCount();
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    form.requestSubmit();
+                }
+            });
+
+            if (loadOlderButton) {
+                loadOlderButton.addEventListener('click', async () => {
+                    if (loadOlderButton.hidden) {
+                        return;
+                    }
+
+                    hideError();
+                    loadOlderButton.disabled = true;
+
+                    const previousHeight = feed.scrollHeight;
+
+                    try {
+                        const response = await fetch(`${historyUrl}?page=${encodeURIComponent(loadOlderButton.dataset.nextPage)}`, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw data;
+                        }
+
+                        feed.insertAdjacentHTML('afterbegin', data.html);
+                        updateLoadOlderState(data.hasOlderMessages, data.nextPage);
+                        feed.scrollTop = feed.scrollHeight - previousHeight;
+                    } catch (error) {
+                        showError((error.errors && error.errors.join(' ')) || genericError);
+                    } finally {
+                        loadOlderButton.disabled = false;
+                    }
+                });
+            }
+
+            if (confirmationForm) {
+                confirmationForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    hideError();
+
+                    const decision = event.submitter && event.submitter.dataset
+                        ? event.submitter.dataset.chatConfirmationSubmit
+                        : null;
+
+                    if (!decision) {
+                        return;
+                    }
+
+                    confirmationSubmitting = true;
+                    syncComposerState();
+
+                    try {
+                        const formData = new FormData(confirmationForm);
+                        formData.set('decision', decision);
+
+                        const response = await fetch(confirmationForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw data;
+                        }
+
+                        if (previewList && typeof data.previewHtml === 'string') {
+                            previewList.innerHTML = data.previewHtml;
+                        }
+
+                        if (previewEmpty) {
+                            previewEmpty.hidden = Number(data.slidesCount || 0) > 0;
+                        }
+
+                        updateSlidesCount();
+                        setPendingConfirmation(data.pendingConfirmation || null);
+                    } catch (error) {
+                        showError((error.errors && error.errors.join(' ')) || genericError);
+                    } finally {
+                        confirmationSubmitting = false;
+                        syncComposerState();
+                    }
+                });
+            }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                hideError();
+
+                const trimmedMessage = input.value.trim();
+                if (trimmedMessage === '') {
+                    showError(emptyError);
+                    input.focus();
+                    return;
+                }
+
+                const startedAt = performance.now();
+                const formData = new FormData(form);
+                formData.set('message', trimmedMessage);
+
+                isStreaming = true;
+                syncComposerState();
+                emptyState.hidden = true;
+                setTyping(true);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw data;
+                    }
+
+                    feed.insertAdjacentHTML('beforeend', data.html);
+                    feed.dataset.hasMessages = 'true';
+                    input.value = '';
+                    updateLoadOlderState(data.hasOlderMessages, data.nextPage);
+                    scrollToBottom();
+                    openStream(data.streamUrl);
+
+                    const elapsed = performance.now() - startedAt;
+                    if (elapsed < 450) {
+                        await new Promise((resolve) => window.setTimeout(resolve, 450 - elapsed));
+                    }
+                } catch (error) {
+                    isStreaming = false;
+                    if (!feed.querySelector('[data-chat-message]')) {
+                        emptyState.hidden = false;
+                    }
+
+                    showError((error.errors && error.errors.join(' ')) || genericError);
+                    setTyping(false);
+                    syncComposerState();
+                    input.focus();
+                }
+            });
+        })();
+
+        // ── Export buttons (T287) ──────────────────────────────────────────
+        (() => {
+            const csrfMeta = document.querySelector('meta[name="hm-csrf-api"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            const toast = document.querySelector('[data-export-toast]');
+
+            const showToast = (message, isError) => {
+                if (!toast) {
+                    return;
+                }
+
+                toast.textContent = message;
+                toast.classList.toggle('hm-editor-export-toast--error', Boolean(isError));
+                toast.hidden = false;
+
+                window.setTimeout(() => {
+                    toast.hidden = true;
+                }, 4000);
+            };
+
+            document.querySelectorAll('[data-export-btn]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const url = btn.dataset.exportUrl;
+                    const projectId = btn.dataset.projectId;
+                    const labelDefault = btn.dataset.labelDefault || btn.textContent;
+                    const labelProcessing = btn.dataset.labelProcessing || labelDefault;
+                    const labelError = btn.dataset.labelError || labelDefault;
+
+                    btn.disabled = true;
+                    btn.setAttribute('aria-busy', 'true');
+                    btn.textContent = labelProcessing;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append('projectId', projectId);
+                        formData.append('_token', csrfToken);
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-Token': csrfToken
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw data;
+                        }
+
+                        if (data.downloadUrl) {
+                            window.open(data.downloadUrl, '_blank', 'noopener');
+                        }
+                    } catch {
+                        showToast(labelError, true);
+                    } finally {
+                        btn.disabled = false;
+                        btn.setAttribute('aria-busy', 'false');
+                        btn.textContent = labelDefault;
+                    }
+                });
+            });
+        })();
+
+        // ── Theme drawer toggle (T287) ────────────────────────────────────
+        (() => {
+            const toggle = document.querySelector('[data-theme-drawer-toggle]');
+            const drawer = document.getElementById('theme-preset-drawer');
+            if (!toggle || !drawer) {
+                return;
+            }
+
+            toggle.addEventListener('click', () => {
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                toggle.setAttribute('aria-expanded', String(!expanded));
+                drawer.hidden = expanded;
+            });
+        })();
+    </script>
+{% endblock %}
