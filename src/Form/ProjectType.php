@@ -19,6 +19,7 @@ class ProjectType extends AbstractType
         $builder
             ->add('title', TextType::class, [
                 'label' => 'project.form.title',
+                'empty_data' => '',
                 'constraints' => [
                     new NotBlank(message: 'project.title.required'),
                     new Length(min: 3, minMessage: 'project.title.min_length', max: 160),

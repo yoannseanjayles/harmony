@@ -319,7 +319,8 @@
         {# Right panel — preview (T285) #}
         <div class="hm-editor-preview">
             {% include 'project/_slides_preview.html.twig' with {
-                project: project
+                project: project,
+                slidesHtml: slidesHtml
             } %}
         </div>
     </div>
@@ -347,7 +348,7 @@
 {% block javascripts %}
     <script>
         (() => {
-            // ── Chat panel wiring (identical logic to show.html.twig) ──────────
+            // ── Chat panel + live preview wiring ──────────────────────────────
             const panel = document.querySelector('[data-chat-panel]');
             if (!panel) {
                 return;
@@ -368,12 +369,32 @@
             const emptyError = panel.dataset.emptyError || 'Le message est requis.';
             const genericError = panel.dataset.genericError || 'Une erreur est survenue.';
             const streamError = panel.dataset.streamError || 'Le streaming est indisponible pour le moment.';
+
+            // Preview panel refs
             const previewPanel = document.querySelector('[data-preview-panel]');
             const previewList = previewPanel ? previewPanel.querySelector('[data-preview-list]') : null;
             const previewEmpty = previewPanel ? previewPanel.querySelector('[data-preview-empty]') : null;
             const previewSummary = previewPanel ? previewPanel.querySelector('[data-preview-summary]') : null;
             const previewCount = document.querySelector('[data-preview-count]');
             const previewSummaryTemplate = previewPanel ? (previewPanel.dataset.summaryTemplate || '__COUNT__ slide(s) synchronisee(s) en direct.') : '__COUNT__ slide(s) synchronisee(s) en direct.';
+
+            // Live preview DOM refs
+            const livePreviewSection = previewPanel ? previewPanel.querySelector('[data-live-preview]') : null;
+            const livePreviewEmpty = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-empty]') : null;
+            const livePreviewStage = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-stage]') : null;
+            const livePreviewFrame = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-frame]') : null;
+            const livePreviewContent = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-content]') : null;
+            const prevButton = livePreviewSection ? livePreviewSection.querySelector('[data-preview-prev]') : null;
+            const nextButton = livePreviewSection ? livePreviewSection.querySelector('[data-preview-next]') : null;
+            const slideCounter = livePreviewSection ? livePreviewSection.querySelector('[data-preview-counter]') : null;
+
+            // Thumbnail strip refs
+            const thumbnailStrip = previewPanel ? previewPanel.querySelector('[data-thumbnail-strip]') : null;
+            const thumbnailLoadingIndicator = thumbnailStrip ? thumbnailStrip.querySelector('[data-thumbnail-loading-indicator]') : null;
+
+            // State
+            let activeSlideId = null;
+            const slideHtmlMap = new Map();
             let activeEventSource = null;
             let streamCompleted = false;
             let isStreaming = false;
@@ -403,19 +424,117 @@
                 feed.scrollTop = feed.scrollHeight;
             };
 
+            // Live preview scaling
+            const updateLivePreviewScale = () => {
+                if (!livePreviewFrame || !livePreviewContent) return;
+                const scale = livePreviewFrame.offsetWidth / 1280;
+                livePreviewContent.style.transform = `scale(${scale})`;
+            };
+
+            const updateLivePreview = (html) => {
+                if (!livePreviewContent) return;
+                livePreviewContent.innerHTML = html || '';
+                updateLivePreviewScale();
+            };
+
+            // Slide navigation helpers
+            const getOrderedSlideIds = () => {
+                if (!thumbnailStrip) return [];
+                return Array.from(thumbnailStrip.querySelectorAll('[data-preview-slide]'))
+                    .map((el) => String(el.dataset.previewSlideId || ''))
+                    .filter((id) => id !== '');
+            };
+
+            const updateSlideCounter = () => {
+                if (!slideCounter) return;
+                const ids = getOrderedSlideIds();
+                const total = ids.length;
+                if (total === 0) { slideCounter.textContent = ''; return; }
+                const current = activeSlideId ? ids.indexOf(activeSlideId) + 1 : 1;
+                slideCounter.textContent = `${current} / ${total}`;
+            };
+
+            const updateNavButtons = () => {
+                const ids = getOrderedSlideIds();
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : -1;
+                if (prevButton) prevButton.disabled = idx <= 0;
+                if (nextButton) nextButton.disabled = idx < 0 || idx >= ids.length - 1;
+            };
+
+            const activateSlide = (slideId) => {
+                if (!thumbnailStrip) return;
+                activeSlideId = slideId;
+
+                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                    if (thumb.dataset.previewSlideId === slideId) {
+                        thumb.classList.add('hm-thumbnail--active');
+                        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    } else {
+                        thumb.classList.remove('hm-thumbnail--active');
+                    }
+                });
+
+                const html = slideHtmlMap.get(slideId) || null;
+                if (html) {
+                    updateLivePreview(html);
+                    if (livePreviewStage) livePreviewStage.hidden = false;
+                    if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                }
+
+                updateSlideCounter();
+                updateNavButtons();
+            };
+
+            const navigatePrev = () => {
+                const ids = getOrderedSlideIds();
+                if (ids.length === 0) return;
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : 0;
+                const newIdx = Math.max(0, idx - 1);
+                if (ids[newIdx] !== activeSlideId) activateSlide(ids[newIdx]);
+            };
+
+            const navigateNext = () => {
+                const ids = getOrderedSlideIds();
+                if (ids.length === 0) return;
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : 0;
+                const newIdx = Math.min(ids.length - 1, idx + 1);
+                if (ids[newIdx] !== activeSlideId) activateSlide(ids[newIdx]);
+            };
+
+            // Build a thumbnail button element
+            const buildThumbnailElement = (slideId, position, html) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'hm-thumbnail';
+                btn.dataset.previewSlide = '';
+                btn.dataset.previewSlideId = String(slideId);
+                btn.dataset.previewSlidePosition = String(position);
+                btn.setAttribute('aria-label', `Slide ${position}`);
+
+                const frame = document.createElement('div');
+                frame.className = 'hm-thumbnail__frame';
+
+                const inner = document.createElement('div');
+                inner.className = 'hm-thumbnail__inner';
+                inner.innerHTML = html || '';
+
+                frame.appendChild(inner);
+
+                const number = document.createElement('span');
+                number.className = 'hm-thumbnail__number';
+                number.textContent = String(position);
+
+                btn.appendChild(frame);
+                btn.appendChild(number);
+
+                return btn;
+            };
+
             const updateSlidesCount = () => {
-                if (!previewList) {
-                    return;
-                }
-
-                const count = previewList.querySelectorAll('[data-preview-slide]').length;
-                if (previewCount) {
-                    previewCount.textContent = String(count);
-                }
-
-                if (previewSummary) {
-                    previewSummary.textContent = previewSummaryTemplate.replace('__COUNT__', String(count));
-                }
+                if (!thumbnailStrip) return;
+                const count = thumbnailStrip.querySelectorAll('[data-preview-slide]').length;
+                if (previewCount) previewCount.textContent = String(count);
+                if (previewSummary) previewSummary.textContent = previewSummaryTemplate.replace('__COUNT__', String(count));
             };
 
             const syncComposerState = () => {
@@ -452,41 +571,62 @@
             };
 
             const upsertPreviewSlide = (payload) => {
-                if (!previewList || !payload || !payload.slide || !payload.html) {
-                    if (!previewList || !payload || !payload.slide) {
-                        return;
-                    }
-                }
-
-                if (previewEmpty) {
-                    previewEmpty.hidden = true;
-                }
+                if (!thumbnailStrip || !payload || !payload.slide) return;
 
                 const slideId = String(payload.slide.id || '');
-                const cards = Array.from(previewList.querySelectorAll('[data-preview-slide]'));
-                const existingCard = cards.find((card) => card.dataset.previewSlideId === slideId);
+                const existingThumb = thumbnailStrip.querySelector(`[data-preview-slide-id="${CSS.escape(slideId)}"]`);
 
                 if (payload.slide.removed) {
-                    if (existingCard) {
-                        existingCard.remove();
+                    if (existingThumb) existingThumb.remove();
+                    slideHtmlMap.delete(slideId);
+
+                    if (activeSlideId === slideId) {
+                        const firstThumb = thumbnailStrip.querySelector('[data-preview-slide]');
+                        activateSlide(firstThumb ? String(firstThumb.dataset.previewSlideId) : null);
                     }
 
-                    if (previewEmpty && previewList.querySelectorAll('[data-preview-slide]').length === 0) {
-                        previewEmpty.hidden = false;
-                    }
+                    const remaining = thumbnailStrip.querySelectorAll('[data-preview-slide]').length;
+                    if (previewEmpty) previewEmpty.hidden = remaining > 0;
+                    if (livePreviewEmpty) livePreviewEmpty.hidden = remaining > 0;
+                    if (livePreviewStage) livePreviewStage.hidden = remaining === 0;
 
                     updateSlidesCount();
-
+                    updateSlideCounter();
+                    updateNavButtons();
                     return;
                 }
 
-                if (existingCard) {
-                    existingCard.outerHTML = payload.html;
+                const html = String(payload.html || '');
+                const position = Number(payload.slide.position || 1);
+
+                slideHtmlMap.set(slideId, html);
+
+                if (existingThumb) {
+                    const inner = existingThumb.querySelector('.hm-thumbnail__inner');
+                    if (inner) {
+                        inner.className = 'hm-thumbnail__inner';
+                        inner.innerHTML = html;
+                    }
+                    const numLabel = existingThumb.querySelector('.hm-thumbnail__number');
+                    if (numLabel) numLabel.textContent = String(position);
                 } else {
-                    previewList.insertAdjacentHTML('beforeend', payload.html);
+                    const skeleton = thumbnailStrip.querySelector('[data-thumbnail-loading-indicator] .hm-thumbnail-skeleton');
+                    if (skeleton) skeleton.remove();
+                    const thumbEl = buildThumbnailElement(slideId, position, html);
+                    thumbnailStrip.insertBefore(thumbEl, thumbnailLoadingIndicator);
+                }
+
+                if (previewEmpty) previewEmpty.hidden = true;
+                if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                if (livePreviewStage) livePreviewStage.hidden = false;
+
+                if (!activeSlideId || activeSlideId === slideId) {
+                    activateSlide(slideId);
                 }
 
                 updateSlidesCount();
+                updateSlideCounter();
+                updateNavButtons();
             };
 
             const updateLoadOlderState = (hasOlderMessages, nextPage) => {
@@ -517,6 +657,10 @@
                 setTyping(false);
                 syncComposerState();
 
+                if (thumbnailLoadingIndicator) {
+                    thumbnailLoadingIndicator.hidden = true;
+                }
+
                 if (!pendingConfirmation) {
                     input.focus();
                 }
@@ -528,17 +672,19 @@
                 closeActiveEventSource();
                 syncComposerState();
 
+                if (thumbnailLoadingIndicator) {
+                    thumbnailLoadingIndicator.hidden = false;
+                }
+
                 const eventSource = new EventSource(streamUrl);
                 activeEventSource = eventSource;
 
                 eventSource.addEventListener('slide_added', (event) => {
-                    const payload = JSON.parse(event.data);
-                    upsertPreviewSlide(payload);
+                    upsertPreviewSlide(JSON.parse(event.data));
                 });
 
                 eventSource.addEventListener('slide_updated', (event) => {
-                    const payload = JSON.parse(event.data);
-                    upsertPreviewSlide(payload);
+                    upsertPreviewSlide(JSON.parse(event.data));
                 });
 
                 eventSource.addEventListener('generation_done', (event) => {
@@ -581,6 +727,71 @@
             }
             syncComposerState();
             updateSlidesCount();
+
+            // Thumbnail click delegation
+            if (thumbnailStrip) {
+                thumbnailStrip.addEventListener('click', (event) => {
+                    const thumb = event.target.closest('[data-preview-slide]');
+                    if (thumb) activateSlide(String(thumb.dataset.previewSlideId || ''));
+                });
+
+                // Hydrate slideHtmlMap from server-rendered JSON (pre-existing slides)
+                const htmlMapScript = previewPanel ? previewPanel.querySelector('[data-slides-html-map]') : null;
+                if (htmlMapScript) {
+                    try {
+                        const map = JSON.parse(htmlMapScript.textContent);
+                        for (const [id, html] of Object.entries(map)) {
+                            slideHtmlMap.set(String(id), html);
+                        }
+                    } catch (e) { /* ignore parse errors */ }
+                }
+
+                // Also upgrade text-only thumbnails to rendered HTML
+                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                    const id = String(thumb.dataset.previewSlideId || '');
+                    const html = slideHtmlMap.get(id);
+                    if (html) {
+                        const inner = thumb.querySelector('.hm-thumbnail__inner');
+                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
+                            inner.className = 'hm-thumbnail__inner';
+                            inner.innerHTML = html;
+                        }
+                    }
+                });
+
+                // Activate the first thumbnail on page load
+                const firstThumb = thumbnailStrip.querySelector('[data-preview-slide]');
+                if (firstThumb) {
+                    activeSlideId = String(firstThumb.dataset.previewSlideId || '');
+                    firstThumb.classList.add('hm-thumbnail--active');
+                    const firstHtml = slideHtmlMap.get(activeSlideId);
+                    if (firstHtml) {
+                        updateLivePreview(firstHtml);
+                    }
+                    if (livePreviewStage) livePreviewStage.hidden = false;
+                    if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                    updateNavButtons();
+                    updateSlideCounter();
+                }
+            }
+
+            // Live preview scaling (resize-aware)
+            if (livePreviewFrame && typeof ResizeObserver !== 'undefined') {
+                const observer = new ResizeObserver(updateLivePreviewScale);
+                observer.observe(livePreviewFrame);
+            }
+            updateLivePreviewScale();
+
+            // Prev/next navigation
+            if (prevButton) prevButton.addEventListener('click', navigatePrev);
+            if (nextButton) nextButton.addEventListener('click', navigateNext);
+
+            // Keyboard arrow navigation
+            document.addEventListener('keydown', (event) => {
+                if (event.target.closest('input, textarea, select, [contenteditable]')) return;
+                if (event.key === 'ArrowLeft') { event.preventDefault(); navigatePrev(); }
+                else if (event.key === 'ArrowRight') { event.preventDefault(); navigateNext(); }
+            });
 
             input.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
@@ -658,8 +869,24 @@
                             throw data;
                         }
 
-                        if (previewList && typeof data.previewHtml === 'string') {
-                            previewList.innerHTML = data.previewHtml;
+                        if (thumbnailStrip && typeof data.previewHtml === 'string') {
+                            thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((el) => el.remove());
+                            thumbnailStrip.insertAdjacentHTML('afterbegin', data.previewHtml);
+                        }
+
+                        slideHtmlMap.clear();
+                        activeSlideId = null;
+
+                        const firstThumb = thumbnailStrip ? thumbnailStrip.querySelector('[data-preview-slide]') : null;
+                        if (firstThumb) {
+                            firstThumb.classList.add('hm-thumbnail--active');
+                            activeSlideId = String(firstThumb.dataset.previewSlideId || '');
+                            if (livePreviewContent) livePreviewContent.innerHTML = '';
+                            if (livePreviewStage) livePreviewStage.hidden = false;
+                            if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                        } else {
+                            if (livePreviewStage) livePreviewStage.hidden = true;
+                            if (livePreviewEmpty) livePreviewEmpty.hidden = false;
                         }
 
                         if (previewEmpty) {
@@ -667,6 +894,8 @@
                         }
 
                         updateSlidesCount();
+                        updateSlideCounter();
+                        updateNavButtons();
                         setPendingConfirmation(data.pendingConfirmation || null);
                     } catch (error) {
                         showError((error.errors && error.errors.join(' ')) || genericError);

@@ -17,20 +17,20 @@
         .hm-chat-panel {
             padding: 24px;
             border-radius: 26px;
-            border: 1px solid rgba(23, 63, 53, 0.1);
+            border: 1px solid var(--hm-border);
             background:
-                radial-gradient(circle at top right, rgba(191, 106, 61, 0.12), transparent 24%),
-                rgba(255, 252, 245, 0.92);
+                radial-gradient(circle at top right, rgba(124, 58, 237, 0.10), transparent 28%),
+                var(--hm-surface-strong);
             box-shadow: var(--hm-shadow);
         }
 
         .hm-preview-panel {
             padding: 24px;
             border-radius: 26px;
-            border: 1px solid rgba(23, 63, 53, 0.1);
+            border: 1px solid var(--hm-border);
             background:
-                radial-gradient(circle at top left, rgba(23, 63, 53, 0.1), transparent 24%),
-                rgba(248, 245, 238, 0.96);
+                radial-gradient(circle at top left, rgba(16, 185, 129, 0.07), transparent 28%),
+                var(--hm-surface-strong);
             box-shadow: var(--hm-shadow);
         }
 
@@ -52,8 +52,8 @@
         .hm-preview-empty {
             padding: 20px 22px;
             border-radius: 20px;
-            border: 1px dashed rgba(23, 63, 53, 0.18);
-            background: rgba(255, 255, 255, 0.62);
+            border: 1px dashed var(--hm-border);
+            background: var(--hm-surface);
         }
 
         .hm-preview-empty strong {
@@ -71,8 +71,8 @@
         .hm-live-preview__empty {
             padding: 20px 22px;
             border-radius: 20px;
-            border: 1px dashed rgba(23, 63, 53, 0.18);
-            background: rgba(255, 255, 255, 0.62);
+            border: 1px dashed var(--hm-border);
+            background: var(--hm-surface);
         }
 
         .hm-live-preview__empty strong {
@@ -112,7 +112,7 @@
 
         .hm-live-preview__counter {
             font-size: 0.9rem;
-            color: var(--hm-ink-soft, rgba(23, 63, 53, 0.6));
+            color: var(--hm-ink-soft);
             min-width: 60px;
             text-align: center;
         }
@@ -124,17 +124,17 @@
             width: 36px;
             height: 36px;
             border-radius: 999px;
-            border: 1px solid rgba(23, 63, 53, 0.16);
-            background: rgba(255, 255, 255, 0.84);
-            color: var(--hm-ink, #0c1a14);
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+            color: var(--hm-ink);
             font-size: 1.1rem;
             cursor: pointer;
             transition: background 0.15s, border-color 0.15s;
         }
 
         .hm-btn-icon:hover {
-            background: rgba(255, 255, 255, 1);
-            border-color: rgba(23, 63, 53, 0.3);
+            background: var(--hm-surface-lift, rgba(124, 58, 237, 0.15));
+            border-color: var(--hm-accent-primary);
         }
 
         .hm-btn-icon:disabled {
@@ -157,7 +157,7 @@
         }
 
         .hm-thumbnail-strip::-webkit-scrollbar-thumb {
-            background: rgba(23, 63, 53, 0.18);
+            background: var(--hm-border);
             border-radius: 999px;
         }
 
@@ -176,7 +176,7 @@
         }
 
         .hm-thumbnail:hover {
-            border-color: rgba(23, 63, 53, 0.22);
+            border-color: rgba(124, 58, 237, 0.35);
         }
 
         /* T293 — Active slide indicator */
@@ -239,7 +239,7 @@
 
         .hm-thumbnail__number {
             font-size: 0.72rem;
-            color: var(--hm-ink-soft, rgba(23, 63, 53, 0.55));
+            color: var(--hm-ink-soft);
             font-variant-numeric: tabular-nums;
         }
 
@@ -258,9 +258,9 @@
             border-radius: 7px;
             background: linear-gradient(
                 90deg,
-                rgba(23, 63, 53, 0.06) 25%,
-                rgba(23, 63, 53, 0.12) 50%,
-                rgba(23, 63, 53, 0.06) 75%
+                rgba(124, 58, 237, 0.08) 25%,
+                rgba(124, 58, 237, 0.18) 50%,
+                rgba(124, 58, 237, 0.08) 75%
             );
             background-size: 200% 100%;
             animation: hm-skeleton-shimmer 1.4s infinite;
@@ -274,9 +274,9 @@
         .hm-preview-card {
             padding: 18px;
             border-radius: 22px;
-            border: 1px solid rgba(23, 63, 53, 0.08);
-            background: rgba(255, 255, 255, 0.84);
-            box-shadow: 0 12px 28px rgba(23, 63, 53, 0.08);
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+            box-shadow: var(--hm-shadow);
         }
 
         .hm-preview-card__meta {
@@ -323,8 +323,8 @@
         .hm-chat-empty {
             padding: 22px;
             border-radius: 20px;
-            border: 1px dashed rgba(23, 63, 53, 0.18);
-            background: rgba(255, 255, 255, 0.6);
+            border: 1px dashed var(--hm-border);
+            background: var(--hm-surface);
         }
 
         .hm-chat-empty strong {
@@ -338,21 +338,21 @@
             width: min(78%, 620px);
             padding: 16px 18px;
             border-radius: 20px;
-            border: 1px solid rgba(23, 63, 53, 0.08);
-            background: rgba(255, 255, 255, 0.84);
-            box-shadow: 0 12px 28px rgba(23, 63, 53, 0.08);
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+            box-shadow: var(--hm-shadow);
         }
 
         .hm-chat-message--user {
             margin-left: auto;
             border-top-right-radius: 8px;
-            background: linear-gradient(135deg, rgba(191, 106, 61, 0.16), rgba(191, 106, 61, 0.08));
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(124, 58, 237, 0.08));
         }
 
         .hm-chat-message--assistant {
             margin-right: auto;
             border-top-left-radius: 8px;
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--hm-surface);
         }
 
         .hm-chat-message__meta {
@@ -377,7 +377,7 @@
             width: fit-content;
             padding: 12px 16px;
             border-radius: 999px;
-            background: rgba(23, 63, 53, 0.08);
+            background: var(--hm-accent-soft);
             color: var(--hm-ink-soft);
         }
 
@@ -385,7 +385,7 @@
             width: 8px;
             height: 8px;
             border-radius: 999px;
-            background: rgba(23, 63, 53, 0.45);
+            background: var(--hm-accent-primary);
             animation: hm-chat-bounce 1s infinite ease-in-out;
         }
 
@@ -410,8 +410,8 @@
             padding: 18px 20px;
             margin-bottom: 16px;
             border-radius: 20px;
-            border: 1px solid rgba(191, 106, 61, 0.18);
-            background: rgba(191, 106, 61, 0.08);
+            border: 1px solid rgba(124, 58, 237, 0.28);
+            background: rgba(124, 58, 237, 0.08);
         }
 
         .hm-chat-confirmation__copy {
@@ -435,8 +435,8 @@
             min-height: 128px;
             padding: 16px 18px;
             border-radius: 20px;
-            border: 1px solid rgba(23, 63, 53, 0.18);
-            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface);
             color: var(--hm-ink);
             font: inherit;
             line-height: 1.6;
@@ -445,8 +445,8 @@
 
         .hm-chat-form__textarea:focus {
             outline: none;
-            border-color: rgba(191, 106, 61, 0.9);
-            box-shadow: 0 0 0 4px rgba(191, 106, 61, 0.12);
+            border-color: var(--hm-accent-primary);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.18);
         }
 
         @keyframes hm-chat-bounce {
@@ -588,7 +588,7 @@
                     </article>
                     <article class="hm-dashboard-card">
                         <strong>{{ 'project.show.card.ai_cost'|trans }}</strong>
-                        <p class="hm-muted" data-ai-cost-total>{{ totalAiCostUsd|number_format(4, '.', '') }} USD</p>
+                        <p class="hm-muted" data-ai-cost-total>{{ aiCostUsd|number_format(4, '.', '') }} USD</p>
                     </article>
                     <article class="hm-dashboard-card">
                         <strong>{{ 'project.show.card.history'|trans }}</strong>
@@ -612,7 +612,8 @@
                 } %}
 
                 {% include 'project/_slides_preview.html.twig' with {
-                    project: project
+                    project: project,
+                    slidesHtml: slidesHtml
                 } %}
 
                 {% include 'project/_customization_drawer.html.twig' with {
@@ -1142,10 +1143,40 @@
                     }
                 });
 
+                // Hydrate slideHtmlMap from server-rendered JSON (pre-existing slides)
+                const htmlMapScript = previewPanel ? previewPanel.querySelector('[data-slides-html-map]') : null;
+                if (htmlMapScript) {
+                    try {
+                        const map = JSON.parse(htmlMapScript.textContent);
+                        for (const [id, html] of Object.entries(map)) {
+                            slideHtmlMap.set(String(id), html);
+                        }
+                    } catch (e) { /* ignore parse errors */ }
+                }
+
+                // Upgrade text-only thumbnails to rendered HTML
+                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                    const id = String(thumb.dataset.previewSlideId || '');
+                    const html = slideHtmlMap.get(id);
+                    if (html) {
+                        const inner = thumb.querySelector('.hm-thumbnail__inner');
+                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
+                            inner.className = 'hm-thumbnail__inner';
+                            inner.innerHTML = html;
+                        }
+                    }
+                });
+
                 // Activate the first thumbnail on page load if slides exist
                 const firstThumb = thumbnailStrip.querySelector('[data-preview-slide]');
                 if (firstThumb) {
                     activeSlideId = String(firstThumb.dataset.previewSlideId || '');
+                    const firstHtml = slideHtmlMap.get(activeSlideId);
+                    if (firstHtml) {
+                        updateLivePreview(firstHtml);
+                        if (livePreviewStage) livePreviewStage.hidden = false;
+                        if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                    }
                     updateNavButtons();
                     updateSlideCounter();
                 }

@@ -86,4 +86,9 @@
             <div class="hm-thumbnail-skeleton"></div>
         </div>
     </div>
+
+    {# Pre-rendered HTML for existing slides (populates slideHtmlMap on page load) #}
+    {% if slidesHtml is defined and slidesHtml is not empty %}
+        <script type="application/json" data-slides-html-map>{{ slidesHtml|json_encode|raw }}</script>
+    {% endif %}
 </section>

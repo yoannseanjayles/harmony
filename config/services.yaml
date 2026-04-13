@@ -118,24 +118,9 @@ services:
     # HRM-T258 / HRM-T259 — Gotenberg PDF client.
     App\Export\NativeGotenbergClient:
         arguments:
-            $gotenbergUrl: '%harmony.gotenberg.url%'
+            $baseUrl: '%harmony.gotenberg.url%'
             $timeoutSeconds: '%harmony.gotenberg.timeout_seconds%'
 
     # HRM-T258 — Wire the interface to the native implementation.
-    App\Export\GotenbergClientInterface:
-        alias: App\Export\NativeGotenbergClient
-
-    # HRM-T259 — ExportService: assembles slide HTML and inlines media/CSS for export.
-    App\Export\ExportService:
-        arguments:
-            $harmonyCssPath: '%harmony.export.harmony_css_path%'
-    # HRM-T267 — Gotenberg PDF client wiring.
-    harmony.gotenberg.timeout: 30.0
-
-    App\Export\NativeGotenbergClient:
-        arguments:
-            $baseUrl: '%env(HARMONY_GOTENBERG_URL)%'
-            $timeoutSeconds: '%harmony.gotenberg.timeout%'
-
     App\Export\GotenbergClientInterface:
         alias: App\Export\NativeGotenbergClient

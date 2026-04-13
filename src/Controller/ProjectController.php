@@ -16,10 +16,10 @@ use App\Repository\MediaAssetRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
 use App\Repository\SlideRepository;
+use App\Slide\SlideBuilder;
 use App\Theme\ThemeEngine;
 use App\Theme\ThemePresetLoader;
 use App\Theme\ThemeTokenValidator;
-use App\Repository\ProjectGenerationMetricRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -102,21 +102,30 @@ final class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_project_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, MediaAssetRepository $mediaAssetRepository, SlideRepository $slideRepository): Response
+    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, MediaAssetRepository $mediaAssetRepository, SlideRepository $slideRepository, ProjectGenerationMetricRepository $projectGenerationMetricRepository, SlideBuilder $slideBuilder): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
-        $costMap = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
-        $totalAiCostUsd = round(($costMap[$project->getId() ?? 0] ?? 0) / 100, 4);
 
         $projectId = (int) $project->getId();
-        $aiTotals  = $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
-        $aiCostUsd = round(((int) ($aiTotals[$projectId] ?? 0)) / 100, 4);
+        $costMap   = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
+        $aiCostUsd = round(((int) ($costMap[$projectId] ?? 0)) / 100, 4);
+
+        $slidesHtml = [];
+        foreach ($project->getSlides() as $slide) {
+            try {
+                $slidesHtml[(string) $slide->getId()] = $slideBuilder->buildSlide($slide);
+            } catch (\Throwable) {
+                // skip unrenderable slides
+            }
+        }
 
         return $this->render('project/show.html.twig', [
             'project'     => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
             'mediaAssets' => $mediaAssetRepository->findByProject($project),
             'slides'      => $slideRepository->findByProjectOrdered($project),
+            'aiCostUsd'   => $aiCostUsd,
+            'slidesHtml'  => $slidesHtml,
         ]);
     }
 
@@ -127,15 +136,23 @@ final class ProjectController extends AbstractController
      * internal scroll on each panel so the browser never shows a page-level scrollbar.
      */
     #[Route('/{id}/editor', name: 'app_project_editor', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): Response
+    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, SlideBuilder $slideBuilder): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
+
+        $slidesHtml = [];
+        foreach ($project->getSlides() as $slide) {
+            try {
+                $slidesHtml[(string) $slide->getId()] = $slideBuilder->buildSlide($slide);
+            } catch (\Throwable) {
+                // skip unrenderable slides
+            }
+        }
 
         return $this->render('project/editor.html.twig', [
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
-            'totalAiCostUsd' => $totalAiCostUsd,
-            'aiCostUsd' => $aiCostUsd,
+            'slidesHtml' => $slidesHtml,
         ]);
     }
 
