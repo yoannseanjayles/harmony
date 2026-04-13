@@ -140,9 +140,8 @@ final class ProjectController extends AbstractController
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
 
-        $projectId = (int) $project->getId();
         $costMap   = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
-        $aiCostUsd = round(((int) ($costMap[$projectId] ?? 0)) / 100, 4);
+        $aiCostUsd = round(((int) ($costMap[(int) $project->getId()] ?? 0)) / 100, 4);
 
         $slidesHtml = [];
         foreach ($project->getSlides() as $slide) {
