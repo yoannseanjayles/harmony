@@ -111,6 +111,23 @@ final class ProjectController extends AbstractController
         ]);
     }
 
+    /**
+     * HRM-F35 / T283–T290 — Two-panel editor layout (chat left 40 % + preview right 60 %).
+     *
+     * Dedicated full-viewport page: the layout uses CSS Grid with height:100vh and
+     * internal scroll on each panel so the browser never shows a page-level scrollbar.
+     */
+    #[Route('/{id}/editor', name: 'app_project_editor', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): Response
+    {
+        $project = $this->findOwnedProjectOr404($id, $projectRepository);
+
+        return $this->render('project/editor.html.twig', [
+            'project' => $project,
+            'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+        ]);
+    }
+
     #[Route('/{id}/edit', name: 'app_project_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function edit(int $id, Request $request, ProjectRepository $projectRepository, EntityManagerInterface $entityManager, ProjectVersioning $projectVersioning): Response
     {
