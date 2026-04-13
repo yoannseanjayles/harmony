@@ -103,8 +103,8 @@ final class ProjectController extends AbstractController
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
 
-        $projectId = $project->getId();
-        $aiTotals = is_int($projectId) ? $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]) : [];
+        $projectId = (int) $project->getId();
+        $aiTotals  = $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
         $aiCostUsd = round(((int) ($aiTotals[$projectId] ?? 0)) / 100, 4);
 
         return $this->render('project/show.html.twig', [
