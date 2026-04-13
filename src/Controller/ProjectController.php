@@ -11,6 +11,7 @@ use App\Project\ProjectDuplicator;
 use App\Project\ProjectShareLinkGenerator;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
+use App\Repository\ProjectGenerationMetricRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
 use App\Repository\SlideRepository;
@@ -98,13 +99,18 @@ final class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_project_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): Response
+    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, ProjectGenerationMetricRepository $generationMetricRepository): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
+
+        $projectId = $project->getId();
+        $aiTotals = is_int($projectId) ? $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]) : [];
+        $aiCostUsd = round(((int) ($aiTotals[$projectId] ?? 0)) / 100, 4);
 
         return $this->render('project/show.html.twig', [
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+            'aiCostUsd' => $aiCostUsd,
         ]);
     }
 
