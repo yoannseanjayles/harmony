@@ -65,7 +65,7 @@ final class ThemeEngine
             return '';
         }
 
-        $css = sprintf('<style>:root{%s}', $declarations);
+        $css = sprintf('<style>.hm-slide{%s}', $declarations);
 
         // T200 — When animations are globally disabled, append class-based suppression rules so
         // that exported slide HTML snippets (which contain their own style block) also respect the
