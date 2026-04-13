@@ -14,6 +14,7 @@ final class ChatGenerationResult
         private readonly array $slides,
         private readonly bool $slidesChanged,
         private readonly ?array $pendingConfirmation = null,
+        private readonly int $attemptCount = 1,
     ) {
     }
 
@@ -51,5 +52,17 @@ final class ChatGenerationResult
     public function requiresConfirmation(): bool
     {
         return $this->pendingConfirmation !== null;
+    }
+
+    /** Number of provider call attempts (1 = no retry, 2 = one retry). */
+    public function attemptCount(): int
+    {
+        return $this->attemptCount;
+    }
+
+    /** Error count: attempts that did not produce a valid response on first try. */
+    public function errorCount(): int
+    {
+        return max(0, $this->attemptCount - 1);
     }
 }

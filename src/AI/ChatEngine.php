@@ -71,6 +71,7 @@ final class ChatEngine
                 $this->normalizeSlides($project->getSlides()),
                 false,
                 $pendingConfirmation,
+                $validatedResponse->attemptCount(),
             );
         }
 
@@ -81,6 +82,8 @@ final class ChatEngine
             $validatedResponse->assistantMessage(),
             $appliedActions['slides'],
             $appliedActions['changed'],
+            null,
+            $validatedResponse->attemptCount(),
         );
     }
 
