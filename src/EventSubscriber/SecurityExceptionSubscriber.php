@@ -4,6 +4,7 @@ namespace App\EventSubscriber;
 
 use App\Entity\User;
 use App\Exception\InvalidHeaderCsrfTokenException;
+use App\Ops\OpsLogger;
 use App\Security\SecurityLogger;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -22,6 +23,7 @@ final class SecurityExceptionSubscriber implements EventSubscriberInterface
         private readonly Environment $twig,
         private readonly SecurityLogger $securityLogger,
         private readonly Security $security,
+        private readonly OpsLogger $opsLogger,
     ) {
     }
 
@@ -115,12 +117,21 @@ final class SecurityExceptionSubscriber implements EventSubscriberInterface
         }
 
         $user = $this->security->getUser();
+        $userId = $user instanceof User ? $user->getId() : null;
+        $provider = (string) $request->request->get('provider', 'openai');
+        $model = (string) $request->request->get('model', 'default');
 
         $this->securityLogger->logAiQuotaExceeded(
-            $user instanceof User ? $user->getId() : null,
+            $userId,
             $request->getClientIp(),
-            (string) $request->request->get('provider', 'openai'),
-            (string) $request->request->get('model', 'default'),
+            $provider,
+            $model,
+        );
+
+        $this->opsLogger->logQuotaExceeded(
+            $userId,
+            $provider,
+            new \DateTimeImmutable(),
         );
     }
 }

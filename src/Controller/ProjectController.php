@@ -11,6 +11,8 @@ use App\Project\ProjectDuplicator;
 use App\Project\ProjectShareLinkGenerator;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
+use App\Repository\ProjectGenerationMetricRepository;
+use App\Repository\MediaAssetRepository;
 use App\Repository\ProjectRepository;
 use App\Repository\ProjectVersionRepository;
 use App\Repository\SlideRepository;
@@ -100,16 +102,40 @@ final class ProjectController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_project_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, ProjectGenerationMetricRepository $projectGenerationMetricRepository): Response
+    public function show(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, MediaAssetRepository $mediaAssetRepository, SlideRepository $slideRepository): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
         $costMap = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
         $totalAiCostUsd = round(($costMap[$project->getId() ?? 0] ?? 0) / 100, 4);
 
+        $projectId = (int) $project->getId();
+        $aiTotals  = $generationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
+        $aiCostUsd = round(((int) ($aiTotals[$projectId] ?? 0)) / 100, 4);
+
         return $this->render('project/show.html.twig', [
+            'project'     => $project,
+            'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
+            'mediaAssets' => $mediaAssetRepository->findByProject($project),
+            'slides'      => $slideRepository->findByProjectOrdered($project),
+        ]);
+    }
+
+    /**
+     * HRM-F35 / T283–T290 — Two-panel editor layout (chat left 40 % + preview right 60 %).
+     *
+     * Dedicated full-viewport page: the layout uses CSS Grid with height:100vh and
+     * internal scroll on each panel so the browser never shows a page-level scrollbar.
+     */
+    #[Route('/{id}/editor', name: 'app_project_editor', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): Response
+    {
+        $project = $this->findOwnedProjectOr404($id, $projectRepository);
+
+        return $this->render('project/editor.html.twig', [
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
             'totalAiCostUsd' => $totalAiCostUsd,
+            'aiCostUsd' => $aiCostUsd,
         ]);
     }
 
@@ -486,6 +512,7 @@ final class ProjectController extends AbstractController
         return $this->render($template, [
             ...$parameters,
             'projectForm' => $form,
+            'modelsByProvider' => json_encode(Project::modelsByProvider(), JSON_THROW_ON_ERROR),
         ], new Response(status: $statusCode));
     }
 }
