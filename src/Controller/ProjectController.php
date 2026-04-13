@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Project;
+use App\Entity\Slide;
 use App\Entity\ProjectVersion;
 use App\Entity\User;
 use App\Form\ProjectType;
@@ -111,9 +112,18 @@ final class ProjectController extends AbstractController
         $aiCostUsd = round(((int) ($costMap[$projectId] ?? 0)) / 100, 4);
 
         $slidesHtml = [];
-        foreach ($project->getSlides() as $slide) {
+        foreach ($project->getSlides() as $slideData) {
+            $slideId = (string) ($slideData['id'] ?? '');
+            if ($slideId === '') {
+                continue;
+            }
             try {
-                $slidesHtml[(string) $slide->getId()] = $slideBuilder->buildSlide($slide);
+                $transientSlide = (new Slide())
+                    ->setProject($project)
+                    ->setType((string) ($slideData['type'] ?? Slide::TYPE_CONTENT))
+                    ->setContent($slideData)
+                    ->setPosition((int) ($slideData['position'] ?? 1));
+                $slidesHtml[$slideId] = $slideBuilder->buildSlide($transientSlide);
             } catch (\Throwable) {
                 // skip unrenderable slides
             }
@@ -144,9 +154,18 @@ final class ProjectController extends AbstractController
         $aiCostUsd = round(((int) ($costMap[(int) $project->getId()] ?? 0)) / 100, 4);
 
         $slidesHtml = [];
-        foreach ($project->getSlides() as $slide) {
+        foreach ($project->getSlides() as $slideData) {
+            $slideId = (string) ($slideData['id'] ?? '');
+            if ($slideId === '') {
+                continue;
+            }
             try {
-                $slidesHtml[(string) $slide->getId()] = $slideBuilder->buildSlide($slide);
+                $transientSlide = (new Slide())
+                    ->setProject($project)
+                    ->setType((string) ($slideData['type'] ?? Slide::TYPE_CONTENT))
+                    ->setContent($slideData)
+                    ->setPosition((int) ($slideData['position'] ?? 1));
+                $slidesHtml[$slideId] = $slideBuilder->buildSlide($transientSlide);
             } catch (\Throwable) {
                 // skip unrenderable slides
             }
