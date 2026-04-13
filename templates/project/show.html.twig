@@ -63,10 +63,212 @@
             font-size: 1.3rem;
         }
 
-        .hm-preview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        /* T291 — Live preview zone */
+        .hm-live-preview {
+            margin-bottom: 20px;
+        }
+
+        .hm-live-preview__empty {
+            padding: 20px 22px;
+            border-radius: 20px;
+            border: 1px dashed rgba(23, 63, 53, 0.18);
+            background: rgba(255, 255, 255, 0.62);
+        }
+
+        .hm-live-preview__empty strong {
+            display: block;
+            margin-bottom: 8px;
+            font-family: var(--hm-font-title);
+            font-size: 1.3rem;
+        }
+
+        .hm-live-preview__frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            border-radius: 16px;
+            background: var(--hm-bg, #0c0c14);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+        }
+
+        .hm-live-preview__inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1280px;
+            height: 720px;
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
+        .hm-live-preview__nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 16px;
+            margin-top: 12px;
+        }
+
+        .hm-live-preview__counter {
+            font-size: 0.9rem;
+            color: var(--hm-ink-soft, rgba(23, 63, 53, 0.6));
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .hm-btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 1px solid rgba(23, 63, 53, 0.16);
+            background: rgba(255, 255, 255, 0.84);
+            color: var(--hm-ink, #0c1a14);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .hm-btn-icon:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: rgba(23, 63, 53, 0.3);
+        }
+
+        .hm-btn-icon:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+
+        /* T293 — Thumbnail strip */
+        .hm-thumbnail-strip {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 8px 4px 10px;
+            scrollbar-width: thin;
+        }
+
+        .hm-thumbnail-strip::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .hm-thumbnail-strip::-webkit-scrollbar-thumb {
+            background: rgba(23, 63, 53, 0.18);
+            border-radius: 999px;
+        }
+
+        .hm-thumbnail {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 4px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .hm-thumbnail:hover {
+            border-color: rgba(23, 63, 53, 0.22);
+        }
+
+        /* T293 — Active slide indicator */
+        .hm-thumbnail--active {
+            border-color: rgba(124, 58, 237, 0.7);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+        }
+
+        .hm-thumbnail__frame {
+            position: relative;
+            width: 160px;
+            height: 90px;
+            overflow: hidden;
+            border-radius: 7px;
+            background: var(--hm-bg, #0c0c14);
+        }
+
+        .hm-thumbnail__inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1280px;
+            height: 720px;
+            transform: scale(0.125);
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
+        /* Text-based placeholder shown before rendered HTML arrives */
+        .hm-thumbnail__inner--text {
+            width: 160px;
+            height: 90px;
+            transform: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding: 8px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(16, 185, 129, 0.08));
+        }
+
+        .hm-thumbnail__type {
+            display: block;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(232, 228, 255, 0.55);
+            font-family: var(--hm-font-mono, monospace);
+        }
+
+        .hm-thumbnail__title {
+            display: block;
+            font-size: 0.65rem;
+            color: rgba(232, 228, 255, 0.85);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
+        }
+
+        .hm-thumbnail__number {
+            font-size: 0.72rem;
+            color: var(--hm-ink-soft, rgba(23, 63, 53, 0.55));
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* T296 — Loading skeleton shown during SSE generation */
+        .hm-thumbnail-loading {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding: 4px;
+        }
+
+        .hm-thumbnail-skeleton {
+            flex: 0 0 auto;
+            width: 160px;
+            height: 90px;
+            border-radius: 7px;
+            background: linear-gradient(
+                90deg,
+                rgba(23, 63, 53, 0.06) 25%,
+                rgba(23, 63, 53, 0.12) 50%,
+                rgba(23, 63, 53, 0.06) 75%
+            );
+            background-size: 200% 100%;
+            animation: hm-skeleton-shimmer 1.4s infinite;
+        }
+
+        @keyframes hm-skeleton-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
 
         .hm-preview-card {
@@ -274,6 +476,33 @@
                 width: 100%;
             }
         }
+
+        /* HRM-T270 — PDF failure notice */
+        .hm-pdf-failure {
+            padding: 14px 18px;
+            border-radius: 16px;
+            border: 1px solid rgba(239, 68, 68, 0.22);
+            background: rgba(239, 68, 68, 0.07);
+            color: var(--hm-danger);
+        }
+
+        .hm-pdf-failure__body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hm-pdf-failure__message {
+            margin: 0;
+            line-height: 1.55;
+        }
+
+        .hm-pdf-failure__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
     </style>
 {% endblock %}
 
@@ -300,6 +529,11 @@
                         <a class="hm-link" href="{{ path('app_project_versions', { id: project.id }) }}">{{ 'project.card.history'|trans }}</a>
                         {% if not project.isArchived %}
                             <a class="hm-link" href="{{ path('app_project_edit', { id: project.id }) }}">{{ 'project.card.edit'|trans }}</a>
+                            <button
+                                class="hm-button"
+                                type="button"
+                                data-drawer-open="hm-customization-drawer"
+                            >{{ 'project.drawer.open'|trans }}</button>
                         {% endif %}
                     </div>
                 </header>
@@ -311,6 +545,25 @@
                 {% for flash in app.flashes('error') %}
                     <div class="hm-alert hm-alert--danger">{{ flash }}</div>
                 {% endfor %}
+
+                {# HRM-T270 — PDF failure notification (shown by JS when Gotenberg fails) #}
+                <div
+                    class="hm-pdf-failure"
+                    data-pdf-failure-notice
+                    hidden
+                    data-msg-timeout="{{ 'project.export.pdf_error.timeout'|trans }}"
+                    data-msg-server="{{ 'project.export.pdf_error.server'|trans }}"
+                    data-msg-connection="{{ 'project.export.pdf_error.connection'|trans }}"
+                    data-msg-generic="{{ 'project.export.pdf_error.generic'|trans }}"
+                >
+                    <div class="hm-pdf-failure__body">
+                        <p class="hm-pdf-failure__message" data-pdf-failure-message></p>
+                        <div class="hm-pdf-failure__actions">
+                            <a class="hm-link" data-pdf-fallback-link href="#">{{ 'project.export.pdf_fallback_html'|trans }}</a>
+                            <button type="button" class="hm-link" data-pdf-retry-btn>{{ 'project.export.pdf_retry'|trans }}</button>
+                        </div>
+                    </div>
+                </div>
 
                 <section class="hm-dashboard-grid">
                     <article class="hm-dashboard-card">
@@ -332,6 +585,10 @@
                     <article class="hm-dashboard-card">
                         <strong>{{ 'project.show.card.media'|trans }}</strong>
                         <p class="hm-muted">{{ project.mediaRefsCount }}</p>
+                    </article>
+                    <article class="hm-dashboard-card">
+                        <strong>{{ 'project.show.card.ai_cost'|trans }}</strong>
+                        <p class="hm-muted" data-ai-cost-total>{{ totalAiCostUsd|number_format(4, '.', '') }} USD</p>
                     </article>
                     <article class="hm-dashboard-card">
                         <strong>{{ 'project.show.card.history'|trans }}</strong>
@@ -358,19 +615,32 @@
                     project: project
                 } %}
 
-                {% include 'project/_theme_preset_drawer.html.twig' with {
-                    project: project
+                {% include 'project/_customization_drawer.html.twig' with {
+                    project: project,
+                    aiCostUsd: aiCostUsd
                 } %}
 
-                {% include 'project/_theme_customization_drawer.html.twig' with {
-                    project: project
+                {% include 'project/_media_drawer.html.twig' with {
+                    project:     project,
+                    mediaAssets: mediaAssets,
+                    slides:      slides
                 } %}
 
-                {% include 'project/_animation_control_drawer.html.twig' with {
+                {% include 'project/_ai_provider_drawer.html.twig' with {
                     project: project
                 } %}
 
                 <div class="hm-actions">
+                    <a class="hm-link" href="{{ path('app_export_html_download', { id: project.id }) }}">{{ 'project.export.html'|trans }}</a>
+                    <button
+                        type="button"
+                        class="hm-link"
+                        data-pdf-export-btn
+                        data-pdf-url="{{ path('app_export_pdf_download', { id: project.id }) }}"
+                        data-html-fallback-url="{{ path('app_export_html_download', { id: project.id }) }}"
+                        data-retry-label="{{ 'project.export.pdf_retry'|trans }}"
+                        data-html-label="{{ 'project.export.pdf_fallback_html'|trans }}"
+                    >{{ 'project.export.pdf'|trans }}</button>
                     <form class="hm-inline-form" method="post" action="{{ path('app_project_duplicate', { id: project.id }) }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('duplicate_project_' ~ project.id) }}">
                         <button class="hm-link" type="submit">{{ 'project.card.duplicate'|trans }}</button>
@@ -436,6 +706,25 @@
             const previewSummary = previewPanel ? previewPanel.querySelector('[data-preview-summary]') : null;
             const previewCount = document.querySelector('[data-preview-count]');
             const previewSummaryTemplate = previewPanel ? (previewPanel.dataset.summaryTemplate || '__COUNT__ slide(s) synchronisee(s) en direct.') : '__COUNT__ slide(s) synchronisee(s) en direct.';
+
+            // T291/T292 — Live preview DOM refs
+            const livePreviewSection = previewPanel ? previewPanel.querySelector('[data-live-preview]') : null;
+            const livePreviewEmpty = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-empty]') : null;
+            const livePreviewStage = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-stage]') : null;
+            const livePreviewFrame = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-frame]') : null;
+            const livePreviewContent = livePreviewSection ? livePreviewSection.querySelector('[data-live-preview-content]') : null;
+            const prevButton = livePreviewSection ? livePreviewSection.querySelector('[data-preview-prev]') : null;
+            const nextButton = livePreviewSection ? livePreviewSection.querySelector('[data-preview-next]') : null;
+            const slideCounter = livePreviewSection ? livePreviewSection.querySelector('[data-preview-counter]') : null;
+
+            // T293 — Thumbnail strip DOM refs
+            const thumbnailStrip = previewPanel ? previewPanel.querySelector('[data-thumbnail-strip]') : null;
+            const thumbnailLoadingIndicator = thumbnailStrip ? thumbnailStrip.querySelector('[data-thumbnail-loading-indicator]') : null;
+
+            // T291/T295 — Active slide tracking and rendered HTML cache
+            let activeSlideId = null;
+            const slideHtmlMap = new Map();
+
             let activeEventSource = null;
             let streamCompleted = false;
             let isStreaming = false;
@@ -443,6 +732,158 @@
             let pendingConfirmation = confirmationForm && !confirmationForm.hidden
                 ? { summary: confirmationSummary ? confirmationSummary.textContent.trim() : '' }
                 : null;
+
+            // T291 — Compute and apply live preview scale to fit the frame
+            const updateLivePreviewScale = () => {
+                if (!livePreviewFrame || !livePreviewContent) {
+                    return;
+                }
+
+                const scale = livePreviewFrame.offsetWidth / 1280;
+                livePreviewContent.style.transform = `scale(${scale})`;
+            };
+
+            // T291 — Update the live preview frame with given rendered HTML
+            const updateLivePreview = (html) => {
+                if (!livePreviewContent) {
+                    return;
+                }
+
+                livePreviewContent.innerHTML = html || '';
+                updateLivePreviewScale();
+            };
+
+            // T293 — Return ordered list of slide IDs from the thumbnail strip
+            const getOrderedSlideIds = () => {
+                if (!thumbnailStrip) {
+                    return [];
+                }
+
+                return Array.from(thumbnailStrip.querySelectorAll('[data-preview-slide]'))
+                    .map((el) => String(el.dataset.previewSlideId || ''))
+                    .filter((id) => id !== '');
+            };
+
+            // T293 — Update the slide counter label
+            const updateSlideCounter = () => {
+                if (!slideCounter) {
+                    return;
+                }
+
+                const ids = getOrderedSlideIds();
+                const total = ids.length;
+
+                if (total === 0) {
+                    slideCounter.textContent = '';
+                    return;
+                }
+
+                const current = activeSlideId ? ids.indexOf(activeSlideId) + 1 : 1;
+                slideCounter.textContent = `${current} / ${total}`;
+            };
+
+            // T293 — Update prev/next button disabled state
+            const updateNavButtons = () => {
+                const ids = getOrderedSlideIds();
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : -1;
+
+                if (prevButton) {
+                    prevButton.disabled = idx <= 0;
+                }
+
+                if (nextButton) {
+                    nextButton.disabled = idx < 0 || idx >= ids.length - 1;
+                }
+            };
+
+            // T295 — Activate a slide by ID: highlight thumbnail and show full preview
+            const activateSlide = (slideId) => {
+                if (!thumbnailStrip) {
+                    return;
+                }
+
+                activeSlideId = slideId;
+
+                // Update thumbnail active state
+                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                    if (thumb.dataset.previewSlideId === slideId) {
+                        thumb.classList.add('hm-thumbnail--active');
+                        thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    } else {
+                        thumb.classList.remove('hm-thumbnail--active');
+                    }
+                });
+
+                // T291/T292 — Update live preview with the slide's rendered HTML
+                const html = slideHtmlMap.get(slideId) || null;
+                if (html) {
+                    updateLivePreview(html);
+                    if (livePreviewStage) livePreviewStage.hidden = false;
+                    if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                }
+
+                updateSlideCounter();
+                updateNavButtons();
+            };
+
+            // T297 — Navigate to the previous slide
+            const navigatePrev = () => {
+                const ids = getOrderedSlideIds();
+                if (ids.length === 0) {
+                    return;
+                }
+
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : 0;
+                const newIdx = Math.max(0, idx - 1);
+
+                if (ids[newIdx] !== activeSlideId) {
+                    activateSlide(ids[newIdx]);
+                }
+            };
+
+            // T297 — Navigate to the next slide
+            const navigateNext = () => {
+                const ids = getOrderedSlideIds();
+                if (ids.length === 0) {
+                    return;
+                }
+
+                const idx = activeSlideId ? ids.indexOf(activeSlideId) : 0;
+                const newIdx = Math.min(ids.length - 1, idx + 1);
+
+                if (ids[newIdx] !== activeSlideId) {
+                    activateSlide(ids[newIdx]);
+                }
+            };
+
+            // T294 — Build a thumbnail button element for a slide
+            const buildThumbnailElement = (slideId, position, html) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'hm-thumbnail';
+                btn.dataset.previewSlide = '';
+                btn.dataset.previewSlideId = String(slideId);
+                btn.dataset.previewSlidePosition = String(position);
+                btn.setAttribute('aria-label', `Slide ${position}`);
+
+                const frame = document.createElement('div');
+                frame.className = 'hm-thumbnail__frame';
+
+                const inner = document.createElement('div');
+                inner.className = 'hm-thumbnail__inner';
+                inner.innerHTML = html || '';
+
+                frame.appendChild(inner);
+
+                const number = document.createElement('span');
+                number.className = 'hm-thumbnail__number';
+                number.textContent = String(position);
+
+                btn.appendChild(frame);
+                btn.appendChild(number);
+
+                return btn;
+            };
 
             const hideError = () => {
                 errorBox.hidden = true;
@@ -513,42 +954,78 @@
                 syncComposerState();
             };
 
+            // T292/T294 — Upsert a slide thumbnail and update live preview on SSE events
             const upsertPreviewSlide = (payload) => {
-                if (!previewList || !payload || !payload.slide || !payload.html) {
-                    if (!previewList || !payload || !payload.slide) {
-                        return;
-                    }
-                }
-
-                if (previewEmpty) {
-                    previewEmpty.hidden = true;
-                }
-
-                const slideId = String(payload.slide.id || '');
-                const cards = Array.from(previewList.querySelectorAll('[data-preview-slide]'));
-                const existingCard = cards.find((card) => card.dataset.previewSlideId === slideId);
-
-                 if (payload.slide.removed) {
-                    if (existingCard) {
-                        existingCard.remove();
-                    }
-
-                    if (previewEmpty && previewList.querySelectorAll('[data-preview-slide]').length === 0) {
-                        previewEmpty.hidden = false;
-                    }
-
-                    updateSlidesCount();
-
+                if (!thumbnailStrip || !payload || !payload.slide) {
                     return;
                 }
 
-                if (existingCard) {
-                    existingCard.outerHTML = payload.html;
+                const slideId = String(payload.slide.id || '');
+                const existingThumb = thumbnailStrip.querySelector(`[data-preview-slide-id="${CSS.escape(slideId)}"]`);
+
+                if (payload.slide.removed) {
+                    if (existingThumb) {
+                        existingThumb.remove();
+                    }
+
+                    slideHtmlMap.delete(slideId);
+
+                    // If the removed slide was active, activate the first remaining slide
+                    if (activeSlideId === slideId) {
+                        const firstThumb = thumbnailStrip.querySelector('[data-preview-slide]');
+                        activateSlide(firstThumb ? String(firstThumb.dataset.previewSlideId) : null);
+                    }
+
+                    const remaining = thumbnailStrip.querySelectorAll('[data-preview-slide]').length;
+                    if (previewEmpty) previewEmpty.hidden = remaining > 0;
+                    if (livePreviewEmpty) livePreviewEmpty.hidden = remaining > 0;
+                    if (livePreviewStage) livePreviewStage.hidden = remaining === 0;
+
+                    updateSlidesCount();
+                    updateSlideCounter();
+                    updateNavButtons();
+                    return;
+                }
+
+                const html = String(payload.html || '');
+                const position = Number(payload.slide.position || 1);
+
+                // Cache the rendered HTML for live preview
+                slideHtmlMap.set(slideId, html);
+
+                if (existingThumb) {
+                    // T294 — Update existing thumbnail's inner content with fresh rendered HTML
+                    const inner = existingThumb.querySelector('.hm-thumbnail__inner');
+                    if (inner) {
+                        inner.className = 'hm-thumbnail__inner';
+                        inner.innerHTML = html;
+                    }
+
+                    // Update position label if changed
+                    const numLabel = existingThumb.querySelector('.hm-thumbnail__number');
+                    if (numLabel) numLabel.textContent = String(position);
                 } else {
-                    previewList.insertAdjacentHTML('beforeend', payload.html);
+                    // T293 — Insert a new thumbnail button (remove a skeleton if present)
+                    const skeleton = thumbnailStrip.querySelector('[data-thumbnail-loading-indicator] .hm-thumbnail-skeleton');
+                    if (skeleton) skeleton.remove();
+
+                    const thumbEl = buildThumbnailElement(slideId, position, html);
+                    thumbnailStrip.insertBefore(thumbEl, thumbnailLoadingIndicator);
+                }
+
+                // Reveal the live preview zone
+                if (previewEmpty) previewEmpty.hidden = true;
+                if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                if (livePreviewStage) livePreviewStage.hidden = false;
+
+                // T292 — Auto-activate first arriving slide, or update live preview if already active
+                if (!activeSlideId || activeSlideId === slideId) {
+                    activateSlide(slideId);
                 }
 
                 updateSlidesCount();
+                updateSlideCounter();
+                updateNavButtons();
             };
 
             const updateLoadOlderState = (hasOlderMessages, nextPage) => {
@@ -579,6 +1056,11 @@
                 setTyping(false);
                 syncComposerState();
 
+                // T296 — Hide skeleton loading indicators when streaming finishes
+                if (thumbnailLoadingIndicator) {
+                    thumbnailLoadingIndicator.hidden = true;
+                }
+
                 if (!pendingConfirmation) {
                     input.focus();
                 }
@@ -590,14 +1072,21 @@
                 closeActiveEventSource();
                 syncComposerState();
 
+                // T296 — Show skeleton loaders while generation is in progress
+                if (thumbnailLoadingIndicator) {
+                    thumbnailLoadingIndicator.hidden = false;
+                }
+
                 const eventSource = new EventSource(streamUrl);
                 activeEventSource = eventSource;
 
+                // T292 — Connect SSE slide_added to thumbnail and live preview update
                 eventSource.addEventListener('slide_added', (event) => {
                     const payload = JSON.parse(event.data);
                     upsertPreviewSlide(payload);
                 });
 
+                // T292/T294 — Connect SSE slide_updated to thumbnail and live preview update
                 eventSource.addEventListener('slide_updated', (event) => {
                     const payload = JSON.parse(event.data);
                     upsertPreviewSlide(payload);
@@ -643,6 +1132,56 @@
             }
             syncComposerState();
             updateSlidesCount();
+
+            // T295 — Event delegation for thumbnail clicks (handles initial + dynamically added thumbnails)
+            if (thumbnailStrip) {
+                thumbnailStrip.addEventListener('click', (event) => {
+                    const thumb = event.target.closest('[data-preview-slide]');
+                    if (thumb) {
+                        activateSlide(String(thumb.dataset.previewSlideId || ''));
+                    }
+                });
+
+                // Activate the first thumbnail on page load if slides exist
+                const firstThumb = thumbnailStrip.querySelector('[data-preview-slide]');
+                if (firstThumb) {
+                    activeSlideId = String(firstThumb.dataset.previewSlideId || '');
+                    updateNavButtons();
+                    updateSlideCounter();
+                }
+            }
+
+            // T291 — Scale live preview to fit its container (and re-scale on resize)
+            if (livePreviewFrame && typeof ResizeObserver !== 'undefined') {
+                const observer = new ResizeObserver(updateLivePreviewScale);
+                observer.observe(livePreviewFrame);
+            }
+            updateLivePreviewScale();
+
+            // T295/T297 — Prev/next button click handlers
+            if (prevButton) {
+                prevButton.addEventListener('click', navigatePrev);
+            }
+
+            if (nextButton) {
+                nextButton.addEventListener('click', navigateNext);
+            }
+
+            // T297 — Keyboard arrow navigation within the preview panel
+            document.addEventListener('keydown', (event) => {
+                // Only navigate when focus is not inside a form/input
+                if (event.target.closest('input, textarea, select, [contenteditable]')) {
+                    return;
+                }
+
+                if (event.key === 'ArrowLeft') {
+                    event.preventDefault();
+                    navigatePrev();
+                } else if (event.key === 'ArrowRight') {
+                    event.preventDefault();
+                    navigateNext();
+                }
+            });
 
             input.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
@@ -720,8 +1259,26 @@
                             throw data;
                         }
 
-                        if (previewList && typeof data.previewHtml === 'string') {
-                            previewList.innerHTML = data.previewHtml;
+                        // Rebuild the thumbnail strip from the server-rendered HTML and reset active state
+                        if (thumbnailStrip && typeof data.previewHtml === 'string') {
+                            // Remove existing thumbnails (keep the loading indicator placeholder)
+                            thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((el) => el.remove());
+                            thumbnailStrip.insertAdjacentHTML('afterbegin', data.previewHtml);
+                        }
+
+                        slideHtmlMap.clear();
+                        activeSlideId = null;
+
+                        const firstThumb = thumbnailStrip ? thumbnailStrip.querySelector('[data-preview-slide]') : null;
+                        if (firstThumb) {
+                            firstThumb.classList.add('hm-thumbnail--active');
+                            activeSlideId = String(firstThumb.dataset.previewSlideId || '');
+                            if (livePreviewContent) livePreviewContent.innerHTML = '';
+                            if (livePreviewStage) livePreviewStage.hidden = false;
+                            if (livePreviewEmpty) livePreviewEmpty.hidden = true;
+                        } else {
+                            if (livePreviewStage) livePreviewStage.hidden = true;
+                            if (livePreviewEmpty) livePreviewEmpty.hidden = false;
                         }
 
                         if (previewEmpty) {
@@ -729,6 +1286,8 @@
                         }
 
                         updateSlidesCount();
+                        updateSlideCounter();
+                        updateNavButtons();
                         setPendingConfirmation(data.pendingConfirmation || null);
                     } catch (error) {
                         showError((error.errors && error.errors.join(' ')) || genericError);
@@ -797,6 +1356,83 @@
                     input.focus();
                 }
             });
+        })();
+    </script>
+
+    {# HRM-T270/T271 — PDF export with Gotenberg fallback #}
+    <script>
+        (() => {
+            const btn = document.querySelector('[data-pdf-export-btn]');
+            if (!btn) return;
+
+            const notice       = document.querySelector('[data-pdf-failure-notice]');
+            const msgEl        = notice ? notice.querySelector('[data-pdf-failure-message]') : null;
+            const fallbackLink = notice ? notice.querySelector('[data-pdf-fallback-link]') : null;
+            const retryBtn     = notice ? notice.querySelector('[data-pdf-retry-btn]') : null;
+
+            const msgMap = {
+                gotenberg_timeout:            notice ? notice.dataset.msgTimeout    : '',
+                gotenberg_server_error:       notice ? notice.dataset.msgServer     : '',
+                gotenberg_connection_refused: notice ? notice.dataset.msgConnection : '',
+            };
+            const msgGeneric = notice ? notice.dataset.msgGeneric : '';
+
+            async function triggerPdfExport() {
+                const pdfUrl      = btn.dataset.pdfUrl;
+                const htmlFallback = btn.dataset.htmlFallbackUrl;
+
+                if (notice) notice.hidden = true;
+                btn.disabled = true;
+
+                try {
+                    const res = await fetch(pdfUrl, { headers: { Accept: 'application/pdf,application/json' } });
+
+                    if (res.ok) {
+                        // Trigger download via blob
+                        const blob     = await res.blob();
+                        const blobUrl  = URL.createObjectURL(blob);
+                        const anchor   = document.createElement('a');
+                        const cd       = res.headers.get('Content-Disposition') || '';
+                        const match    = cd.match(/filename="([^"]+)"/);
+                        anchor.href     = blobUrl;
+                        anchor.download = match ? match[1] : 'export.pdf';
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        document.body.removeChild(anchor);
+                        URL.revokeObjectURL(blobUrl);
+                    } else {
+                        // Gotenberg failure — show inline notice
+                        let errorCode = '';
+                        let computedFallback = htmlFallback;
+                        try {
+                            const data    = await res.json();
+                            errorCode     = data.errorCode || '';
+                            if (data.htmlFallbackUrl) computedFallback = data.htmlFallbackUrl;
+                        } catch (_) {}
+
+                        if (notice && msgEl) {
+                            msgEl.textContent = msgMap[errorCode] || msgGeneric;
+                            if (fallbackLink) fallbackLink.href = computedFallback;
+                            notice.hidden = false;
+                        }
+                    }
+                } catch (_) {
+                    if (notice && msgEl) {
+                        msgEl.textContent = msgGeneric;
+                        if (fallbackLink) fallbackLink.href = htmlFallback;
+                        notice.hidden = false;
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            btn.addEventListener('click', () => triggerPdfExport());
+
+            // HRM-T271 — retry button triggers a new call without page reload
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => triggerPdfExport());
+            }
         })();
     </script>
 {% endblock %}

@@ -31,7 +31,7 @@ final class ProjectDashboardMetricsTest extends FunctionalTestCase
             'Boreal Archive',
             Project::STATUS_ACTIVE,
             'anthropic',
-            'claude-3-7-sonnet',
+            'claude-sonnet-4-6',
             4,
             '2026-04-11 18:30:00',
             archived: true,
@@ -57,7 +57,7 @@ final class ProjectDashboardMetricsTest extends FunctionalTestCase
         );
 
         $this->recordGenerationMetric($atlas, 'openai', 'gpt-4.1', '1.20');
-        $this->recordGenerationMetric($boreal, 'anthropic', 'claude-3-7-sonnet', '2.25');
+        $this->recordGenerationMetric($boreal, 'anthropic', 'claude-sonnet-4-6', '2.25');
         $this->recordGenerationMetric($zephyr, 'openai', 'gpt-4.1-mini', '0.55');
         $this->recordGenerationMetric($hidden, 'openai', 'gpt-4.1', '9.99');
 

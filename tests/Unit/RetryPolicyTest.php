@@ -11,11 +11,26 @@ use App\AI\ResponseSchema;
 use App\AI\ResponseValidationException;
 use App\AI\ResponseValidator;
 use App\AI\RetryPolicy;
+use App\Ops\OpsLogger;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
 final class RetryPolicyTest extends TestCase
 {
+    /** Build a RetryPolicy with stub logger and stub OpsLogger. */
+    private function buildRetryPolicy(): RetryPolicy
+    {
+        $logger = $this->createStub(LoggerInterface::class);
+        $opsLogger = $this->createStub(OpsLogger::class);
+
+        return new RetryPolicy(
+            new ResponseValidator(new ResponseSchema(), $logger),
+            new ResponseSchema(),
+            $logger,
+            $opsLogger,
+        );
+    }
+
     public function testRetryOnceWhenFirstPayloadIsInvalidAndSecondIsCorrected(): void
     {
         $provider = new class(
@@ -67,12 +82,7 @@ final class RetryPolicyTest extends TestCase
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $result = $retryPolicy->sendWithRetry(
             $provider,
@@ -136,12 +146,7 @@ JSON),
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $result = $retryPolicy->sendWithRetry(
             $provider,
@@ -197,12 +202,7 @@ JSON),
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $this->expectException(ResponseValidationException::class);
 
@@ -272,12 +272,7 @@ JSON),
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $result = $retryPolicy->sendWithRetry(
             $provider,
@@ -327,12 +322,7 @@ JSON),
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $this->expectException(ProviderTimeoutException::class);
 
@@ -402,12 +392,7 @@ JSON),
             }
         };
 
-        $logger = $this->createStub(LoggerInterface::class);
-        $retryPolicy = new RetryPolicy(
-            new ResponseValidator(new ResponseSchema(), $logger),
-            new ResponseSchema(),
-            $logger,
-        );
+        $retryPolicy = $this->buildRetryPolicy();
 
         $retryPolicy->sendWithRetry(
             $provider,

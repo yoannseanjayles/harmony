@@ -1,7 +1,18 @@
 {% for slide in slides %}
-    {% include 'project/_preview_slide.html.twig' with {
-        slide: slide|merge({
-            position: loop.index
-        })
-    } %}
+    <button
+        class="hm-thumbnail{% if loop.first %} hm-thumbnail--active{% endif %}"
+        type="button"
+        data-preview-slide
+        data-preview-slide-id="{{ slide.id|default('') }}"
+        data-preview-slide-position="{{ loop.index }}"
+        aria-label="{{ 'project.preview.slide_badge'|trans({ '%number%': loop.index }) }}"
+    >
+        <div class="hm-thumbnail__frame">
+            <div class="hm-thumbnail__inner hm-thumbnail__inner--text">
+                <span class="hm-thumbnail__type">{{ ('slide.type.' ~ slide.type|default('content'))|trans }}</span>
+                <span class="hm-thumbnail__title">{{ slide.title|default('Slide ' ~ loop.index)|slice(0, 40) }}</span>
+            </div>
+        </div>
+        <span class="hm-thumbnail__number">{{ loop.index }}</span>
+    </button>
 {% endfor %}
