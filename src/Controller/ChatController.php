@@ -2,9 +2,7 @@
 
 namespace App\Controller;
 
-use App\AI\AiTokenCostCalculator;
 use App\AI\AICostCalculator;
-use App\AI\ChatCompletionService;
 use App\AI\ChatEngine;
 use App\AI\EmptyAIResponseException;
 use App\Entity\ChatMessage;
@@ -63,12 +61,10 @@ final class ChatController extends AbstractController
         ProjectRepository $projectRepository,
         ChatMessageRepository $chatMessageRepository,
         ChatStreamSessionStore $chatStreamSessionStore,
-        ChatCompletionService $chatCompletionService,
+        ChatEngine $chatEngine,
         ProjectVersioning $projectVersioning,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
-        AiTokenCostCalculator $costCalculator,
-        ProjectMetricsRecorder $metricsRecorder,
         AICostCalculator $aiCostCalculator,
         ProjectMetricsRecorder $projectMetricsRecorder,
     ): Response {
@@ -134,7 +130,7 @@ final class ChatController extends AbstractController
         $generationStartedAt = microtime(true);
 
         try {
-            $generationResult = $chatCompletionService->generateAssistantReply(
+            $generationResult = $chatEngine->generateAssistantReply(
                 $project,
                 $user,
                 $message->getContent(),
@@ -161,17 +157,17 @@ final class ChatController extends AbstractController
             }
 
             try {
-                $providerResponse = $generationResult->providerResponse();
-                $estimatedCost = $costCalculator->calculate(
-                    $providerResponse->model(),
-                    $providerResponse->inputTokens(),
-                    $providerResponse->outputTokens(),
+                $pr = $generationResult->providerResponse();
+                $estimatedCostUsd = $aiCostCalculator->calculateUsd(
+                    $pr->model(),
+                    $pr->inputTokens() ?? 0,
+                    $pr->outputTokens() ?? 0,
                 );
-                $metricsRecorder->recordGeneration(
+                $projectMetricsRecorder->recordGeneration(
                     project: $project,
-                    provider: $providerResponse->provider(),
-                    model: $providerResponse->model(),
-                    estimatedCostUsd: $estimatedCost,
+                    provider: $pr->provider(),
+                    model: $pr->model(),
+                    estimatedCostUsd: $estimatedCostUsd,
                     slideCount: $project->getSlidesCount(),
                     durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
                     iterationCount: count($priorConversation) + 1,
@@ -180,14 +176,6 @@ final class ChatController extends AbstractController
             } catch (\Throwable) {
                 // Metric recording must never block generation
             }
-            // T321 — Record estimated generation cost
-            $pr = $generationResult->providerResponse();
-            $estimatedCostUsd = $aiCostCalculator->calculateUsd(
-                $pr->model(),
-                $pr->inputTokens() ?? 0,
-                $pr->outputTokens() ?? 0,
-            );
-            $projectMetricsRecorder->recordGeneration($project, $pr->provider(), $pr->model(), $estimatedCostUsd);
         } catch (\Throwable $e) {
             $isEmptyResponse = $e instanceof EmptyAIResponseException;
 
