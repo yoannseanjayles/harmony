@@ -47,19 +47,18 @@ final class FeatureTwoSecurityTest extends FunctionalTestCase
 
     public function testRegistrationEndpointIsRateLimitedByIp(): void
     {
-        $this->client->request('POST', '/register', [
-            'registration_form' => [
-                'email' => 'first@harmony.test',
-                'plainPassword' => [
-                    'first' => 'RegisterPass123',
-                    'second' => 'RegisterPass123',
-                ],
-                '_token' => $this->csrfToken('submit'),
-            ],
+        // First registration: use submitForm so the SameOriginCsrfTokenManager
+        // double-submit cookie is set correctly by the browser client.
+        $this->client->request('GET', '/register');
+        $this->client->submitForm('Creer mon compte', [
+            'registration_form[email]' => 'first@harmony.test',
+            'registration_form[plainPassword][first]' => 'RegisterPass123',
+            'registration_form[plainPassword][second]' => 'RegisterPass123',
         ]);
 
         self::assertResponseRedirects('/login');
 
+        // Second registration: the rate limiter fires before CSRF / form validation.
         $this->client->request('POST', '/register', [
             'registration_form' => [
                 'email' => 'second@harmony.test',
@@ -67,7 +66,6 @@ final class FeatureTwoSecurityTest extends FunctionalTestCase
                     'first' => 'RegisterPass123',
                     'second' => 'RegisterPass123',
                 ],
-                '_token' => $this->csrfToken('submit'),
             ],
         ]);
 
@@ -80,8 +78,12 @@ final class FeatureTwoSecurityTest extends FunctionalTestCase
         $user = $this->createUser('limits@harmony.test');
         $this->client->loginUser($user);
 
+        // Prime the Referer header (required for same-origin CSRF validation of stateless tokens)
+        // and retrieve the api_mutation token value from the hm-csrf-api meta tag.
+        $csrfToken = $this->apiCsrfToken();
+
         $headers = [
-            'HTTP_X_CSRF_TOKEN' => $this->csrfToken('api_mutation'),
+            'HTTP_X_CSRF_TOKEN' => $csrfToken,
         ];
 
         $this->client->request('POST', '/ai/prompt', server: $headers);
@@ -117,5 +119,19 @@ final class FeatureTwoSecurityTest extends FunctionalTestCase
     private function csrfToken(string $tokenId): string
     {
         return static::getContainer()->get(CsrfTokenManagerInterface::class)->getToken($tokenId)->getValue();
+    }
+
+    /**
+     * Makes a GET request to prime the BrowserKit Referer for subsequent POSTs and returns
+     * the api_mutation CSRF token value embedded in the hm-csrf-api meta tag.
+     * (SameOriginCsrfTokenManager validates stateless tokens via same-origin / Referer check.)
+     */
+    private function apiCsrfToken(): string
+    {
+        $crawler = $this->client->request('GET', '/dashboard');
+        $meta = $crawler->filter('meta[name="hm-csrf-api"]');
+        self::assertGreaterThan(0, $meta->count(), 'hm-csrf-api meta tag not found on dashboard');
+
+        return (string) $meta->attr('content');
     }
 }

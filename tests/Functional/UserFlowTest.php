@@ -31,7 +31,7 @@ final class UserFlowTest extends FunctionalTestCase
         $this->client->submitForm('Se connecter', [
             'email' => 'lead@harmony.test',
             'password' => 'HarmonyFlow123',
-            '_remember_me' => 1,
+            '_remember_me' => 'on',
         ]);
 
         self::assertResponseRedirects('/dashboard');

@@ -9,3 +9,14 @@ framework:
             - submit
             - authenticate
             - logout
+
+when@test:
+    framework:
+        csrf_protection:
+            stateless_token_ids:
+                - submit
+                - authenticate
+                - logout
+                # In tests, api_mutation must also be stateless so CsrfTokenManager can be
+                # called outside of a request context (SessionTokenStorage needs RequestStack).
+                - api_mutation

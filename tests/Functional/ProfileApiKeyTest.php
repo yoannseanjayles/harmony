@@ -27,7 +27,9 @@ final class ProfileApiKeyTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', '****3456');
         self::assertStringNotContainsString('sk-first-123456', (string) $this->client->getResponse()->getContent());
 
-        $this->entityManager->refresh($user);
+        $this->entityManager->clear();
+        $user = $this->entityManager->find(User::class, $user->getId());
+        self::assertNotNull($user);
         self::assertNotNull($user->getApiKeyEncrypted());
         self::assertNotSame('sk-first-123456', $user->getApiKeyEncrypted());
 
@@ -54,7 +56,9 @@ final class ProfileApiKeyTest extends FunctionalTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('body', 'Aucune cle API BYOK');
 
-        $this->entityManager->refresh($user);
+        $this->entityManager->clear();
+        $user = $this->entityManager->find(User::class, $user->getId());
+        self::assertNotNull($user);
         self::assertNull($user->getApiKeyEncrypted());
     }
 
