@@ -2,6 +2,7 @@
 
 namespace App\AI;
 
+use App\Ops\OpsLogger;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -12,6 +13,7 @@ final class RetryPolicy
         private readonly ResponseSchema $responseSchema,
         #[Autowire(service: 'monolog.logger.ai')]
         private readonly LoggerInterface $logger,
+        private readonly OpsLogger $opsLogger,
     ) {
     }
 
@@ -44,6 +46,13 @@ final class RetryPolicy
                     'fallbackModel' => $fallbackModel,
                 ]);
 
+                $this->opsLogger->logAiRetry(
+                    $currentPrompt->provider(),
+                    $currentPrompt->model(),
+                    $attempt,
+                    'provider_timeout',
+                );
+
                 if ($attempt === 2 || $currentPrompt->model() === $fallbackModel) {
                     throw $exception;
                 }
@@ -67,6 +76,13 @@ final class RetryPolicy
                     'errors' => $exception->errors(),
                     'payload' => $exception->rawContent(),
                 ]);
+
+                $this->opsLogger->logAiRetry(
+                    $providerResponse->provider(),
+                    $providerResponse->model(),
+                    $attempt,
+                    'validation_failure',
+                );
 
                 if ($attempt === 2) {
                     throw $exception;

@@ -3,6 +3,7 @@ monolog:
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
         - security
         - ai
+        - harmony_ops
         - export
 
 when@dev:
@@ -29,6 +30,12 @@ when@dev:
                 level: info
                 max_files: 14
                 channels: ["ai"]
+            harmony_ops:
+                type: rotating_file
+                path: "%kernel.logs_dir%/harmony_ops.log"
+                level: info
+                max_files: 14
+                channels: ["harmony_ops"]
             export:
                 type: rotating_file
                 path: "%kernel.logs_dir%/export.log"
@@ -61,6 +68,12 @@ when@test:
                 level: info
                 max_files: 14
                 channels: ["ai"]
+            harmony_ops:
+                type: rotating_file
+                path: "%kernel.logs_dir%/harmony_ops.log"
+                level: info
+                max_files: 14
+                channels: ["harmony_ops"]
             export:
                 type: rotating_file
                 path: "%kernel.logs_dir%/export.log"
@@ -104,6 +117,13 @@ when@prod:
                 level: info
                 max_files: 14
                 channels: ["ai"]
+            harmony_ops:
+                type: rotating_file
+                path: "%kernel.logs_dir%/harmony_ops.log"
+                level: info
+                max_files: 14
+                formatter: monolog.formatter.json
+                channels: ["harmony_ops"]
             export:
                 type: rotating_file
                 path: "%kernel.logs_dir%/export.log"
