@@ -311,3 +311,17 @@ project.theme.anim.speed.fast: Rapide
 project.theme.anim.intensity.reduced: "Réduit"
 project.theme.anim.intensity.normal: Normal
 project.theme.anim.intensity.max: Maximal
+
+# T315–T318 — AI provider & model drawer
+project.ai.settings.badge: "Paramètres IA"
+project.ai.settings.title: "Fournisseur & Modèle IA"
+project.ai.settings.subtitle: "Choisissez le fournisseur et le modèle utilisés pour les générations de ce projet."
+project.ai.settings.section.active: "Paramètre actif"
+project.ai.settings.section.provider: Fournisseur
+project.ai.settings.section.model: "Modèle"
+project.ai.settings.save: "Appliquer les paramètres"
+project.ai.settings.saving: "Sauvegarde…"
+project.ai.settings.error.generic: "Une erreur est survenue lors de la sauvegarde des paramètres IA."
+
+# T319 — Cumulative AI cost on project show
+project.show.card.ai_cost: "Coût IA estimé"
