@@ -13,13 +13,26 @@ final class ProjectMetricsRecorder
     {
     }
 
-    public function recordGeneration(Project $project, string $provider, string $model, string|float|int $estimatedCostUsd): ProjectGenerationMetric
-    {
+    public function recordGeneration(
+        Project $project,
+        string $provider,
+        string $model,
+        string|float|int $estimatedCostUsd,
+        int $slideCount = 0,
+        ?int $durationMs = null,
+        int $iterationCount = 1,
+        int $errorCount = 0,
+    ): ProjectGenerationMetric {
         $metric = (new ProjectGenerationMetric())
             ->setProject($project)
             ->setProvider($provider)
             ->setModel($model)
-            ->setEstimatedCostUsd($estimatedCostUsd);
+            ->setEstimatedCostUsd($estimatedCostUsd)
+            ->setSlideCount($slideCount)
+            ->setDurationMs($durationMs)
+            ->setIterationCount($iterationCount)
+            ->setErrorCount($errorCount)
+            ->setAcceptedSlideCount($slideCount); // initialised to full count; decremented on manual edit
 
         $this->entityManager->persist($metric);
         $this->entityManager->flush();

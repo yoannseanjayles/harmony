@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\AI\AiTokenCostCalculator;
 use App\AI\ChatCompletionService;
 use App\AI\ChatEngine;
 use App\AI\EmptyAIResponseException;
@@ -10,6 +11,7 @@ use App\Entity\Project;
 use App\Entity\Slide;
 use App\Entity\User;
 use App\Chat\ChatStreamSessionStore;
+use App\Project\ProjectMetricsRecorder;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ProjectRepository;
@@ -64,6 +66,8 @@ final class ChatController extends AbstractController
         ProjectVersioning $projectVersioning,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
+        AiTokenCostCalculator $costCalculator,
+        ProjectMetricsRecorder $metricsRecorder,
     ): Response {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -124,6 +128,7 @@ final class ChatController extends AbstractController
         }
 
         $assistantMessage = null;
+        $generationStartedAt = microtime(true);
 
         try {
             $generationResult = $chatCompletionService->generateAssistantReply(
@@ -150,6 +155,27 @@ final class ChatController extends AbstractController
 
             if ($generationResult->slidesChanged()) {
                 $projectVersioning->captureSnapshot($project);
+            }
+
+            try {
+                $providerResponse = $generationResult->providerResponse();
+                $estimatedCost = $costCalculator->calculate(
+                    $providerResponse->model(),
+                    $providerResponse->inputTokens(),
+                    $providerResponse->outputTokens(),
+                );
+                $metricsRecorder->recordGeneration(
+                    project: $project,
+                    provider: $providerResponse->provider(),
+                    model: $providerResponse->model(),
+                    estimatedCostUsd: $estimatedCost,
+                    slideCount: $project->getSlidesCount(),
+                    durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
+                    iterationCount: count($priorConversation) + 1,
+                    errorCount: $generationResult->errorCount(),
+                );
+            } catch (\Throwable) {
+                // Metric recording must never block generation
             }
         } catch (\Throwable $e) {
             $isEmptyResponse = $e instanceof EmptyAIResponseException;
@@ -298,6 +324,8 @@ final class ChatController extends AbstractController
         ProjectVersioning $projectVersioning,
         EntityManagerInterface $entityManager,
         SlideBuilder $slideBuilder,
+        AiTokenCostCalculator $costCalculator,
+        ProjectMetricsRecorder $metricsRecorder,
     ): StreamedResponse {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $user = $this->requireUser();
@@ -324,6 +352,8 @@ final class ChatController extends AbstractController
             $projectVersioning,
             $entityManager,
             $slideBuilder,
+            $costCalculator,
+            $metricsRecorder,
         ): void {
             $this->prepareSseStream();
             echo 'retry: '.self::STREAM_RETRY_MILLISECONDS."\n\n";
@@ -366,6 +396,7 @@ final class ChatController extends AbstractController
                 }
 
                 $priorConversation = $chatMessageRepository->findConversationBeforeMessage($project, $userMessage, 8);
+                $generationStartedAt = microtime(true);
                 $generationResult = $chatEngine->streamAssistantReply(
                     $project,
                     $user,
@@ -412,6 +443,28 @@ final class ChatController extends AbstractController
                 });
 
                 $chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
+
+                try {
+                    $providerResponse = $generationResult->providerResponse();
+                    $estimatedCost = $costCalculator->calculate(
+                        $providerResponse->model(),
+                        $providerResponse->inputTokens(),
+                        $providerResponse->outputTokens(),
+                    );
+                    $metricsRecorder->recordGeneration(
+                        project: $project,
+                        provider: $providerResponse->provider(),
+                        model: $providerResponse->model(),
+                        estimatedCostUsd: $estimatedCost,
+                        slideCount: $project->getSlidesCount(),
+                        durationMs: (int) round((microtime(true) - $generationStartedAt) * 1000),
+                        iterationCount: count($priorConversation) + 1,
+                        errorCount: $generationResult->errorCount(),
+                    );
+                } catch (\Throwable) {
+                    // Metric recording must never block generation
+                }
+
                 $history = $chatMessageRepository->paginateProjectConversation($project, 1, self::MESSAGES_PER_PAGE);
                 $doneEvent = $chatStreamSessionStore->appendEvent($streamId, 'generation_done', [
                     'assistantHtml' => $this->renderView('chat/_messages.html.twig', [
