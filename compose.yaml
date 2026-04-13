@@ -19,6 +19,20 @@ services:
       # - ./docker/db/data:/var/lib/postgresql/data:rw
 ###< doctrine/doctrine-bundle ###
 
+###> harmony/gotenberg ###
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+    # HRM-T266 — Gotenberg converts HTML → PDF via headless Chromium.
+    # Set GOTENBERG_URL=http://gotenberg:3000 in your .env.local (or .env.docker).
+    command:
+      - "gotenberg"
+      - "--chromium-disable-javascript=false"
+      - "--chromium-allow-list=file:///tmp/.*"
+    ports:
+      - "3000:3000"
+###< harmony/gotenberg ###
+
 volumes:
 ###> doctrine/doctrine-bundle ###
   database_data:

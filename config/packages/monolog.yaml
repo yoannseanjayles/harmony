@@ -4,6 +4,7 @@ monolog:
         - security
         - ai
         - harmony_ops
+        - export
 
 when@dev:
     monolog:
@@ -35,6 +36,12 @@ when@dev:
                 level: info
                 max_files: 14
                 channels: ["harmony_ops"]
+            export:
+                type: rotating_file
+                path: "%kernel.logs_dir%/export.log"
+                level: info
+                max_files: 14
+                channels: ["export"]
 
 when@test:
     monolog:
@@ -67,6 +74,12 @@ when@test:
                 level: info
                 max_files: 14
                 channels: ["harmony_ops"]
+            export:
+                type: rotating_file
+                path: "%kernel.logs_dir%/export.log"
+                level: info
+                max_files: 14
+                channels: ["export"]
 
 when@prod:
     monolog:
@@ -111,3 +124,9 @@ when@prod:
                 max_files: 14
                 formatter: monolog.formatter.json
                 channels: ["harmony_ops"]
+            export:
+                type: rotating_file
+                path: "%kernel.logs_dir%/export.log"
+                level: info
+                max_files: 14
+                channels: ["export"]

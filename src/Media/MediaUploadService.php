@@ -92,6 +92,57 @@ final class MediaUploadService
         ];
     }
 
+    /**
+     * T242 — Replace an existing media asset's file with a new upload.
+     *
+     * Validates, stores and updates the entity, then removes the old stored file.
+     * Variant keys (thumb/preview/export) are cleared so they are regenerated.
+     * All slides referencing this asset will have their render caches invalidated
+     * by the EntityManager flush (the asset storageKey change triggers re-render).
+     *
+     * @throws MediaUploadException  on MIME or size validation failure
+     * @throws InfectedFileException if the antivirus scanner detects a threat
+     *
+     * @return array{id: int, storageKey: string, previewUrl: string}
+     */
+    public function replaceAsset(UploadedFile $file, MediaAsset $asset): array
+    {
+        $this->validatePhpUploadError($file);
+        $this->validateMimeType($file);
+
+        $size = (int) $file->getSize();
+        $this->validateSize($size);
+
+        $this->antivirusScanner->scan($file);
+
+        $oldStorageKey = $asset->getStorageKey();
+        $newStorageKey = $this->buildStorageKey($file);
+
+        $this->storageAdapter->put($newStorageKey, $file->getPathname(), (string) $file->getClientMimeType());
+
+        // Remove the old file; the adapter's delete() is idempotent so a missing key is safe.
+        $this->storageAdapter->delete($oldStorageKey);
+
+        $asset->setFilename($file->getClientOriginalName())
+              ->setMimeType((string) $file->getClientMimeType())
+              ->setSize($size)
+              ->setStorageKey($newStorageKey)
+              ->setThumbKey(null)
+              ->setPreviewKey(null)
+              ->setExportKey(null);
+
+        $this->entityManager->flush();
+
+        // Dispatch variant generation for the replacement file.
+        $this->messageBus->dispatch(new GenerateImageVariantsMessage((int) $asset->getId()));
+
+        return [
+            'id'         => (int) $asset->getId(),
+            'storageKey' => $newStorageKey,
+            'previewUrl' => $this->storageAdapter->getSignedUrl($newStorageKey),
+        ];
+    }
+
     // ── private helpers ───────────────────────────────────────────────────────
 
     /**
