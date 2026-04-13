@@ -298,10 +298,10 @@ final class ChatController extends AbstractController
             ]);
         }
 
-        $this->addFlash('success', $decision === 'confirm'
-            ? $this->translator->trans('chat.confirmation.applied')
-            : $this->translator->trans('chat.confirmation.cancelled'),
-        );
+        $flashKey = $decision === 'confirm'
+            ? 'chat.confirmation.applied'
+            : 'chat.confirmation.cancelled';
+        $this->addFlash('success', $this->translator->trans($flashKey));
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }

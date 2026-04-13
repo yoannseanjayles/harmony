@@ -14,8 +14,8 @@
             <dl class="hm-stats-grid hm-stats-grid--{{ stats|length }}">
                 {% for stat in stats %}
                     <div class="hm-stats-grid__cell">
-                        <dd class="hm-stats__value">{{ stat.value }}</dd>
                         <dt class="hm-stats__label">{{ stat.label }}</dt>
+                        <dd class="hm-stats__value">{{ stat.value }}</dd>
                         {% if stat.detail is defined and stat.detail is not empty %}
                             <dd class="hm-stats__detail">{{ stat.detail }}</dd>
                         {% endif %}
@@ -84,6 +84,7 @@
         font-weight: 700;
         line-height: 1;
         color: var(--hm-accent-secondary, #10b981);
+        order: -1;
     }
 
     .hm-stats__label {
