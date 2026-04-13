@@ -311,3 +311,35 @@ project.theme.anim.speed.fast: Rapide
 project.theme.anim.intensity.reduced: "Réduit"
 project.theme.anim.intensity.normal: Normal
 project.theme.anim.intensity.max: Maximal
+
+# HRM-F41 — Admin dashboard
+admin.dashboard.meta_title: "Tableau de bord admin | Harmony"
+admin.dashboard.badge: Administration
+admin.dashboard.title: "Tableau de bord admin"
+admin.dashboard.subtitle: "Vue d'ensemble des métriques exports et IA sur la plateforme."
+admin.dashboard.back: Retour au dashboard
+admin.dashboard.period.label: "Période"
+admin.dashboard.period.7d: 7 jours
+admin.dashboard.period.30d: 30 jours
+admin.dashboard.period.all: Tout
+admin.dashboard.section.overview: "Vue d'ensemble"
+admin.dashboard.section.export_rates: "Taux de succès exports"
+admin.dashboard.section.trend: "Tendance quotidienne"
+admin.dashboard.kpi.total_projects: Projets total
+admin.dashboard.kpi.total_generations: "Générations IA"
+admin.dashboard.kpi.total_ai_cost: "Coût total : %cost% USD"
+admin.dashboard.kpi.total_exports: Exports total
+admin.dashboard.kpi.avg_pdf_duration: "Durée moy. PDF"
+admin.dashboard.kpi.pdf_jobs_only: Jobs PDF uniquement
+admin.dashboard.kpi.html_success_rate: "Taux succès HTML"
+admin.dashboard.kpi.pdf_success_rate: "Taux succès PDF"
+admin.dashboard.kpi.overall_success_rate: "Taux succès global"
+admin.dashboard.kpi.avg_ai_cost: "Coût IA moyen"
+admin.dashboard.kpi.per_generation: "par génération"
+admin.dashboard.kpi.successes: "succès"
+admin.dashboard.trend.title: "Tendance des exports par jour"
+admin.dashboard.trend.empty: "Aucune donnée disponible pour la période sélectionnée."
+admin.dashboard.trend.date: Date
+admin.dashboard.trend.total: Total
+admin.dashboard.trend.successes: "Succès"
+admin.dashboard.trend.rate: "Taux"

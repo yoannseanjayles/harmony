@@ -61,9 +61,11 @@ final class SecurityActionController extends AbstractController
     {
         $project = $this->resolveOwnedProjectFromRequest($request, $projectRepository);
         $wasSuccessful = filter_var($request->request->get('successful', 'true'), FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? true;
+        $durationMs = $request->request->getInt('durationMs', 0) ?: null;
+        $failureReason = $wasSuccessful ? null : ((string) $request->request->get('failureReason', '') ?: null);
 
         if ($project instanceof Project) {
-            $projectMetricsRecorder->recordExport($project, $format, $wasSuccessful);
+            $projectMetricsRecorder->recordExport($project, $format, $wasSuccessful, $durationMs, $failureReason);
         }
 
         return $this->json([

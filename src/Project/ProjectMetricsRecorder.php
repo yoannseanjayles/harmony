@@ -27,12 +27,14 @@ final class ProjectMetricsRecorder
         return $metric;
     }
 
-    public function recordExport(Project $project, string $format, bool $wasSuccessful): ProjectExportMetric
+    public function recordExport(Project $project, string $format, bool $wasSuccessful, ?int $durationMs = null, ?string $failureReason = null): ProjectExportMetric
     {
         $metric = (new ProjectExportMetric())
             ->setProject($project)
             ->setFormat($format)
-            ->setWasSuccessful($wasSuccessful);
+            ->setWasSuccessful($wasSuccessful)
+            ->setDurationMs($durationMs)
+            ->setFailureReason($wasSuccessful ? null : $failureReason);
 
         $this->entityManager->persist($metric);
         $this->entityManager->flush();

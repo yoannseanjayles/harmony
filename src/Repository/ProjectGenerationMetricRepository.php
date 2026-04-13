@@ -44,4 +44,33 @@ class ProjectGenerationMetricRepository extends ServiceEntityRepository
 
         return $totals;
     }
+
+    /**
+     * Returns aggregated AI generation KPIs for the admin dashboard.
+     *
+     * @return array{totalGenerations: int, totalCostCents: int, totalCostUsd: float, avgCostCents: float}
+     */
+    public function computeAdminKpis(?\DateTimeImmutable $since = null): array
+    {
+        $qb = $this->createQueryBuilder('metric')
+            ->select('COUNT(metric.id) AS totalGenerations')
+            ->addSelect('COALESCE(SUM(metric.estimatedCostCents), 0) AS totalCost')
+            ->addSelect('COALESCE(AVG(metric.estimatedCostCents), 0) AS avgCost');
+
+        if ($since !== null) {
+            $qb->andWhere('metric.createdAt >= :since')->setParameter('since', $since);
+        }
+
+        $row = $qb->getQuery()->getSingleResult();
+
+        $totalGenerations = (int) $row['totalGenerations'];
+        $totalCostCents = (int) $row['totalCost'];
+
+        return [
+            'totalGenerations' => $totalGenerations,
+            'totalCostCents' => $totalCostCents,
+            'totalCostUsd' => round($totalCostCents / 100, 2),
+            'avgCostCents' => round((float) $row['avgCost'], 1),
+        ];
+    }
 }
