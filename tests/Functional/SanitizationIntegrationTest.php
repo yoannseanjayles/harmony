@@ -57,19 +57,28 @@ final class SanitizationIntegrationTest extends FunctionalTestCase
                 'type' => 'title',
                 'body' => 'Contenu normal',
             ],
-            'bullet_list' => [
+            'content' => [
                 'title' => 'Titre de test',
-                'type' => 'bullet_list',
+                'type' => 'content',
                 'items' => ['Point A', 'Point B'],
+            ],
+            'closing' => [
+                'title' => 'Titre de test',
+                'type' => 'closing',
+                'body' => 'Conclusion',
+            ],
+            'split' => [
+                'title' => 'Titre de test',
+                'type' => 'split',
+                'body' => 'Contenu normal',
+            ],
+            'image' => [
+                'title' => 'Titre de test',
+                'type' => 'image',
             ],
             'quote' => [
                 'title' => 'Titre de test',
                 'type' => 'quote',
-                'body' => 'Contenu normal',
-            ],
-            'summary' => [
-                'title' => 'Titre de test',
-                'type' => 'summary',
                 'body' => 'Contenu normal',
             ],
             'timeline' => [
