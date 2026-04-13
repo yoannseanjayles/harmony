@@ -129,6 +129,16 @@ class ProjectRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function countAll(): int
+    {
+        return (int) $this->createQueryBuilder('project')
+            ->select('COUNT(project.id)')
+            ->andWhere('project.status != :deleted')
+            ->setParameter('deleted', Project::STATUS_DELETED)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
     private function createDashboardQueryBuilder(User $user, string $scope, string $search): \Doctrine\ORM\QueryBuilder
     {
         $queryBuilder = $this->createQueryBuilder('project')

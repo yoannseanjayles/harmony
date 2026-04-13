@@ -24,7 +24,9 @@ final class AuthenticatedMutationRateLimitSubscriber implements EventSubscriberI
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 15],
+            // Priority must be < 8 (the security firewall) so getUser() returns the
+            // authenticated user; higher-priority subscribers run before authentication.
+            KernelEvents::REQUEST => ['onKernelRequest', 7],
         ];
     }
 

@@ -1,0 +1,305 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'admin.dashboard.meta_title'|trans }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .hm-admin-dashboard {
+            width: min(100%, 1200px);
+            margin: 0 auto;
+            padding: 24px;
+            border-radius: 30px;
+            background: var(--hm-surface);
+            border: 1px solid var(--hm-border);
+            box-shadow: var(--hm-shadow);
+        }
+
+        .hm-admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .hm-admin-period-tabs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hm-period-tab {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-decoration: none;
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+            color: var(--hm-ink-soft);
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .hm-period-tab--active,
+        .hm-period-tab:hover {
+            background: var(--hm-accent-soft);
+            color: var(--hm-accent);
+            border-color: var(--hm-accent);
+        }
+
+        .hm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .hm-kpi-card {
+            padding: 22px;
+            border-radius: 22px;
+            background: var(--hm-surface-strong);
+            border: 1px solid var(--hm-border);
+        }
+
+        .hm-kpi-card__label {
+            display: block;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--hm-ink-soft);
+            margin-bottom: 10px;
+        }
+
+        .hm-kpi-card__value {
+            display: block;
+            font-size: 2rem;
+            font-family: var(--hm-font-title);
+            line-height: 1;
+            color: var(--hm-ink);
+        }
+
+        .hm-kpi-card__sub {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--hm-ink-soft);
+            margin-top: 6px;
+        }
+
+        .hm-kpi-card--success .hm-kpi-card__value { color: var(--hm-success); }
+        .hm-kpi-card--warning .hm-kpi-card__value { color: #f59e0b; }
+        .hm-kpi-card--danger .hm-kpi-card__value { color: var(--hm-danger); }
+
+        .hm-trend-section {
+            margin-top: 24px;
+        }
+
+        .hm-trend-section h2 {
+            font-size: 1.1rem;
+            font-family: var(--hm-font-title);
+            margin: 0 0 16px;
+        }
+
+        .hm-trend-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        .hm-trend-table th {
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--hm-ink-soft);
+            border-bottom: 1px solid var(--hm-border);
+        }
+
+        .hm-trend-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            vertical-align: middle;
+        }
+
+        .hm-trend-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hm-trend-bar {
+            height: 8px;
+            border-radius: 999px;
+            background: var(--hm-accent-soft);
+            flex-shrink: 0;
+            transition: width 0.3s;
+        }
+
+        .hm-trend-bar--success { background: rgba(16, 185, 129, 0.3); }
+        .hm-trend-bar--warning { background: rgba(245, 158, 11, 0.3); }
+        .hm-trend-bar--danger  { background: rgba(239, 68, 68, 0.3); }
+
+        .hm-admin-nav {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            .hm-kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hm-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <main class="hm-shell">
+        <section class="hm-admin-dashboard">
+
+            <header class="hm-admin-header">
+                <div>
+                    <span class="hm-badge">{{ 'admin.dashboard.badge'|trans }}</span>
+                    <h1 class="hm-page-title">{{ 'admin.dashboard.title'|trans }}</h1>
+                    <p class="hm-copy">{{ 'admin.dashboard.subtitle'|trans }}</p>
+                </div>
+
+                <div>
+                    <nav class="hm-admin-period-tabs" aria-label="{{ 'admin.dashboard.period.label'|trans }}">
+                        {% for p in allowedPeriods %}
+                            <a href="{{ path('app_admin_dashboard', {period: p}) }}"
+                               class="hm-period-tab {% if p == period %}hm-period-tab--active{% endif %}">
+                                {{ ('admin.dashboard.period.' ~ p)|trans }}
+                            </a>
+                        {% endfor %}
+                    </nav>
+                    <div class="hm-admin-nav" style="margin-top: 12px; justify-content: flex-end;">
+                        <a class="hm-link" href="{{ path('app_dashboard') }}">{{ 'admin.dashboard.back'|trans }}</a>
+                    </div>
+                </div>
+            </header>
+
+            {# ── Row 1: Project + AI Generation KPIs ── #}
+            <section aria-label="{{ 'admin.dashboard.section.overview'|trans }}">
+                <div class="hm-kpi-grid">
+                    <article class="hm-kpi-card" data-kpi="total-projects">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.total_projects'|trans }}</span>
+                        <strong class="hm-kpi-card__value">{{ totalProjects }}</strong>
+                    </article>
+
+                    <article class="hm-kpi-card" data-kpi="total-generations">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.total_generations'|trans }}</span>
+                        <strong class="hm-kpi-card__value">{{ generationKpis.totalGenerations }}</strong>
+                        <span class="hm-kpi-card__sub">{{ 'admin.dashboard.kpi.total_ai_cost'|trans({ '%cost%': generationKpis.totalCostUsd|number_format(2, ',', ' ') }) }}</span>
+                    </article>
+
+                    <article class="hm-kpi-card" data-kpi="total-exports">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.total_exports'|trans }}</span>
+                        <strong class="hm-kpi-card__value">{{ exportKpis.totalExports }}</strong>
+                        <span class="hm-kpi-card__sub">{{ exportKpis.htmlTotal }} HTML / {{ exportKpis.pdfTotal }} PDF</span>
+                    </article>
+
+                    {% set avgDurDisplay = exportKpis.avgPdfDurationMs is not null ? exportKpis.avgPdfDurationMs|number_format(0, ',', ' ') ~ ' ms' : '—' %}
+                    <article class="hm-kpi-card" data-kpi="avg-pdf-duration">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.avg_pdf_duration'|trans }}</span>
+                        <strong class="hm-kpi-card__value">{{ avgDurDisplay }}</strong>
+                        <span class="hm-kpi-card__sub">{{ 'admin.dashboard.kpi.pdf_jobs_only'|trans }}</span>
+                    </article>
+                </div>
+            </section>
+
+            {# ── Row 2: Export success rates ── #}
+            <section aria-label="{{ 'admin.dashboard.section.export_rates'|trans }}">
+                <div class="hm-kpi-grid">
+                    {% set htmlTone = exportKpis.htmlTotal == 0 ? '' : (exportKpis.htmlRate >= 80 ? 'success' : (exportKpis.htmlRate >= 50 ? 'warning' : 'danger')) %}
+                    <article class="hm-kpi-card hm-kpi-card--{{ htmlTone }}" data-kpi="html-rate">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.html_success_rate'|trans }}</span>
+                        <strong class="hm-kpi-card__value">
+                            {% if exportKpis.htmlTotal > 0 %}{{ exportKpis.htmlRate|number_format(1, ',', ' ') }} %{% else %}—{% endif %}
+                        </strong>
+                        <span class="hm-kpi-card__sub">{{ exportKpis.htmlSuccesses }}/{{ exportKpis.htmlTotal }} {{ 'admin.dashboard.kpi.successes'|trans }}</span>
+                    </article>
+
+                    {% set pdfTone = exportKpis.pdfTotal == 0 ? '' : (exportKpis.pdfRate >= 80 ? 'success' : (exportKpis.pdfRate >= 50 ? 'warning' : 'danger')) %}
+                    <article class="hm-kpi-card hm-kpi-card--{{ pdfTone }}" data-kpi="pdf-rate">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.pdf_success_rate'|trans }}</span>
+                        <strong class="hm-kpi-card__value">
+                            {% if exportKpis.pdfTotal > 0 %}{{ exportKpis.pdfRate|number_format(1, ',', ' ') }} %{% else %}—{% endif %}
+                        </strong>
+                        <span class="hm-kpi-card__sub">{{ exportKpis.pdfSuccesses }}/{{ exportKpis.pdfTotal }} {{ 'admin.dashboard.kpi.successes'|trans }}</span>
+                    </article>
+
+                    {% set overallSuccesses = exportKpis.htmlSuccesses + exportKpis.pdfSuccesses %}
+                    {% set overallTotal = exportKpis.htmlTotal + exportKpis.pdfTotal %}
+                    {% set overallRate = overallTotal > 0 ? ((overallSuccesses / overallTotal) * 100)|round(1) : 0 %}
+                    {% set overallTone = overallTotal == 0 ? '' : (overallRate >= 80 ? 'success' : (overallRate >= 50 ? 'warning' : 'danger')) %}
+                    <article class="hm-kpi-card hm-kpi-card--{{ overallTone }}" data-kpi="overall-rate">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.overall_success_rate'|trans }}</span>
+                        <strong class="hm-kpi-card__value">
+                            {% if overallTotal > 0 %}{{ overallRate|number_format(1, ',', ' ') }} %{% else %}—{% endif %}
+                        </strong>
+                        <span class="hm-kpi-card__sub">{{ overallSuccesses }}/{{ overallTotal }} {{ 'admin.dashboard.kpi.successes'|trans }}</span>
+                    </article>
+
+                    <article class="hm-kpi-card" data-kpi="avg-ai-cost">
+                        <span class="hm-kpi-card__label">{{ 'admin.dashboard.kpi.avg_ai_cost'|trans }}</span>
+                        <strong class="hm-kpi-card__value">
+                            {{ (generationKpis.avgCostCents / 100)|number_format(4, ',', ' ') }} USD
+                        </strong>
+                        <span class="hm-kpi-card__sub">{{ 'admin.dashboard.kpi.per_generation'|trans }}</span>
+                    </article>
+                </div>
+            </section>
+
+            {# ── Daily trend ── #}
+            <section class="hm-trend-section" aria-label="{{ 'admin.dashboard.section.trend'|trans }}">
+                <h2>{{ 'admin.dashboard.trend.title'|trans }}</h2>
+
+                {% if dailyTrend is empty %}
+                    <p class="hm-muted">{{ 'admin.dashboard.trend.empty'|trans }}</p>
+                {% else %}
+                    <table class="hm-trend-table" data-trend-table>
+                        <thead>
+                            <tr>
+                                <th>{{ 'admin.dashboard.trend.date'|trans }}</th>
+                                <th>{{ 'admin.dashboard.trend.total'|trans }}</th>
+                                <th>{{ 'admin.dashboard.trend.successes'|trans }}</th>
+                                <th>{{ 'admin.dashboard.trend.rate'|trans }}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for day, data in dailyTrend|reverse %}
+                                {% set tone = data.rate >= 80 ? 'success' : (data.rate >= 50 ? 'warning' : 'danger') %}
+                                <tr>
+                                    <td>{{ day }}</td>
+                                    <td>{{ data.total }}</td>
+                                    <td>{{ data.successes }}</td>
+                                    <td>{{ data.rate|number_format(1, ',', ' ') }} %</td>
+                                    <td>
+                                        <div class="hm-trend-bar-wrap">
+                                            <div class="hm-trend-bar hm-trend-bar--{{ tone }}"
+                                                 style="width: {{ data.rate > 8 ? data.rate : 8 }}px">
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </section>
+
+        </section>
+    </main>
+{% endblock %}

@@ -14,6 +14,9 @@ class ProjectExportMetric
     public const FORMAT_HTML = 'html';
     public const FORMAT_PDF = 'pdf';
 
+    public const STATUS_SUCCESS = 'success';
+    public const STATUS_FAILURE = 'failure';
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -34,6 +37,12 @@ class ProjectExportMetric
 
     #[ORM\Column(options: ['default' => true])]
     private bool $wasSuccessful = true;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $durationMs = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $failureReason = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
@@ -85,9 +94,38 @@ class ProjectExportMetric
         return $this;
     }
 
+    public function getDurationMs(): ?int
+    {
+        return $this->durationMs;
+    }
+
+    public function setDurationMs(?int $durationMs): self
+    {
+        $this->durationMs = $durationMs;
+
+        return $this;
+    }
+
+    public function getFailureReason(): ?string
+    {
+        return $this->failureReason;
+    }
+
+    public function setFailureReason(?string $failureReason): self
+    {
+        $this->failureReason = $failureReason;
+
+        return $this;
+    }
+
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->wasSuccessful ? self::STATUS_SUCCESS : self::STATUS_FAILURE;
     }
 
     /**
