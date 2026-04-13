@@ -208,6 +208,240 @@
             }
         }
 
+        /* ── Live preview zone (T291) ─────────────────────────────── */
+        .hm-live-preview {
+            margin-bottom: 20px;
+        }
+
+        .hm-live-preview__empty {
+            padding: 20px 22px;
+            border-radius: 20px;
+            border: 1px dashed var(--hm-border);
+            background: var(--hm-surface);
+        }
+
+        .hm-live-preview__empty strong {
+            display: block;
+            margin-bottom: 8px;
+            font-family: var(--hm-font-title);
+            font-size: 1.3rem;
+        }
+
+        .hm-live-preview__frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            border-radius: 16px;
+            background: var(--hm-bg, #0c0c14);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+        }
+
+        .hm-live-preview__inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1280px;
+            height: 720px;
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
+        .hm-live-preview__nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .hm-live-preview__counter {
+            font-size: 0.9rem;
+            color: var(--hm-ink-soft);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .hm-btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 1px solid var(--hm-border);
+            background: var(--hm-surface-strong);
+            color: var(--hm-ink);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .hm-btn-icon:hover {
+            background: var(--hm-surface-lift, rgba(124, 58, 237, 0.15));
+            border-color: var(--hm-accent-primary);
+        }
+
+        .hm-btn-icon:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+
+        /* ── Thumbnail strip (T293) ───────────────────────────────── */
+        .hm-thumbnail-strip {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 8px 4px 10px;
+            scrollbar-width: thin;
+        }
+
+        .hm-thumbnail-strip::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .hm-thumbnail-strip::-webkit-scrollbar-thumb {
+            background: var(--hm-border);
+            border-radius: 999px;
+        }
+
+        .hm-thumbnail {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 4px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: transparent;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .hm-thumbnail:hover {
+            border-color: rgba(124, 58, 237, 0.35);
+        }
+
+        .hm-thumbnail--active {
+            border-color: rgba(124, 58, 237, 0.7);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+        }
+
+        .hm-thumbnail__frame {
+            position: relative;
+            width: 160px;
+            height: 90px;
+            overflow: hidden;
+            border-radius: 7px;
+            background: var(--hm-bg, #0c0c14);
+        }
+
+        .hm-thumbnail__inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1280px;
+            height: 720px;
+            transform: scale(0.125);
+            transform-origin: top left;
+            pointer-events: none;
+        }
+
+        .hm-thumbnail__inner--text {
+            width: 160px;
+            height: 90px;
+            transform: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding: 8px;
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(16, 185, 129, 0.08));
+        }
+
+        .hm-thumbnail__type {
+            display: block;
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(232, 228, 255, 0.55);
+            font-family: var(--hm-font-mono, monospace);
+        }
+
+        .hm-thumbnail__title {
+            display: block;
+            font-size: 0.65rem;
+            color: rgba(232, 228, 255, 0.85);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 140px;
+        }
+
+        .hm-thumbnail__number {
+            font-size: 0.72rem;
+            color: var(--hm-ink-soft);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .hm-thumbnail-loading {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            padding: 4px;
+        }
+
+        .hm-thumbnail-skeleton {
+            flex: 0 0 auto;
+            width: 160px;
+            height: 90px;
+            border-radius: 7px;
+            background: linear-gradient(
+                90deg,
+                rgba(124, 58, 237, 0.08) 25%,
+                rgba(124, 58, 237, 0.18) 50%,
+                rgba(124, 58, 237, 0.08) 75%
+            );
+            background-size: 200% 100%;
+            animation: hm-skeleton-shimmer 1.4s infinite;
+        }
+
+        @keyframes hm-skeleton-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .hm-preview-panel__header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .hm-preview-panel__title {
+            margin: 12px 0 6px;
+            font-family: var(--hm-font-title);
+            font-size: clamp(1.8rem, 2.4vw, 2.3rem);
+            line-height: 1.05;
+        }
+
+        .hm-preview-empty {
+            padding: 20px 22px;
+            border-radius: 20px;
+            border: 1px dashed var(--hm-border);
+            background: var(--hm-surface);
+        }
+
+        .hm-preview-empty strong {
+            display: block;
+            margin-bottom: 8px;
+            font-family: var(--hm-font-title);
+            font-size: 1.3rem;
+        }
+
         /* ── Export status toast (T287) ────────────────────────────── */
         .hm-editor-export-toast {
             position: fixed;
@@ -268,31 +502,19 @@
 
                 <span class="hm-editor-nav__divider" aria-hidden="true"></span>
 
-                {# HTML export #}
-                <button
+                {# HTML export — direct GET download #}
+                <a
                     class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
-                    type="button"
+                    href="{{ path('app_export_html_download', { id: project.id }) }}"
                     data-export-btn
-                    data-export-format="html"
-                    data-project-id="{{ project.id }}"
-                    data-export-url="{{ path('app_export_html') }}"
-                    data-label-default="{{ 'project.editor.nav.export_html'|trans }}"
-                    data-label-processing="{{ 'project.editor.nav.export_processing'|trans }}"
-                    data-label-error="{{ 'project.editor.nav.export_error'|trans }}"
-                >{{ 'project.editor.nav.export_html'|trans }}</button>
+                >{{ 'project.editor.nav.export_html'|trans }}</a>
 
-                {# PDF export #}
-                <button
+                {# PDF export — direct GET download #}
+                <a
                     class="hm-editor-nav__btn hm-editor-nav__btn--accent"
-                    type="button"
+                    href="{{ path('app_export_pdf_download', { id: project.id }) }}"
                     data-export-btn
-                    data-export-format="pdf"
-                    data-project-id="{{ project.id }}"
-                    data-export-url="{{ path('app_export_pdf') }}"
-                    data-label-default="{{ 'project.editor.nav.export_pdf'|trans }}"
-                    data-label-processing="{{ 'project.editor.nav.export_processing'|trans }}"
-                    data-label-error="{{ 'project.editor.nav.export_error'|trans }}"
-                >{{ 'project.editor.nav.export_pdf'|trans }}</button>
+                >{{ 'project.editor.nav.export_pdf'|trans }}</a>
             {% endif %}
         </div>
     </nav>
@@ -963,72 +1185,6 @@
                     syncComposerState();
                     input.focus();
                 }
-            });
-        })();
-
-        // ── Export buttons (T287) ──────────────────────────────────────────
-        (() => {
-            const csrfMeta = document.querySelector('meta[name="hm-csrf-api"]');
-            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
-            const toast = document.querySelector('[data-export-toast]');
-
-            const showToast = (message, isError) => {
-                if (!toast) {
-                    return;
-                }
-
-                toast.textContent = message;
-                toast.classList.toggle('hm-editor-export-toast--error', Boolean(isError));
-                toast.hidden = false;
-
-                window.setTimeout(() => {
-                    toast.hidden = true;
-                }, 4000);
-            };
-
-            document.querySelectorAll('[data-export-btn]').forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const url = btn.dataset.exportUrl;
-                    const projectId = btn.dataset.projectId;
-                    const labelDefault = btn.dataset.labelDefault || btn.textContent;
-                    const labelProcessing = btn.dataset.labelProcessing || labelDefault;
-                    const labelError = btn.dataset.labelError || labelDefault;
-
-                    btn.disabled = true;
-                    btn.setAttribute('aria-busy', 'true');
-                    btn.textContent = labelProcessing;
-
-                    try {
-                        const formData = new FormData();
-                        formData.append('projectId', projectId);
-                        formData.append('_token', csrfToken);
-
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-Token': csrfToken
-                            }
-                        });
-
-                        const data = await response.json();
-                        if (!response.ok) {
-                            throw data;
-                        }
-
-                        if (data.downloadUrl) {
-                            window.open(data.downloadUrl, '_blank', 'noopener');
-                        }
-                    } catch {
-                        showToast(labelError, true);
-                    } finally {
-                        btn.disabled = false;
-                        btn.setAttribute('aria-busy', 'false');
-                        btn.textContent = labelDefault;
-                    }
-                });
             });
         })();
 
