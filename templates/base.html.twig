@@ -845,18 +845,18 @@ hr {
                         Harmony
                     </a>
                     <div class="hm-topbar__nav">
-                        <a class="hm-topbar__link" href="{{ path('app_dashboard') }}">Accueil</a>
-                        <a class="hm-topbar__link" href="{{ path('app_project_index') }}">Projets</a>
-                        <a class="hm-topbar__link" href="{{ path('app_profile') }}">Profil</a>
+                        <a class="hm-topbar__link" href="{{ path('app_dashboard') }}">{{ 'navigation.dashboard'|trans }}</a>
+                        <a class="hm-topbar__link" href="{{ path('app_project_index') }}">{{ 'navigation.projects'|trans }}</a>
+                        <a class="hm-topbar__link" href="{{ path('app_profile') }}">{{ 'navigation.profile'|trans }}</a>
                         {% if is_granted('ROLE_ADMIN') %}
-                            <a class="hm-topbar__link" href="{{ path('app_admin_dashboard') }}">Admin</a>
+                            <a class="hm-topbar__link" href="{{ path('app_admin_dashboard') }}">{{ 'navigation.admin'|trans }}</a>
                         {% endif %}
                     </div>
                     <div class="hm-topbar__right">
                         <span class="hm-topbar__avatar">{{ app.user.email|first|upper }}</span>
                         <form class="hm-inline-form" method="post" action="{{ path('app_logout') }}">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                            <button class="hm-topbar__link" type="submit">Déconnexion</button>
+                            <button class="hm-topbar__link" type="submit">{{ 'navigation.logout'|trans }}</button>
                         </form>
                     </div>
                 </nav>

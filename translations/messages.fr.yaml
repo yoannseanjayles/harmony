@@ -440,3 +440,9 @@ project.media.overlay.success: "Paramètres d'overlay sauvegardés."
 project.media.overlay.error: "Erreur lors de la sauvegarde."
 project.media.overlay.no_slide: "Sélectionnez d'abord une slide."
 
+navigation.dashboard: Accueil
+navigation.projects: Projets
+navigation.profile: Profil
+navigation.admin: Admin
+navigation.logout: Déconnexion
+
