@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[Route('/projects/{projectId}/chat', requirements: ['projectId' => '\d+'])]
 final class ChatController extends AbstractController
@@ -30,6 +31,11 @@ final class ChatController extends AbstractController
     private const MESSAGES_PER_PAGE = 10;
     private const STREAM_RETRY_MILLISECONDS = 1000;
     private const STREAM_POLLING_MICROSECONDS = 150000;
+
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
 
     #[Route('/history', name: 'app_chat_history', methods: ['GET'])]
     public function history(int $projectId, Request $request, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository): JsonResponse
@@ -147,13 +153,13 @@ final class ChatController extends AbstractController
 
             if ($request->isXmlHttpRequest()) {
                 return $this->json([
-                    'errors' => ['Harmony n\'a pas pu generer de reponse IA pour le moment.'],
+                    'errors' => [$this->translator->trans('chat.error.ai_unavailable')],
                     'retryAvailable' => $isEmptyResponse,
                     'userMessageId' => $message->getId(),
                 ], Response::HTTP_BAD_GATEWAY);
             }
 
-            $this->addFlash('error', 'Harmony n\'a pas pu generer de reponse IA pour le moment.');
+            $this->addFlash('error', $this->translator->trans('chat.error.ai_unavailable'));
 
             return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
         }
@@ -292,7 +298,10 @@ final class ChatController extends AbstractController
             ]);
         }
 
-        $this->addFlash('success', $decision === 'confirm' ? 'Proposition appliquée.' : 'Proposition annulée.');
+        $this->addFlash('success', $decision === 'confirm'
+            ? $this->translator->trans('chat.confirmation.applied')
+            : $this->translator->trans('chat.confirmation.cancelled'),
+        );
 
         return $this->redirectToRoute('app_project_show', ['id' => $project->getId()]);
     }
@@ -433,7 +442,7 @@ final class ChatController extends AbstractController
 
     private function pendingConfirmationBlockedResponse(Request $request, Project $project): Response
     {
-        $message = 'Confirmez ou annulez la proposition en attente avant d’envoyer un nouveau message.';
+        $message = $this->translator->trans('chat.error.pending_confirmation_blocked');
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([
@@ -448,7 +457,7 @@ final class ChatController extends AbstractController
 
     private function pendingConfirmationUnavailableResponse(Request $request, Project $project): Response
     {
-        $message = 'Aucune proposition en attente à confirmer.';
+        $message = $this->translator->trans('chat.error.no_pending_confirmation');
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([
@@ -463,7 +472,7 @@ final class ChatController extends AbstractController
 
     private function invalidConfirmationDecisionResponse(Request $request, Project $project): Response
     {
-        $message = 'La décision de confirmation est invalide.';
+        $message = $this->translator->trans('chat.error.invalid_decision');
 
         if ($request->isXmlHttpRequest()) {
             return $this->json([

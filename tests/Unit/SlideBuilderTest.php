@@ -192,7 +192,7 @@ final class SlideBuilderTest extends TestCase
 
         self::assertStringContainsString('Contact us', $html);
         self::assertStringNotContainsString('<a ', $html);
-        self::assertStringContainsString('<span class="hm-slide__cta-link">', $html);
+        self::assertStringContainsString('<span class="hm-slide__cta-link" role="button" tabindex="0">', $html);
     }
 
     public function testClosingSlideEscapesHtml(): void

@@ -30,7 +30,7 @@
             <img
                 class="hm-slide__image"
                 src="{{ image_url }}"
-                alt="{{ image_alt is defined ? image_alt : '' }}"
+                alt="{{ image_alt is defined and image_alt is not empty ? image_alt : 'Illustration' }}"
                 loading="lazy"
             >
         {% else %}

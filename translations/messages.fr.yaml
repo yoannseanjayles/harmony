@@ -446,4 +446,19 @@ navigation.projects: Projets
 navigation.profile: Profil
 navigation.admin: Admin
 navigation.logout: Déconnexion
+navigation.skip_to_content: Aller au contenu
+
+# Chat error messages (i18n — extracted from ChatController)
+chat.error.ai_unavailable: "Harmony n'a pas pu générer de réponse IA pour le moment."
+chat.error.pending_confirmation_blocked: "Confirmez ou annulez la proposition en attente avant d\u2019envoyer un nouveau message."
+chat.error.no_pending_confirmation: "Aucune proposition en attente à confirmer."
+chat.error.invalid_decision: "La décision de confirmation est invalide."
+chat.confirmation.applied: "Proposition appliquée."
+chat.confirmation.cancelled: "Proposition annulée."
+
+# Security messages (i18n — extracted from SecurityExceptionSubscriber & auth handlers)
+security.rate_limit: "Trop de requêtes. Réessayez plus tard."
+security.csrf_invalid: "Le jeton CSRF est invalide."
+security.session_expired: "Votre session a expiré. Veuillez vous reconnecter."
+security.access_denied: "Accès refusé. Veuillez vérifier vos permissions ou vous reconnecter."
 

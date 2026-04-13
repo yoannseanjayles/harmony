@@ -11,17 +11,17 @@
     <div class="hm-slide__inner">
         <h2 class="hm-slide__title">{{ title }}</h2>
         {% if stats is defined and stats is not empty %}
-            <div class="hm-stats-grid hm-stats-grid--{{ stats|length }}">
+            <dl class="hm-stats-grid hm-stats-grid--{{ stats|length }}">
                 {% for stat in stats %}
                     <div class="hm-stats-grid__cell">
-                        <span class="hm-stats__value">{{ stat.value }}</span>
-                        <span class="hm-stats__label">{{ stat.label }}</span>
+                        <dd class="hm-stats__value">{{ stat.value }}</dd>
+                        <dt class="hm-stats__label">{{ stat.label }}</dt>
                         {% if stat.detail is defined and stat.detail is not empty %}
-                            <span class="hm-stats__detail">{{ stat.detail }}</span>
+                            <dd class="hm-stats__detail">{{ stat.detail }}</dd>
                         {% endif %}
                     </div>
                 {% endfor %}
-            </div>
+            </dl>
         {% endif %}
     </div>
 </section>

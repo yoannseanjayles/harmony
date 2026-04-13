@@ -23,8 +23,9 @@
     --hm-ink-soft:              rgba(232, 228, 255, 0.58);
 
     /* T173 — Accent: violet (primary) + emerald (secondary) */
-    --hm-accent-primary:        #7c3aed;
+    --hm-accent-primary:        #8b5cf6;
     --hm-accent-primary-deep:   #5b21b6;
+    --hm-accent-primary-text:   #a78bfa;
     --hm-accent-secondary:      #10b981;
     --hm-accent-secondary-deep: #059669;
 
@@ -335,4 +336,29 @@
 .hm-nav-dot:focus-visible {
     outline: 2px solid var(--hm-accent-primary);
     outline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Global focus-visible — ensures all interactive elements
+   have a visible focus ring for keyboard navigation.
+   ───────────────────────────────────────────────────────────── */
+:focus-visible {
+    outline: 2px solid var(--hm-accent-primary);
+    outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   High-contrast mode — boost surfaces, borders and text for
+   users who request increased contrast.
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-contrast: more) {
+    :root {
+        --hm-surface:               rgba(240, 238, 255, 0.12);
+        --hm-surface-strong:        rgba(240, 238, 255, 0.18);
+        --hm-surface-muted:         rgba(240, 238, 255, 0.08);
+        --hm-ink-soft:              rgba(232, 228, 255, 0.82);
+        --hm-border:                rgba(124, 58, 237, 0.32);
+        --hm-surface-invert-muted:  rgba(232, 228, 255, 0.14);
+        --hm-surface-invert-border: rgba(232, 228, 255, 0.22);
+    }
 }

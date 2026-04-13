@@ -97,6 +97,27 @@ a {
     text-decoration: none;
 }
 
+/* ── Skip-to-content link (accessibility) ──────────────── */
+
+.hm-skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    z-index: 10000;
+    padding: 8px 16px;
+    background: var(--hm-accent-primary, #8b5cf6);
+    color: #fff;
+    border-radius: 0 0 8px 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+
+.hm-skip-link:focus {
+    top: 0;
+}
+
 /* ── Top Navigation Bar ────────────────────────────────── */
 
 .hm-topbar {
@@ -836,6 +857,7 @@ hr {
 
     </head>
     <body>
+        <a class="hm-skip-link" href="#hm-main-content">{{ 'navigation.skip_to_content'|trans }}</a>
         {% block navigation %}
             {% if app.user is defined and app.user %}
                 <nav class="hm-topbar" role="navigation">
@@ -862,7 +884,9 @@ hr {
             {% endif %}
         {% endblock %}
 
-        {% block body %}{% endblock %}
+        <div id="hm-main-content">
+            {% block body %}{% endblock %}
+        </div>
 
         {% block javascripts %}{% endblock %}
     </body>

@@ -13,7 +13,7 @@
                 {% if cta_url is defined and cta_url is not empty %}
                     <a class="hm-slide__cta-link" href="{{ cta_url }}">{{ cta_label }}</a>
                 {% else %}
-                    <span class="hm-slide__cta-link">{{ cta_label }}</span>
+                    <span class="hm-slide__cta-link" role="button" tabindex="0">{{ cta_label }}</span>
                 {% endif %}
             </div>
         {% endif %}

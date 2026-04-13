@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Http\Authorization\AccessDeniedHandlerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Returns a JSON 403 response for AJAX requests instead of rendering
@@ -17,6 +18,7 @@ final class AjaxAwareAccessDeniedHandler implements AccessDeniedHandlerInterface
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -24,7 +26,7 @@ final class AjaxAwareAccessDeniedHandler implements AccessDeniedHandlerInterface
     {
         if ($request->isXmlHttpRequest() || $request->getPreferredFormat() === 'json') {
             return new JsonResponse([
-                'errors' => ['Accès refusé. Veuillez vérifier vos permissions ou vous reconnecter.'],
+                'errors' => [$this->translator->trans('security.access_denied')],
                 'redirect' => $this->urlGenerator->generate('app_login'),
             ], Response::HTTP_FORBIDDEN);
         }

@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Returns a JSON 401 response for AJAX requests instead of redirecting
@@ -19,6 +20,7 @@ final class AjaxAwareAuthenticationEntryPoint implements AuthenticationEntryPoin
 {
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -26,7 +28,7 @@ final class AjaxAwareAuthenticationEntryPoint implements AuthenticationEntryPoin
     {
         if ($request->isXmlHttpRequest() || $request->getPreferredFormat() === 'json') {
             return new JsonResponse([
-                'errors' => ['Votre session a expiré. Veuillez vous reconnecter.'],
+                'errors' => [$this->translator->trans('security.session_expired')],
                 'redirect' => $this->urlGenerator->generate('app_login'),
             ], Response::HTTP_UNAUTHORIZED);
         }

@@ -15,6 +15,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\RateLimiter\Exception\RateLimitExceededException;
 use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 final class SecurityExceptionSubscriber implements EventSubscriberInterface
@@ -24,6 +25,7 @@ final class SecurityExceptionSubscriber implements EventSubscriberInterface
         private readonly SecurityLogger $securityLogger,
         private readonly Security $security,
         private readonly OpsLogger $opsLogger,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -74,7 +76,7 @@ final class SecurityExceptionSubscriber implements EventSubscriberInterface
 
         if ($this->wantsJson($request)) {
             return new JsonResponse([
-                'message' => 'Trop de requetes. Reessayez plus tard.',
+                'message' => $this->translator->trans('security.rate_limit'),
                 'retryAfter' => $retryAfter,
             ], Response::HTTP_TOO_MANY_REQUESTS, $headers);
         }
@@ -92,7 +94,7 @@ final class SecurityExceptionSubscriber implements EventSubscriberInterface
     {
         if ($this->wantsJson($request)) {
             return new JsonResponse([
-                'message' => 'Le jeton CSRF est invalide.',
+                'message' => $this->translator->trans('security.csrf_invalid'),
             ], Response::HTTP_FORBIDDEN);
         }
 
