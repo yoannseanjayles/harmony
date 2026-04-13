@@ -16,7 +16,7 @@ final class PromptRequest
         private readonly string $userMessage,
         private readonly array $conversationHistory = [],
         private readonly array $projectContext = [],
-        private readonly int $maxTokens = 2500,
+        private readonly int $maxTokens = 6000,
         private readonly float $temperature = 0.3,
     ) {
     }

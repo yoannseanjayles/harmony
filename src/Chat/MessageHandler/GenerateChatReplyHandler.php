@@ -15,6 +15,8 @@ use App\Repository\ProjectRepository;
 use App\Repository\UserRepository;
 use App\Slide\SlideBuilder;
 use App\Slide\UnsupportedSlideTypeException;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Twig\Environment;
 
@@ -40,6 +42,8 @@ final class GenerateChatReplyHandler
         private readonly UserRepository $userRepository,
         private readonly SlideBuilder $slideBuilder,
         private readonly Environment $twig,
+        #[Autowire(service: 'monolog.logger.ai')]
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -120,6 +124,14 @@ final class GenerateChatReplyHandler
         } catch (\Throwable $e) {
             $isEmptyResponse = $e instanceof EmptyAIResponseException;
 
+            $this->logger->error('chat_generation_failed', [
+                'streamId' => $streamId,
+                'projectId' => $message->getProjectId(),
+                'userMessageId' => $message->getUserMessageId(),
+                'exception' => $e->getMessage(),
+                'exceptionClass' => $e::class,
+            ]);
+
             $this->chatStreamSessionStore->markStatus($streamId, 'error');
             $this->chatStreamSessionStore->appendEvent($streamId, 'error', [
                 'message' => $isEmptyResponse
@@ -155,6 +167,7 @@ final class GenerateChatReplyHandler
         $normalizedSlide = [
             'id' => (string) ($slide['id'] ?? ''),
             'title' => (string) ($slide['title'] ?? 'Slide'),
+            'type' => (string) ($slide['type'] ?? 'content'),
             'body' => (string) ($slide['body'] ?? ''),
             'position' => (int) ($slide['position'] ?? 1),
         ];

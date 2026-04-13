@@ -34,6 +34,7 @@ final class OpenAIProvider implements AIProviderInterface
             [
                 'model' => $promptRequest->model(),
                 'messages' => $promptRequest->toOpenAIMessages(),
+                'response_format' => ['type' => 'json_object'],
                 'temperature' => $promptRequest->temperature(),
                 'max_tokens' => $promptRequest->maxTokens(),
             ],
@@ -41,7 +42,8 @@ final class OpenAIProvider implements AIProviderInterface
 
         $payload = $this->decodePayload($response->body());
         if ($response->statusCode() >= 400) {
-            throw new \RuntimeException('OpenAI provider request failed.');
+            $apiError = is_string($payload['error']['message'] ?? null) ? $payload['error']['message'] : $response->body();
+            throw new \RuntimeException(sprintf('OpenAI provider request failed (HTTP %d): %s', $response->statusCode(), $apiError));
         }
 
         $content = $this->extractContent($payload);

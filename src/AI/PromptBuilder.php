@@ -44,25 +44,23 @@ final class PromptBuilder
             'Reply in concise French unless the user explicitly asks for another language.',
             'Stay grounded in the current project context and propose practical slide-oriented help.',
             'When changing the deck, return structured JSON actions that Harmony can validate and apply automatically.',
-            'Project title: '.$project->getTitle(),
+            'Project title: <project_title>'.htmlspecialchars($project->getTitle(), ENT_XML1 | ENT_QUOTES, 'UTF-8').'</project_title>',
             'Project status: '.$project->getStatus(),
-            'Configured provider: '.$project->getProvider(),
-            'Configured model: '.$project->getModel(),
             'Slides count: '.$project->getSlidesCount(),
         ];
 
         if ($slidesSummary !== []) {
-            $lines[] = 'Current slides (format: [id] Title (type)): '.implode(' | ', $slidesSummary);
+            $lines[] = 'Current slides (format: [id] Title (type)): <slides_summary>'.implode(' | ', $slidesSummary).'</slides_summary>';
         }
 
-        $slidesData = array_slice($slides, 0, 6);
+        $slidesData = array_slice($slides, 0, 12);
         if ($slidesData !== []) {
-            $lines[] = 'Current slides JSON (use these ids for update_slide and remove_slide): '.json_encode($slidesData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $lines[] = 'Current slides JSON (use these ids for update_slide and remove_slide): <slides_json>'.json_encode($slidesData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE).'</slides_json>';
         }
 
         $metadata = $project->getMetadata();
         if ($metadata !== []) {
-            $lines[] = 'Project metadata: '.json_encode($metadata, JSON_THROW_ON_ERROR);
+            $lines[] = 'Project metadata: <project_metadata>'.json_encode($metadata, JSON_THROW_ON_ERROR).'</project_metadata>';
         }
 
         $lines[] = $this->responseSchema->promptInstructions();
@@ -81,7 +79,7 @@ final class PromptBuilder
             'provider' => $project->getProvider(),
             'model' => $project->getModel(),
             'slidesCount' => $project->getSlidesCount(),
-            'slides' => array_slice($project->getSlides(), 0, 6),
+            'slides' => array_slice($project->getSlides(), 0, 12),
             'theme' => $project->getThemeConfig(),
             'metadata' => $project->getMetadata(),
         ];

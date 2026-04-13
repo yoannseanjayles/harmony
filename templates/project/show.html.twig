@@ -780,7 +780,13 @@
                 }
 
                 livePreviewContent.innerHTML = html || '';
-                updateLivePreviewScale();
+                // If the frame is not yet laid out (e.g. stage just revealed from hidden),
+                // defer the scale calculation to the next animation frame so offsetWidth is non-zero.
+                if (livePreviewFrame && livePreviewFrame.offsetWidth > 0) {
+                    updateLivePreviewScale();
+                } else {
+                    requestAnimationFrame(updateLivePreviewScale);
+                }
             };
 
             // T293 — Return ordered list of slide IDs from the thumbnail strip
@@ -886,8 +892,9 @@
                 }
             };
 
-            // T294 — Build a thumbnail button element for a slide
-            const buildThumbnailElement = (slideId, position, html) => {
+            // T294 — Build a thumbnail button element with a text placeholder.
+            // Full HTML is injected lazily by thumbObserver when the thumbnail scrolls into view.
+            const buildThumbnailElement = (slideId, position, type, title) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'hm-thumbnail';
@@ -900,8 +907,17 @@
                 frame.className = 'hm-thumbnail__frame';
 
                 const inner = document.createElement('div');
-                inner.className = 'hm-thumbnail__inner';
-                inner.innerHTML = html || '';
+                inner.className = 'hm-thumbnail__inner hm-thumbnail__inner--text';
+                if (type || title) {
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'hm-thumbnail__type';
+                    typeSpan.textContent = String(type || '');
+                    inner.appendChild(typeSpan);
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'hm-thumbnail__title';
+                    titleSpan.textContent = String(title || '').slice(0, 40);
+                    inner.appendChild(titleSpan);
+                }
 
                 frame.appendChild(inner);
 
@@ -914,6 +930,33 @@
 
                 return btn;
             };
+
+            // Upgrade a single thumbnail from text placeholder to full rendered HTML (lazy).
+            const lazyUpgradeThumbnail = (thumb) => {
+                const id = String(thumb.dataset.previewSlideId || '');
+                const html = slideHtmlMap.get(id);
+                if (!html) return;
+                const inner = thumb.querySelector('.hm-thumbnail__inner');
+                if (inner && !inner.dataset.rendered) {
+                    inner.className = 'hm-thumbnail__inner';
+                    inner.innerHTML = html;
+                    inner.dataset.rendered = '1';
+                }
+            };
+
+            // IntersectionObserver: render thumbnail HTML only when it enters the strip viewport.
+            // rootMargin adds 300px of pre-render buffer on both sides so thumbnails appear
+            // already rendered when the user starts scrolling.
+            const thumbObserver = (typeof IntersectionObserver !== 'undefined' && thumbnailStrip)
+                ? new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) lazyUpgradeThumbnail(entry.target);
+                        });
+                    },
+                    { root: thumbnailStrip, rootMargin: '0px 300px 0px 300px', threshold: 0 },
+                )
+                : null;
 
             const hideError = () => {
                 errorBox.hidden = true;
@@ -1082,10 +1125,10 @@
                 slideHtmlMap.set(slideId, html);
 
                 if (existingThumb) {
-                    // T294 — Update existing thumbnail's inner content with fresh rendered HTML
+                    // T294 — Update existing thumbnail: if already rendered, refresh HTML immediately;
+                    // otherwise the next lazy upgrade will pick up the new HTML from the map.
                     const inner = existingThumb.querySelector('.hm-thumbnail__inner');
-                    if (inner) {
-                        inner.className = 'hm-thumbnail__inner';
+                    if (inner && inner.dataset.rendered) {
                         inner.innerHTML = html;
                     }
 
@@ -1093,12 +1136,16 @@
                     const numLabel = existingThumb.querySelector('.hm-thumbnail__number');
                     if (numLabel) numLabel.textContent = String(position);
                 } else {
-                    // T293 — Insert a new thumbnail button (remove a skeleton if present)
+                    // T293 — Insert a new thumbnail with text placeholder;
+                    // full HTML will be injected by thumbObserver when it enters the viewport.
                     const skeleton = thumbnailStrip.querySelector('[data-thumbnail-loading-indicator] .hm-thumbnail-skeleton');
                     if (skeleton) skeleton.remove();
 
-                    const thumbEl = buildThumbnailElement(slideId, position, html);
+                    const type = String(payload.slide.type || 'content');
+                    const title = String(payload.slide.title || '');
+                    const thumbEl = buildThumbnailElement(slideId, position, type, title);
                     thumbnailStrip.insertBefore(thumbEl, thumbnailLoadingIndicator);
+                    if (thumbObserver) thumbObserver.observe(thumbEl);
                 }
 
                 // Reveal the live preview zone
@@ -1249,17 +1296,10 @@
                     } catch (e) { /* ignore parse errors */ }
                 }
 
-                // Upgrade text-only thumbnails to rendered HTML
+                // Register all existing thumbnails with the IntersectionObserver for lazy HTML upgrade.
+                // Full HTML is injected only when each thumbnail scrolls into the strip's visible area.
                 thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
-                    const id = String(thumb.dataset.previewSlideId || '');
-                    const html = slideHtmlMap.get(id);
-                    if (html) {
-                        const inner = thumb.querySelector('.hm-thumbnail__inner');
-                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
-                            inner.className = 'hm-thumbnail__inner';
-                            inner.innerHTML = html;
-                        }
-                    }
+                    if (thumbObserver) thumbObserver.observe(thumb);
                 });
 
                 // Activate the first thumbnail on page load if slides exist

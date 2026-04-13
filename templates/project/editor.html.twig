@@ -673,7 +673,13 @@
             const updateLivePreview = (html) => {
                 if (!livePreviewContent) return;
                 livePreviewContent.innerHTML = html || '';
-                updateLivePreviewScale();
+                // If the frame is not yet laid out (e.g. stage just revealed from hidden),
+                // defer the scale calculation to the next animation frame so offsetWidth is non-zero.
+                if (livePreviewFrame && livePreviewFrame.offsetWidth > 0) {
+                    updateLivePreviewScale();
+                } else {
+                    requestAnimationFrame(updateLivePreviewScale);
+                }
             };
 
             // Slide navigation helpers
@@ -740,8 +746,9 @@
                 if (ids[newIdx] !== activeSlideId) activateSlide(ids[newIdx]);
             };
 
-            // Build a thumbnail button element
-            const buildThumbnailElement = (slideId, position, html) => {
+            // Build a thumbnail button element with a text placeholder.
+            // Full HTML is injected lazily by thumbObserver when the thumbnail scrolls into view.
+            const buildThumbnailElement = (slideId, position, type, title) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'hm-thumbnail';
@@ -754,8 +761,17 @@
                 frame.className = 'hm-thumbnail__frame';
 
                 const inner = document.createElement('div');
-                inner.className = 'hm-thumbnail__inner';
-                inner.innerHTML = html || '';
+                inner.className = 'hm-thumbnail__inner hm-thumbnail__inner--text';
+                if (type || title) {
+                    const typeSpan = document.createElement('span');
+                    typeSpan.className = 'hm-thumbnail__type';
+                    typeSpan.textContent = String(type || '');
+                    inner.appendChild(typeSpan);
+                    const titleSpan = document.createElement('span');
+                    titleSpan.className = 'hm-thumbnail__title';
+                    titleSpan.textContent = String(title || '').slice(0, 40);
+                    inner.appendChild(titleSpan);
+                }
 
                 frame.appendChild(inner);
 
@@ -768,6 +784,30 @@
 
                 return btn;
             };
+
+            // Upgrade a single thumbnail from text placeholder to full rendered HTML (lazy).
+            const lazyUpgradeThumbnail = (thumb) => {
+                const id = String(thumb.dataset.previewSlideId || '');
+                const html = slideHtmlMap.get(id);
+                if (!html) return;
+                const inner = thumb.querySelector('.hm-thumbnail__inner');
+                if (inner && !inner.dataset.rendered) {
+                    inner.className = 'hm-thumbnail__inner';
+                    inner.innerHTML = html;
+                    inner.dataset.rendered = '1';
+                }
+            };
+
+            const thumbObserver = (typeof IntersectionObserver !== 'undefined' && thumbnailStrip)
+                ? new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) lazyUpgradeThumbnail(entry.target);
+                        });
+                    },
+                    { root: thumbnailStrip, rootMargin: '0px 300px 0px 300px', threshold: 0 },
+                )
+                : null;
 
             const updateSlidesCount = () => {
                 if (!thumbnailStrip) return;
@@ -878,8 +918,7 @@
 
                 if (existingThumb) {
                     const inner = existingThumb.querySelector('.hm-thumbnail__inner');
-                    if (inner) {
-                        inner.className = 'hm-thumbnail__inner';
+                    if (inner && inner.dataset.rendered) {
                         inner.innerHTML = html;
                     }
                     const numLabel = existingThumb.querySelector('.hm-thumbnail__number');
@@ -887,8 +926,11 @@
                 } else {
                     const skeleton = thumbnailStrip.querySelector('[data-thumbnail-loading-indicator] .hm-thumbnail-skeleton');
                     if (skeleton) skeleton.remove();
-                    const thumbEl = buildThumbnailElement(slideId, position, html);
+                    const type = String(payload.slide.type || 'content');
+                    const title = String(payload.slide.title || '');
+                    const thumbEl = buildThumbnailElement(slideId, position, type, title);
                     thumbnailStrip.insertBefore(thumbEl, thumbnailLoadingIndicator);
+                    if (thumbObserver) thumbObserver.observe(thumbEl);
                 }
 
                 if (previewEmpty) previewEmpty.hidden = true;
@@ -1029,17 +1071,9 @@
                     } catch (e) { /* ignore parse errors */ }
                 }
 
-                // Also upgrade text-only thumbnails to rendered HTML
+                // Register all existing thumbnails with the IntersectionObserver for lazy HTML upgrade.
                 thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
-                    const id = String(thumb.dataset.previewSlideId || '');
-                    const html = slideHtmlMap.get(id);
-                    if (html) {
-                        const inner = thumb.querySelector('.hm-thumbnail__inner');
-                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
-                            inner.className = 'hm-thumbnail__inner';
-                            inner.innerHTML = html;
-                        }
-                    }
+                    if (thumbObserver) thumbObserver.observe(thumb);
                 });
 
                 // Activate the first thumbnail on page load
@@ -1169,18 +1203,10 @@
                             for (const [id, html] of Object.entries(data.slidesHtmlMap)) {
                                 slideHtmlMap.set(String(id), html);
                             }
-                            // Upgrade text-only thumbnail placeholders to fully-rendered HTML
-                            if (thumbnailStrip) {
+                            // Re-register all thumbnails with the observer after a confirmation reload.
+                            if (thumbnailStrip && thumbObserver) {
                                 thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
-                                    const id = String(thumb.dataset.previewSlideId || '');
-                                    const html = slideHtmlMap.get(id);
-                                    if (html) {
-                                        const inner = thumb.querySelector('.hm-thumbnail__inner');
-                                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
-                                            inner.className = 'hm-thumbnail__inner';
-                                            inner.innerHTML = html;
-                                        }
-                                    }
+                                    thumbObserver.observe(thumb);
                                 });
                             }
                         }

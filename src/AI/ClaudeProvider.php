@@ -43,7 +43,8 @@ final class ClaudeProvider implements AIProviderInterface
 
         $payload = $this->decodePayload($response->body());
         if ($response->statusCode() >= 400) {
-            throw new \RuntimeException('Anthropic provider request failed.');
+            $apiError = is_string($payload['error']['message'] ?? null) ? $payload['error']['message'] : $response->body();
+            throw new \RuntimeException(sprintf('Anthropic provider request failed (HTTP %d): %s', $response->statusCode(), $apiError));
         }
 
         $content = $this->extractContent($payload);
@@ -125,7 +126,8 @@ final class ClaudeProvider implements AIProviderInterface
             $parts[] = (string) ($block['text'] ?? '');
         }
 
-        return trim(implode("\n", array_filter($parts)));
+        // Concatenate all text blocks from the response.
+        return trim(implode('', array_filter($parts)));
     }
 
     /**
