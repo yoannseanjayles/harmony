@@ -625,6 +625,14 @@
                 errorBox.textContent = '';
             };
 
+            const handleAuthRedirect = (response, data) => {
+                if ((response.status === 401 || response.status === 403) && data && data.redirect) {
+                    window.location.href = data.redirect;
+                    return true;
+                }
+                return false;
+            };
+
             const showError = (message, retryPayload = null) => {
                 errorBox.textContent = '';
                 errorBox.hidden = false;
@@ -788,9 +796,11 @@
                         }
                     });
 
-                    const data = await response.json();
+                    let data;
+                    try { data = await response.json(); } catch (e) { data = null; }
+                    if (handleAuthRedirect(response, data)) return;
                     if (!response.ok) {
-                        throw data;
+                        throw data || { errors: [genericError] };
                     }
 
                     openStream(data.streamUrl);
@@ -1092,9 +1102,11 @@
                             }
                         });
 
-                        const data = await response.json();
+                        let data;
+                        try { data = await response.json(); } catch (e) { data = null; }
+                        if (handleAuthRedirect(response, data)) return;
                         if (!response.ok) {
-                            throw data;
+                            throw data || { errors: [genericError] };
                         }
 
                         feed.insertAdjacentHTML('afterbegin', data.html);
@@ -1137,9 +1149,11 @@
                             }
                         });
 
-                        const data = await response.json();
+                        let data;
+                        try { data = await response.json(); } catch (e) { data = null; }
+                        if (handleAuthRedirect(response, data)) return;
                         if (!response.ok) {
-                            throw data;
+                            throw data || { errors: [genericError] };
                         }
 
                         if (thumbnailStrip && typeof data.previewHtml === 'string') {
@@ -1230,9 +1244,11 @@
                         }
                     });
 
-                    const data = await response.json();
+                    let data;
+                    try { data = await response.json(); } catch (e) { data = null; }
+                    if (handleAuthRedirect(response, data)) return;
                     if (!response.ok) {
-                        throw data;
+                        throw data || { errors: [genericError] };
                     }
 
                     feed.insertAdjacentHTML('beforeend', data.html);
