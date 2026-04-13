@@ -305,7 +305,7 @@ final class ChatEngine
     private function normalizeSlide(array $slide, int $position, ?string $forcedId = null): array
     {
         $title = trim((string) ($slide['title'] ?? 'Slide '.$position));
-        $type = trim((string) ($slide['type'] ?? 'summary'));
+        $type = trim((string) ($slide['type'] ?? 'content'));
         $rawItems = is_array($slide['items'] ?? null) ? $slide['items'] : [];
         $items = array_values(array_map(
             static fn (string $item): string => trim($item),
@@ -387,7 +387,7 @@ final class ChatEngine
         return [
             'id' => (string) ($slide['id'] ?? ''),
             'title' => (string) ($slide['title'] ?? 'Slide'),
-            'type' => (string) ($slide['type'] ?? 'summary'),
+            'type' => (string) ($slide['type'] ?? 'content'),
             'subtitle' => (string) ($slide['subtitle'] ?? ''),
             'body' => (string) ($slide['body'] ?? ''),
             'items' => $slide['items'] ?? [],

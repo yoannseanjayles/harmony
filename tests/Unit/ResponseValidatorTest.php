@@ -24,7 +24,7 @@ final class ResponseValidatorTest extends TestCase
                 'slide' => [
                     'id' => 'slide-vision',
                     'title' => 'Vision',
-                    'type' => 'bullet_list',
+                    'type' => 'content',
                     'items' => ['Point 1', 'Point 2'],
                 ],
             ]],
@@ -34,7 +34,7 @@ final class ResponseValidatorTest extends TestCase
         self::assertCount(1, $result->actions());
         self::assertFalse($result->wasLocallyRepaired());
         self::assertSame('add_slide', $result->actions()[0]['action']);
-        self::assertSame('bullet_list', $result->actions()[0]['slide']['type']);
+        self::assertSame('content', $result->actions()[0]['slide']['type']);
     }
 
     public function testValidateRepairsJsonFencesAndTrailingCommaLocally(): void
@@ -52,7 +52,7 @@ final class ResponseValidatorTest extends TestCase
       "action": "add_slide",
       "slide": {
         "title": "Slide reparee",
-        "type": "summary",
+        "type": "content",
         "body": "Contenu"
       }
     }
@@ -63,7 +63,7 @@ JSON);
 
         self::assertTrue($result->wasLocallyRepaired());
         self::assertSame('Reponse reparee', $result->assistantMessage());
-        self::assertSame('summary', $result->actions()[0]['slide']['type']);
+        self::assertSame('content', $result->actions()[0]['slide']['type']);
     }
 
     public function testValidateRejectsUnknownSlideTypesAndLogsPayload(): void
@@ -111,7 +111,7 @@ JSON);
                     'action' => 'add_slide',
                     'slide' => [
                         'title' => 'Liste surchargee',
-                        'type' => 'bullet_list',
+                        'type' => 'content',
                         'items' => ['1', '2', '3', '4', '5', '6', '7'],
                     ],
                 ]],

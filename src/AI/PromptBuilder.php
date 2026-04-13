@@ -29,8 +29,13 @@ final class PromptBuilder
     private function buildSystemPrompt(Project $project): string
     {
         $slides = $project->getSlides();
-        $slideTitles = array_map(
-            static fn (array $slide): string => (string) ($slide['title'] ?? $slide['id'] ?? 'Slide'),
+        $slidesSummary = array_map(
+            static fn (array $slide): string => sprintf(
+                '[%s] %s (%s)',
+                (string) ($slide['id'] ?? 'slide-'.($slide['position'] ?? '?')),
+                (string) ($slide['title'] ?? 'Slide'),
+                (string) ($slide['type'] ?? 'content'),
+            ),
             array_slice($slides, 0, 6),
         );
 
@@ -46,8 +51,13 @@ final class PromptBuilder
             'Slides count: '.$project->getSlidesCount(),
         ];
 
-        if ($slideTitles !== []) {
-            $lines[] = 'Current slide titles: '.implode(' | ', $slideTitles);
+        if ($slidesSummary !== []) {
+            $lines[] = 'Current slides (format: [id] Title (type)): '.implode(' | ', $slidesSummary);
+        }
+
+        $slidesData = array_slice($slides, 0, 6);
+        if ($slidesData !== []) {
+            $lines[] = 'Current slides JSON (use these ids for update_slide and remove_slide): '.json_encode($slidesData, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         }
 
         $metadata = $project->getMetadata();

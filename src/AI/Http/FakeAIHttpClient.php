@@ -62,7 +62,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                         'slide' => [
                             'id' => 'slide-vision-du-lancement',
                             'title' => 'Vision du lancement',
-                            'type' => 'bullet_list',
+                            'type' => 'content',
                             'items' => ['Promesse centrale du produit', 'Impact attendu sur le marche'],
                         ],
                     ],
@@ -72,7 +72,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                         'slide' => [
                             'id' => 'slide-probleme-client',
                             'title' => 'Probleme client',
-                            'type' => 'bullet_list',
+                            'type' => 'content',
                             'items' => ['Douleur principale traitee', "Exemple concret d'usage"],
                         ],
                     ],
@@ -82,7 +82,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                         'slide' => [
                             'id' => 'slide-proposition-de-valeur',
                             'title' => 'Proposition de valeur',
-                            'type' => 'bullet_list',
+                            'type' => 'content',
                             'items' => ['Benefice cle', 'Differenciation immediate'],
                         ],
                     ],
@@ -92,7 +92,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                         'slide' => [
                             'id' => 'slide-plan-go-to-market',
                             'title' => 'Plan go-to-market',
-                            'type' => 'bullet_list',
+                            'type' => 'content',
                             'items' => ['Canaux prioritaires', 'Cadence de lancement'],
                         ],
                     ],
@@ -102,7 +102,7 @@ final class FakeAIHttpClient implements AIHttpClientInterface
                         'slide' => [
                             'id' => 'slide-prochaines-etapes',
                             'title' => 'Prochaines etapes',
-                            'type' => 'bullet_list',
+                            'type' => 'content',
                             'items' => ['Decisons a prendre', 'Actions sur 30 jours'],
                         ],
                     ],
