@@ -2,45 +2,141 @@
 
 {% block title %}{{ 'dashboard.meta_title'|trans }}{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .hm-hero {
+            text-align: center;
+            padding: 48px 24px 32px;
+        }
+
+        .hm-hero__greeting {
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--hm-accent);
+            margin-bottom: 12px;
+        }
+
+        .hm-hero__title {
+            font-family: var(--hm-font-title);
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            margin: 0 0 8px;
+            line-height: 1.1;
+        }
+
+        .hm-hero__subtitle {
+            color: var(--hm-ink-soft);
+            font-size: 0.95rem;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .hm-quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px 36px;
+        }
+
+        .hm-quick-card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 22px;
+            border-radius: 14px;
+            background: var(--hm-surface-strong);
+            border: 1px solid var(--hm-border);
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .hm-quick-card:hover {
+            border-color: rgba(139, 92, 246, 0.20);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+        }
+
+        .hm-quick-card__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--hm-accent-soft);
+            font-size: 1.2rem;
+        }
+
+        .hm-quick-card__title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--hm-ink);
+        }
+
+        .hm-quick-card__desc {
+            font-size: 0.85rem;
+            color: var(--hm-ink-soft);
+            line-height: 1.5;
+        }
+
+        .hm-quick-card__arrow {
+            align-self: flex-end;
+            color: var(--hm-ink-ghost);
+            font-size: 1.1rem;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .hm-quick-card:hover .hm-quick-card__arrow {
+            color: var(--hm-accent);
+            transform: translateX(4px);
+        }
+    </style>
+{% endblock %}
+
 {% block body %}
-    <main class="hm-shell">
-        <section class="hm-dashboard">
-            <header>
-                <div>
-                    <span class="hm-badge">{{ 'dashboard.badge'|trans }}</span>
-                    <h1 class="hm-page-title">{{ 'dashboard.title'|trans }}</h1>
-                    <p class="hm-copy">{{ 'dashboard.subtitle'|trans({ '%email%': app.user.userIdentifier }) }}</p>
+    <main class="hm-shell hm-shell--top">
+        <div style="width: min(100%, 880px);">
+            <div class="hm-hero">
+                <p class="hm-hero__greeting">{{ 'dashboard.badge'|trans }}</p>
+                <h1 class="hm-hero__title">{{ 'dashboard.title'|trans }}</h1>
+                <p class="hm-hero__subtitle">{{ 'dashboard.subtitle'|trans({ '%email%': app.user.userIdentifier }) }}</p>
+            </div>
+
+            <section class="hm-quick-actions">
+                <a class="hm-quick-card" href="{{ path('app_project_new') }}">
+                    <span class="hm-quick-card__icon" aria-hidden="true">✨</span>
+                    <span class="hm-quick-card__title">{{ 'dashboard.card.projects'|trans }}</span>
+                    <span class="hm-quick-card__desc">{{ 'dashboard.card.projects_copy'|trans }}</span>
+                    <span class="hm-quick-card__arrow" aria-hidden="true">→</span>
+                </a>
+
+                <a class="hm-quick-card" href="{{ path('app_project_index') }}">
+                    <span class="hm-quick-card__icon" aria-hidden="true">📂</span>
+                    <span class="hm-quick-card__title">{{ 'dashboard.card.projects_cta'|trans }}</span>
+                    <span class="hm-quick-card__desc">{{ 'dashboard.card.next_copy'|trans }}</span>
+                    <span class="hm-quick-card__arrow" aria-hidden="true">→</span>
+                </a>
+
+                <a class="hm-quick-card" href="{{ path('app_profile') }}">
+                    <span class="hm-quick-card__icon" aria-hidden="true">⚙️</span>
+                    <span class="hm-quick-card__title">{{ 'dashboard.card.account'|trans }}</span>
+                    <span class="hm-quick-card__desc">{{ 'dashboard.card.account_copy'|trans }}</span>
+                    <span class="hm-quick-card__arrow" aria-hidden="true">→</span>
+                </a>
+
+                <div class="hm-quick-card">
+                    <span class="hm-quick-card__icon" aria-hidden="true">🔒</span>
+                    <span class="hm-quick-card__title">{{ 'dashboard.card.session'|trans }}</span>
+                    <span class="hm-quick-card__desc">{{ 'dashboard.card.session_copy'|trans }}</span>
                 </div>
-
-                <form class="hm-inline-form" method="post" action="{{ path('app_logout') }}">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                    <button class="hm-link" type="submit">{{ 'dashboard.logout'|trans }}</button>
-                </form>
-            </header>
-
-            <section class="hm-dashboard-grid">
-                <article class="hm-dashboard-card">
-                    <strong>{{ 'dashboard.card.account'|trans }}</strong>
-                    <p class="hm-muted">{{ 'dashboard.card.account_copy'|trans }}</p>
-                    <p><a class="hm-link" href="{{ path('app_profile') }}">{{ 'dashboard.card.account_cta'|trans }}</a></p>
-                </article>
-
-                <article class="hm-dashboard-card">
-                    <strong>{{ 'dashboard.card.session'|trans }}</strong>
-                    <p class="hm-muted">{{ 'dashboard.card.session_copy'|trans }}</p>
-                </article>
-
-                <article class="hm-dashboard-card">
-                    <strong>{{ 'dashboard.card.next'|trans }}</strong>
-                    <p class="hm-muted">{{ 'dashboard.card.next_copy'|trans }}</p>
-                </article>
-
-                <article class="hm-dashboard-card">
-                    <strong>{{ 'dashboard.card.projects'|trans }}</strong>
-                    <p class="hm-muted">{{ 'dashboard.card.projects_copy'|trans }}</p>
-                    <p><a class="hm-link" href="{{ path('app_project_index') }}">{{ 'dashboard.card.projects_cta'|trans }}</a></p>
-                </article>
             </section>
-        </section>
+        </div>
     </main>
 {% endblock %}

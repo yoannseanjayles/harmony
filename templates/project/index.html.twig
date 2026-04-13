@@ -6,30 +6,36 @@
     {{ parent() }}
     <style>
         .hm-dashboard--wide {
-            width: min(100%, 1180px);
+            width: min(100%, 1200px);
         }
 
         .hm-summary-grid {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 18px;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
         .hm-summary-card,
         .hm-project-card {
-            padding: 22px;
-            border-radius: 22px;
+            padding: 18px;
+            border-radius: 14px;
             background: var(--hm-surface-strong);
-            border: 1px solid rgba(23, 63, 53, 0.08);
+            border: 1px solid var(--hm-border);
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .hm-summary-card:hover {
+            border-color: rgba(139, 92, 246, 0.16);
+            transform: translateY(-1px);
         }
 
         .hm-summary-card span,
         .hm-project-card__label,
         .hm-project-stat span {
             display: block;
-            font-size: 0.82rem;
-            letter-spacing: 0.03em;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             color: var(--hm-ink-soft);
         }
@@ -37,54 +43,66 @@
         .hm-summary-card strong,
         .hm-project-stat strong {
             display: block;
-            margin-top: 10px;
-            font-size: 1.7rem;
+            margin-top: 8px;
+            font-size: 1.5rem;
             font-family: var(--hm-font-title);
+            font-weight: 700;
         }
 
         .hm-toolbar {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: flex-end;
-            margin: 22px 0 18px;
+            margin: 18px 0 14px;
         }
 
         .hm-toolbar-form {
             display: grid;
-            grid-template-columns: minmax(240px, 1.7fr) repeat(2, minmax(150px, 0.7fr)) auto auto;
-            gap: 12px;
+            grid-template-columns: minmax(200px, 1.7fr) repeat(2, minmax(130px, 0.7fr)) auto auto;
+            gap: 10px;
             width: 100%;
             align-items: end;
         }
 
         .hm-toolbar-field {
             display: grid;
-            gap: 8px;
+            gap: 6px;
         }
 
         .hm-toolbar-field label {
-            font-weight: 700;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--hm-ink-soft);
         }
 
         .hm-toolbar-field input,
         .hm-toolbar-field select {
             width: 100%;
-            min-height: 52px;
-            padding: 0 16px;
-            border-radius: 16px;
-            border: 1px solid rgba(23, 63, 53, 0.18);
-            background: rgba(255, 255, 255, 0.92);
+            min-height: 44px;
+            padding: 0 14px;
+            border-radius: 10px;
+            border: 1px solid var(--hm-border);
+            background: rgba(255, 255, 255, 0.03);
             color: var(--hm-ink);
             font: inherit;
+            font-size: 0.9rem;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .hm-toolbar-field input:focus,
+        .hm-toolbar-field select:focus {
+            outline: none;
+            border-color: var(--hm-accent-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
         }
 
         .hm-filter-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
         .hm-results-copy {
@@ -95,26 +113,32 @@
         .hm-project-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 18px;
+            gap: 14px;
         }
 
         .hm-project-card {
             display: grid;
-            gap: 18px;
+            gap: 14px;
+        }
+
+        .hm-project-card:hover {
+            border-color: rgba(139, 92, 246, 0.18);
+            transform: translateY(-2px);
         }
 
         .hm-project-card__top {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: flex-start;
         }
 
         .hm-project-card__title {
-            margin: 12px 0 0;
+            margin: 8px 0 0;
             font-family: var(--hm-font-title);
-            font-size: 1.9rem;
-            line-height: 1.05;
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.1;
         }
 
         .hm-project-card__updated {
@@ -125,10 +149,10 @@
         .hm-status {
             display: inline-flex;
             align-items: center;
-            min-height: 36px;
-            padding: 0 12px;
+            min-height: 30px;
+            padding: 0 10px;
             border-radius: 999px;
-            font-size: 0.82rem;
+            font-size: 0.76rem;
             font-weight: 700;
             white-space: nowrap;
         }
@@ -155,23 +179,23 @@
         }
 
         .hm-project-stat {
-            padding: 16px;
-            border-radius: 18px;
-            background: rgba(244, 239, 227, 0.7);
-            border: 1px solid rgba(23, 63, 53, 0.08);
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--hm-border);
         }
 
         .hm-export-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
+            gap: 10px;
         }
 
         .hm-export-card {
-            padding: 16px;
-            border-radius: 18px;
-            border: 1px solid rgba(23, 63, 53, 0.08);
-            background: rgba(255, 255, 255, 0.7);
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--hm-border);
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .hm-export-card__meta {
@@ -188,40 +212,40 @@
         }
 
         .hm-meter {
-            height: 10px;
+            height: 6px;
             overflow: hidden;
             border-radius: 999px;
-            background: rgba(23, 63, 53, 0.1);
+            background: rgba(139, 92, 246, 0.08);
         }
 
         .hm-meter__fill {
             height: 100%;
             border-radius: 999px;
-            background: rgba(23, 63, 53, 0.3);
+            background: rgba(139, 92, 246, 0.25);
         }
 
         .hm-meter__fill--success {
-            background: linear-gradient(135deg, #24835e, #1d7a5a);
+            background: linear-gradient(135deg, #34d399, #10b981);
         }
 
         .hm-meter__fill--warning {
-            background: linear-gradient(135deg, #d39b3c, #bf6a3d);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
         }
 
         .hm-meter__fill--danger {
-            background: linear-gradient(135deg, #d1604a, #a3362b);
+            background: linear-gradient(135deg, #f87171, #ef4444);
         }
 
         .hm-meter__fill--idle {
-            background: rgba(23, 63, 53, 0.22);
+            background: rgba(139, 92, 246, 0.14);
         }
 
         .hm-pagination {
             display: flex;
             justify-content: space-between;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
-            margin-top: 18px;
+            margin-top: 14px;
         }
 
         @media (max-width: 1100px) {
@@ -259,7 +283,7 @@
         direction: currentDirection
     } %}
 
-    <main class="hm-shell">
+    <main class="hm-shell hm-shell--top">
         <section class="hm-dashboard hm-dashboard--wide">
             <header>
                 <div>

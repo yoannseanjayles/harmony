@@ -9,10 +9,10 @@
             width: min(100%, 1200px);
             margin: 0 auto;
             padding: 24px;
-            border-radius: 30px;
+            border-radius: 20px;
             background: var(--hm-surface);
             border: 1px solid var(--hm-border);
-            box-shadow: var(--hm-shadow);
+            box-shadow: var(--hm-shadow-card);
         }
 
         .hm-admin-header {
@@ -20,73 +20,80 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 16px;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
         }
 
         .hm-admin-period-tabs {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
         }
 
         .hm-period-tab {
             display: inline-flex;
             align-items: center;
-            padding: 8px 16px;
-            border-radius: 999px;
-            font-size: 0.88rem;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.84rem;
             font-weight: 600;
             text-decoration: none;
             border: 1px solid var(--hm-border);
             background: var(--hm-surface-strong);
             color: var(--hm-ink-soft);
-            transition: background 0.2s, color 0.2s;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
         }
 
         .hm-period-tab--active,
         .hm-period-tab:hover {
             background: var(--hm-accent-soft);
             color: var(--hm-accent);
-            border-color: var(--hm-accent);
+            border-color: rgba(139, 92, 246, 0.20);
         }
 
         .hm-kpi-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
         .hm-kpi-card {
-            padding: 22px;
-            border-radius: 22px;
+            padding: 20px;
+            border-radius: 14px;
             background: var(--hm-surface-strong);
             border: 1px solid var(--hm-border);
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .hm-kpi-card:hover {
+            border-color: rgba(139, 92, 246, 0.14);
+            transform: translateY(-1px);
         }
 
         .hm-kpi-card__label {
             display: block;
-            font-size: 0.78rem;
-            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             color: var(--hm-ink-soft);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .hm-kpi-card__value {
             display: block;
-            font-size: 2rem;
+            font-size: 1.7rem;
             font-family: var(--hm-font-title);
+            font-weight: 700;
             line-height: 1;
             color: var(--hm-ink);
         }
 
         .hm-kpi-card__sub {
             display: block;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             color: var(--hm-ink-soft);
-            margin-top: 6px;
+            margin-top: 5px;
         }
 
         .hm-kpi-card--success .hm-kpi-card__value { color: var(--hm-success); }
@@ -94,58 +101,59 @@
         .hm-kpi-card--danger .hm-kpi-card__value { color: var(--hm-danger); }
 
         .hm-trend-section {
-            margin-top: 24px;
+            margin-top: 20px;
         }
 
         .hm-trend-section h2 {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-family: var(--hm-font-title);
-            margin: 0 0 16px;
+            font-weight: 600;
+            margin: 0 0 14px;
         }
 
         .hm-trend-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
         }
 
         .hm-trend-table th {
             text-align: left;
-            padding: 10px 14px;
-            font-size: 0.78rem;
-            letter-spacing: 0.05em;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             color: var(--hm-ink-soft);
             border-bottom: 1px solid var(--hm-border);
         }
 
         .hm-trend-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(0,0,0,0.04);
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.04);
             vertical-align: middle;
         }
 
         .hm-trend-bar-wrap {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .hm-trend-bar {
-            height: 8px;
+            height: 6px;
             border-radius: 999px;
             background: var(--hm-accent-soft);
             flex-shrink: 0;
             transition: width 0.3s;
         }
 
-        .hm-trend-bar--success { background: rgba(16, 185, 129, 0.3); }
-        .hm-trend-bar--warning { background: rgba(245, 158, 11, 0.3); }
-        .hm-trend-bar--danger  { background: rgba(239, 68, 68, 0.3); }
+        .hm-trend-bar--success { background: rgba(52, 211, 153, 0.30); }
+        .hm-trend-bar--warning { background: rgba(245, 158, 11, 0.30); }
+        .hm-trend-bar--danger  { background: rgba(248, 113, 113, 0.30); }
 
         .hm-admin-nav {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
         }
 
@@ -164,7 +172,7 @@
 {% endblock %}
 
 {% block body %}
-    <main class="hm-shell">
+    <main class="hm-shell hm-shell--top">
         <section class="hm-admin-dashboard">
 
             <header class="hm-admin-header">
