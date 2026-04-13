@@ -195,6 +195,7 @@ project.share.public_expiry: Expiration du lien
 project.share.slides_badge: Apercu des slides
 project.share.slide_fallback: Slide %number%
 project.share.slide_identifier: "Identifiant : %id%"
+project.export.html: Exporter en HTML
 project.preview.badge: Preview live
 project.preview.title: Panneau preview
 project.preview.subtitle: "%count% slide(s) synchronisee(s) en direct."
@@ -202,6 +203,25 @@ project.preview.empty_title: Aucun slide synchronise pour le moment.
 project.preview.empty_copy: Les slides ajoutes ou modifies pendant la generation IA apparaitront ici en temps reel.
 project.preview.slide_badge: Slide %number%
 project.preview.slide_empty: Aucun contenu synchronise pour l'instant.
+
+# T291/T292/T297 — Live preview zone
+project.preview.live.empty_title: Aucune slide active pour le moment.
+project.preview.live.empty_copy: Lancez une generation ou cliquez sur une miniature pour previsualiser une slide.
+project.preview.live.nav_label: Navigation entre slides
+project.preview.live.prev: Slide precedente
+project.preview.live.next: Slide suivante
+project.preview.live.counter: "%current% / %total%"
+
+# Slide type labels used in text-based thumbnail placeholders
+slide.type.title: Titre
+slide.type.content: Contenu
+slide.type.closing: Conclusion
+slide.type.split: Deux colonnes
+slide.type.image: Image
+slide.type.quote: Citation
+slide.type.timeline: Chronologie
+slide.type.stats: Statistiques
+slide.type.comparison: Comparaison
 chat.panel.badge: Conversation projet
 chat.panel.title: Panneau de chat
 chat.panel.subtitle: "%count% message(s) dans cette conversation."
@@ -232,7 +252,7 @@ project.provider.openai: OpenAI
 project.provider.anthropic: Anthropic
 project.model.gpt41mini: GPT-4.1 mini
 project.model.gpt41: GPT-4.1
-project.model.claude37: Claude 3.7 Sonnet
+project.model.claudesonnet46: Claude Sonnet 4.6
 project.model.claude35: Claude 3.5 Sonnet
 project.status.draft: Brouillon
 project.status.active: Actif
@@ -343,3 +363,80 @@ admin.dashboard.trend.date: Date
 admin.dashboard.trend.total: Total
 admin.dashboard.trend.successes: "Succès"
 admin.dashboard.trend.rate: "Taux"
+# T315–T318 — AI provider & model drawer
+project.ai.settings.badge: "Paramètres IA"
+project.ai.settings.title: "Fournisseur & Modèle IA"
+project.ai.settings.subtitle: "Choisissez le fournisseur et le modèle utilisés pour les générations de ce projet."
+project.ai.settings.section.active: "Paramètre actif"
+project.ai.settings.section.provider: Fournisseur
+project.ai.settings.section.model: "Modèle"
+project.ai.settings.save: "Appliquer les paramètres"
+project.ai.settings.saving: "Sauvegarde…"
+project.ai.settings.error.generic: "Une erreur est survenue lors de la sauvegarde des paramètres IA."
+
+# T319 — Cumulative AI cost on project show
+project.show.card.ai_cost: "Coût IA estimé"
+# T299–T306 — Unified customization drawer (HRM-F37)
+project.drawer.open: "Personnaliser"
+project.drawer.close: "Fermer"
+project.drawer.title: "Personnalisation du projet"
+project.drawer.tab.theme: "Thème"
+project.drawer.tab.animations: "Animations"
+project.drawer.tab.ai: "IA"
+project.drawer.tab.export: "Export"
+
+project.drawer.ai.badge: "Intelligence artificielle"
+project.drawer.ai.title: "Paramètres IA"
+project.drawer.ai.subtitle: "Fournisseur, modèle et coût estimé des générations de ce projet."
+project.drawer.ai.provider: "Fournisseur"
+project.drawer.ai.model: "Modèle"
+project.drawer.ai.cost: "Coût IA estimé"
+project.drawer.ai.cost.value: "%amount% $"
+
+project.drawer.export.badge: "Export"
+project.drawer.export.title: "Exporter le projet"
+project.drawer.export.subtitle: "Générez une version autonome de votre projet."
+project.drawer.export.html.button: "Exporter en HTML"
+project.drawer.export.pdf.button: "Exporter en PDF"
+project.drawer.export.html.success: "Export HTML lancé avec succès."
+project.drawer.export.pdf.success: "Export PDF lancé avec succès."
+project.drawer.export.error.generic: "Une erreur est survenue lors de l'export."
+# HRM-F35 — Editor two-panel layout (T283–T290)
+project.editor.meta_title: "Éditeur — %title% | Harmony"
+project.editor.nav.back: Retour au projet
+project.editor.nav.history: Historique
+project.editor.nav.theme: Theme
+project.editor.nav.export_html: Exporter HTML
+project.editor.nav.export_pdf: Exporter PDF
+project.editor.nav.export_processing: Export en cours...
+project.editor.nav.export_error: "Échec de l'export. Réessayez."
+# T241–T247 — Media management drawer
+project.media.badge: "Médias du projet"
+project.media.title: "Gestion des médias"
+project.media.subtitle: "Gérez les images du projet : remplacez, recadrez et ajustez l'apparence en temps réel."
+project.media.empty_title: "Aucun média pour le moment."
+project.media.empty_copy: "Les images ajoutées via le chat apparaîtront ici et pourront être modifiées."
+project.media.asset_count: "%count% image(s) dans ce projet."
+project.media.label.filename: "Fichier"
+project.media.label.size: "Taille"
+project.media.label.slide_refs: "Utilisé dans %count% slide(s)"
+project.media.replace.button: "Remplacer l'image"
+project.media.replace.label: "Choisir un fichier de remplacement"
+project.media.replace.uploading: "Remplacement en cours…"
+project.media.replace.success: "Image remplacée avec succès."
+project.media.replace.error: "Erreur lors du remplacement."
+project.media.crop.title: "Recadrage interactif"
+project.media.crop.apply: "Appliquer le recadrage"
+project.media.crop.cancel: "Annuler"
+project.media.overlay.title: "Couleur et opacité"
+project.media.overlay.section.color: "Couleur d'overlay"
+project.media.overlay.section.color_opacity: "Opacité de la couleur (%)"
+project.media.overlay.section.img_opacity: "Opacité de l'image (%)"
+project.media.overlay.slide_label: "Slide cible"
+project.media.overlay.slide_placeholder: "Sélectionnez une slide…"
+project.media.overlay.save: "Appliquer l'overlay"
+project.media.overlay.saving: "Sauvegarde en cours…"
+project.media.overlay.success: "Paramètres d'overlay sauvegardés."
+project.media.overlay.error: "Erreur lors de la sauvegarde."
+project.media.overlay.no_slide: "Sélectionnez d'abord une slide."
+

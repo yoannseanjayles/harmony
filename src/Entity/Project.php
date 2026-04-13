@@ -601,8 +601,19 @@ class Project
         return [
             'project.model.gpt41mini' => 'gpt-4.1-mini',
             'project.model.gpt41' => 'gpt-4.1',
-            'project.model.claude37' => 'claude-3-7-sonnet',
+            'project.model.claudesonnet46' => 'claude-sonnet-4-6',
             'project.model.claude35' => 'claude-3-5-sonnet',
+        ];
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    public static function modelsByProvider(): array
+    {
+        return [
+            'openai' => ['gpt-4.1-mini', 'gpt-4.1'],
+            'anthropic' => ['claude-sonnet-4-6', 'claude-3-5-sonnet'],
         ];
     }
 

@@ -30,7 +30,7 @@ final class ProjectCrudTest extends FunctionalTestCase
         $this->client->submitForm('Creer le projet', [
             'project[title]' => 'Roadmap IA',
             'project[provider]' => 'anthropic',
-            'project[model]' => 'claude-3-7-sonnet',
+            'project[model]' => 'claude-sonnet-4-6',
             'project[status]' => Project::STATUS_ACTIVE,
         ]);
 
@@ -38,7 +38,7 @@ final class ProjectCrudTest extends FunctionalTestCase
         self::assertInstanceOf(Project::class, $project);
         self::assertResponseRedirects('/projects/'.$project->getId());
         self::assertSame('anthropic', $project->getProvider());
-        self::assertSame('claude-3-7-sonnet', $project->getModel());
+        self::assertSame('claude-sonnet-4-6', $project->getModel());
         self::assertSame(Project::STATUS_ACTIVE, $project->getStatus());
         self::assertSame($user->getId(), $project->getUser()?->getId());
         self::assertSame(1, static::getContainer()->get(ProjectVersionRepository::class)->countByProject($project));
@@ -46,7 +46,7 @@ final class ProjectCrudTest extends FunctionalTestCase
         $this->client->followRedirect();
         self::assertSelectorTextContains('h1', 'Roadmap IA');
         self::assertSelectorTextContains('body', 'Anthropic');
-        self::assertSelectorTextContains('body', 'Claude 3.7 Sonnet');
+        self::assertSelectorTextContains('body', 'Claude Sonnet 4.6');
 
         $this->client->request('GET', '/projects/'.$project->getId().'/edit');
         self::assertResponseIsSuccessful();

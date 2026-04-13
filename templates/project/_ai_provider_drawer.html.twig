@@ -1,0 +1,257 @@
+{#
+  T315 / T316 / T317 / T318 — AI provider & model drawer.
+  Displays the active provider and model, lets the user switch them via selector buttons,
+  and persists the choice via AJAX (POST /projects/{id}/ai/settings).
+  Dynamic model list is filtered client-side based on the chosen provider.
+  Included on project/show.html.twig for non-archived projects.
+#}
+{% if not project.isArchived %}
+
+<section
+    class="hm-ai-settings"
+    data-ai-settings
+    data-save-url="{{ path('app_project_ai_settings', { id: project.id }) }}"
+    data-csrf-token="{{ csrf_token('ai_settings_' ~ project.id) }}"
+    data-current-provider="{{ project.provider }}"
+    data-current-model="{{ project.model }}"
+    data-error-generic="{{ 'project.ai.settings.error.generic'|trans }}"
+    data-label-saving="{{ 'project.ai.settings.saving'|trans }}"
+    data-label-save="{{ 'project.ai.settings.save'|trans }}"
+>
+    <header class="hm-ai-settings__header">
+        <span class="hm-badge">{{ 'project.ai.settings.badge'|trans }}</span>
+        <h2 class="hm-ai-settings__title">{{ 'project.ai.settings.title'|trans }}</h2>
+        <p class="hm-muted">{{ 'project.ai.settings.subtitle'|trans }}</p>
+    </header>
+
+    {# ── T315 — Active provider & model display ──────────────────────────── #}
+    <div class="hm-ai-settings__active hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.ai.settings.section.active'|trans }}</h3>
+        <p class="hm-muted">
+            <span data-ai-active-provider>{{ project.providerLabelKey|trans }}</span>
+            —
+            <span data-ai-active-model>{{ project.modelLabelKey|trans }}</span>
+        </p>
+    </div>
+
+    {# ── T316 — Provider selector ─────────────────────────────────────────── #}
+    <div class="hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.ai.settings.section.provider'|trans }}</h3>
+        <div class="hm-ai-provider-row">
+            {% set provider_choices = { 'openai': 'project.provider.openai', 'anthropic': 'project.provider.anthropic' } %}
+            {% for value, label_key in provider_choices %}
+                <button
+                    class="hm-ai-provider-btn{{ project.provider == value ? ' hm-ai-provider-btn--active' : '' }}"
+                    type="button"
+                    data-ai-provider-btn="{{ value }}"
+                    aria-pressed="{{ project.provider == value ? 'true' : 'false' }}"
+                >{{ label_key|trans }}</button>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ── T317 — Dynamic model selector ───────────────────────────────────── #}
+    <div class="hm-theme-section">
+        <h3 class="hm-theme-section__label">{{ 'project.ai.settings.section.model'|trans }}</h3>
+        <div class="hm-ai-model-row" data-ai-model-row>
+            {% set model_choices = {
+                'gpt-4.1-mini':      { label: 'project.model.gpt41mini', provider: 'openai' },
+                'gpt-4.1':           { label: 'project.model.gpt41',     provider: 'openai' },
+                'claude-3-7-sonnet': { label: 'project.model.claude37',  provider: 'anthropic' },
+                'claude-3-5-sonnet': { label: 'project.model.claude35',  provider: 'anthropic' }
+            } %}
+            {% for value, meta in model_choices %}
+                <button
+                    class="hm-ai-model-btn{{ project.model == value ? ' hm-ai-model-btn--active' : '' }}"
+                    type="button"
+                    data-ai-model-btn="{{ value }}"
+                    data-ai-model-provider="{{ meta.provider }}"
+                    aria-pressed="{{ project.model == value ? 'true' : 'false' }}"
+                    {{ meta.provider != project.provider ? 'hidden' }}
+                >{{ meta.label|trans }}</button>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ── Error / status ───────────────────────────────────────────────────── #}
+    <div class="hm-alert hm-alert--danger" data-ai-settings-error hidden></div>
+
+    {# ── Save button ──────────────────────────────────────────────────────── #}
+    <div class="hm-theme-customizer__actions">
+        <button class="hm-button" type="button" data-ai-settings-save>{{ 'project.ai.settings.save'|trans }}</button>
+    </div>
+</section>
+
+<style>
+    .hm-ai-settings {
+        padding: 24px;
+        border-radius: 26px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-ai-settings__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-ai-settings__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.4rem, 2vw, 1.8rem);
+    }
+
+    .hm-ai-provider-row,
+    .hm-ai-model-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .hm-ai-provider-btn,
+    .hm-ai-model-btn {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 18px;
+        border: 2px solid var(--hm-border);
+        border-radius: 14px;
+        background: var(--hm-surface-strong);
+        color: var(--hm-ink-soft);
+        font: inherit;
+        font-size: 0.90rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: border-color 0.18s, color 0.18s, background 0.18s;
+    }
+
+    .hm-ai-provider-btn--active,
+    .hm-ai-model-btn--active {
+        border-color: var(--hm-accent-primary);
+        color: var(--hm-accent-primary);
+        background: var(--hm-accent-soft);
+    }
+</style>
+
+<script>
+    (() => {
+        const panel = document.querySelector('[data-ai-settings]');
+        if (!panel) return;
+
+        const saveUrl      = panel.dataset.saveUrl;
+        const csrfToken    = panel.dataset.csrfToken;
+        const errorBox     = panel.querySelector('[data-ai-settings-error]');
+        const saveBtn      = panel.querySelector('[data-ai-settings-save]');
+        const activeProviderEl = panel.querySelector('[data-ai-active-provider]');
+        const activeModelEl    = panel.querySelector('[data-ai-active-model]');
+        const labelSaving  = panel.dataset.labelSaving  || 'Sauvegarde…';
+        const labelSave    = panel.dataset.labelSave    || 'Appliquer';
+        const errorGeneric = panel.dataset.errorGeneric || 'Une erreur est survenue.';
+
+        // Provider → friendly label map (from rendered buttons)
+        const providerLabels = {};
+        const modelLabels    = {};
+
+        let selectedProvider = panel.dataset.currentProvider;
+        let selectedModel    = panel.dataset.currentModel;
+
+        // ── Provider buttons ──────────────────────────────────────────────────
+        panel.querySelectorAll('[data-ai-provider-btn]').forEach(btn => {
+            const value = btn.dataset.aiProviderBtn;
+            providerLabels[value] = btn.textContent.trim();
+
+            btn.addEventListener('click', () => {
+                selectedProvider = value;
+                syncProviderButtons();
+                syncModelButtons();
+            });
+        });
+
+        // ── Model buttons ─────────────────────────────────────────────────────
+        panel.querySelectorAll('[data-ai-model-btn]').forEach(btn => {
+            const value = btn.dataset.aiModelBtn;
+            modelLabels[value] = btn.textContent.trim();
+
+            btn.addEventListener('click', () => {
+                selectedModel = value;
+                syncModelButtons();
+            });
+        });
+
+        function syncProviderButtons() {
+            panel.querySelectorAll('[data-ai-provider-btn]').forEach(btn => {
+                const active = btn.dataset.aiProviderBtn === selectedProvider;
+                btn.classList.toggle('hm-ai-provider-btn--active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        function syncModelButtons() {
+            let firstVisible = null;
+
+            panel.querySelectorAll('[data-ai-model-btn]').forEach(btn => {
+                const belongsToProvider = btn.dataset.aiModelProvider === selectedProvider;
+                btn.hidden = !belongsToProvider;
+
+                if (belongsToProvider && firstVisible === null) {
+                    firstVisible = btn.dataset.aiModelBtn;
+                }
+            });
+
+            // If the current model doesn't belong to the new provider, pick the first available
+            const currentModelBtn = panel.querySelector(`[data-ai-model-btn="${selectedModel}"]`);
+            if (!currentModelBtn || currentModelBtn.dataset.aiModelProvider !== selectedProvider) {
+                selectedModel = firstVisible || selectedModel;
+            }
+
+            panel.querySelectorAll('[data-ai-model-btn]').forEach(btn => {
+                const active = btn.dataset.aiModelBtn === selectedModel;
+                btn.classList.toggle('hm-ai-model-btn--active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
+        // ── Save ──────────────────────────────────────────────────────────────
+        saveBtn.addEventListener('click', async () => {
+            errorBox.hidden = true;
+            errorBox.textContent = '';
+            saveBtn.disabled = true;
+            saveBtn.textContent = labelSaving;
+
+            try {
+                const formData = new FormData();
+                formData.set('_token', csrfToken);
+                formData.set('provider', selectedProvider);
+                formData.set('model', selectedModel);
+
+                const response = await fetch(saveUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw data;
+                }
+
+                // T315 — Update active display
+                if (activeProviderEl) {
+                    activeProviderEl.textContent = providerLabels[data.provider] || data.provider;
+                }
+                if (activeModelEl) {
+                    activeModelEl.textContent = modelLabels[data.model] || data.model;
+                }
+            } catch (err) {
+                errorBox.textContent = (err && err.error) || errorGeneric;
+                errorBox.hidden = false;
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = labelSave;
+            }
+        });
+    })();
+</script>
+{% endif %}

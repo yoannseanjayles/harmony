@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Project;
 use App\Entity\ProjectExportMetric;
 use App\Entity\User;
+use App\Ops\OpsLogger;
 use App\Project\ProjectMetricsRecorder;
 use App\Repository\ProjectRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -14,6 +15,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class SecurityActionController extends AbstractController
 {
+    public function __construct(private readonly OpsLogger $opsLogger)
+    {
+    }
+
     #[Route('/api/preferences', name: 'app_api_preferences', methods: ['POST'], defaults: ['_csrf_header_token_id' => 'api_mutation'])]
     public function savePreferences(): JsonResponse
     {
@@ -66,6 +71,12 @@ final class SecurityActionController extends AbstractController
 
         if ($project instanceof Project) {
             $projectMetricsRecorder->recordExport($project, $format, $wasSuccessful, $durationMs, $failureReason);
+        }
+
+        if (!$wasSuccessful) {
+            $reason = (string) $request->request->get('reason', 'unknown');
+            $durationMs = max(0, $request->request->getInt('durationMs', 0));
+            $this->opsLogger->logExportFailure($format, $reason, $durationMs);
         }
 
         return $this->json([

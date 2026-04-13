@@ -11,6 +11,40 @@
         </div>
     </header>
 
+    {# T291 — Live preview zone: shows the active slide's rendered HTML at full fidelity #}
+    <div class="hm-live-preview" data-live-preview>
+        <div class="hm-live-preview__empty" data-live-preview-empty {{ project.slides is not empty ? 'hidden' }}>
+            <strong>{{ 'project.preview.live.empty_title'|trans }}</strong>
+            <p class="hm-muted">{{ 'project.preview.live.empty_copy'|trans }}</p>
+        </div>
+
+        <div class="hm-live-preview__stage" data-live-preview-stage {{ project.slides is empty ? 'hidden' }}>
+            <div class="hm-live-preview__frame" data-live-preview-frame>
+                <div class="hm-live-preview__inner" data-live-preview-content aria-live="polite"></div>
+            </div>
+
+            <nav class="hm-live-preview__nav" aria-label="{{ 'project.preview.live.nav_label'|trans }}">
+                <button
+                    class="hm-btn-icon"
+                    type="button"
+                    data-preview-prev
+                    aria-label="{{ 'project.preview.live.prev'|trans }}"
+                >&#8592;</button>
+                <span class="hm-live-preview__counter" data-preview-counter aria-live="polite">
+                    {{ project.slidesCount > 0 ? ('project.preview.live.counter'|trans({ '%current%': 1, '%total%': project.slidesCount })) : '' }}
+                </span>
+                <button
+                    class="hm-btn-icon"
+                    type="button"
+                    data-preview-next
+                    aria-label="{{ 'project.preview.live.next'|trans }}"
+                >&#8594;</button>
+            </nav>
+        </div>
+    </div>
+
+    {# T293 — Thumbnail strip: horizontal scrollable band of scaled slide miniatures.
+       data-preview-list is kept for JS compatibility (count tracking, upsertPreviewSlide). #}
     <div class="hm-preview-empty" data-preview-empty {{ project.slides is not empty ? 'hidden' }}>
         <strong>{{ 'project.preview.empty_title'|trans }}</strong>
         <p class="hm-muted">{{ 'project.preview.empty_copy'|trans }}</p>
@@ -19,12 +53,37 @@
     {# T196 — data-anim-container is targeted by the animation-control JS.
        The .hm-no-animation class is applied here when animations are disabled in the project theme. #}
     <div
-        class="hm-preview-grid{{ (project.themeConfig['animationsEnabled'] ?? '1') == '0' ? ' hm-no-animation' : '' }}"
+        class="hm-thumbnail-strip{{ (project.themeConfig['animationsEnabled'] ?? '1') == '0' ? ' hm-no-animation' : '' }}"
+        data-thumbnail-strip
         data-preview-list
         data-anim-container
     >
-        {% include 'project/_preview_list.html.twig' with {
-            slides: project.slides
-        } %}
+        {# T293/T294 — Initial thumbnails for already-existing slides (text-based placeholder;
+           enhanced to full-HTML render by SSE events on next generation). #}
+        {% for slide in project.slides %}
+            <button
+                class="hm-thumbnail{% if loop.first %} hm-thumbnail--active{% endif %}"
+                type="button"
+                data-preview-slide
+                data-preview-slide-id="{{ slide.id|default('') }}"
+                data-preview-slide-position="{{ loop.index }}"
+                aria-label="{{ 'project.preview.slide_badge'|trans({ '%number%': loop.index }) }}"
+            >
+                <div class="hm-thumbnail__frame">
+                    <div class="hm-thumbnail__inner hm-thumbnail__inner--text">
+                        <span class="hm-thumbnail__type">{{ ('slide.type.' ~ slide.type|default('content'))|trans }}</span>
+                        <span class="hm-thumbnail__title">{{ slide.title|default('Slide ' ~ loop.index)|slice(0, 40) }}</span>
+                    </div>
+                </div>
+                <span class="hm-thumbnail__number">{{ loop.index }}</span>
+            </button>
+        {% endfor %}
+
+        {# T296 — Loading indicator shown while streaming is active #}
+        <div class="hm-thumbnail-loading" data-thumbnail-loading-indicator hidden>
+            <div class="hm-thumbnail-skeleton"></div>
+            <div class="hm-thumbnail-skeleton"></div>
+            <div class="hm-thumbnail-skeleton"></div>
+        </div>
     </div>
 </section>

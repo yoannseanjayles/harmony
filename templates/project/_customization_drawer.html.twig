@@ -1,0 +1,532 @@
+{#
+  T299–T306 (HRM-F37) — Unified customization side-drawer.
+
+  Aggregates the four customization areas into a single slide-in panel:
+    • Tab "Thème"      → preset selector + colour/typography customizer
+    • Tab "Animations" → global toggle, speed & intensity sliders
+    • Tab "IA"         → provider/model info + cumulative AI cost estimate
+    • Tab "Export"     → HTML and PDF export triggers (AJAX POST)
+
+  Variables expected from the including template:
+    - project     (App\Entity\Project)
+    - aiCostUsd   (float)  — cumulative estimated AI cost for this project
+#}
+{% if not project.isArchived %}
+<div
+    class="hm-cust-drawer"
+    id="hm-customization-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="hm-cust-drawer-title"
+    data-customization-drawer
+    hidden
+>
+    {# ── Overlay ──────────────────────────────────────────────────────────── #}
+    <div class="hm-cust-drawer__overlay" data-drawer-overlay tabindex="-1" aria-hidden="true"></div>
+
+    {# ── Panel ────────────────────────────────────────────────────────────── #}
+    <aside class="hm-cust-drawer__panel" tabindex="-1">
+
+        {# ── Header ───────────────────────────────────────────────────────── #}
+        <div class="hm-cust-drawer__header">
+            <h2 id="hm-cust-drawer-title" class="hm-cust-drawer__title">
+                {{ 'project.drawer.title'|trans }}
+            </h2>
+            <button
+                class="hm-cust-drawer__close"
+                type="button"
+                data-drawer-close
+                aria-label="{{ 'project.drawer.close'|trans }}"
+            >✕</button>
+        </div>
+
+        {# ── Tab navigation ───────────────────────────────────────────────── #}
+        <nav class="hm-cust-drawer__tabs" role="tablist" aria-label="{{ 'project.drawer.title'|trans }}">
+            <button
+                class="hm-cust-tab hm-cust-tab--active"
+                role="tab"
+                type="button"
+                id="hm-tab-theme"
+                data-tab="theme"
+                aria-selected="true"
+                aria-controls="hm-panel-theme"
+            >{{ 'project.drawer.tab.theme'|trans }}</button>
+
+            <button
+                class="hm-cust-tab"
+                role="tab"
+                type="button"
+                id="hm-tab-animations"
+                data-tab="animations"
+                aria-selected="false"
+                aria-controls="hm-panel-animations"
+                tabindex="-1"
+            >{{ 'project.drawer.tab.animations'|trans }}</button>
+
+            <button
+                class="hm-cust-tab"
+                role="tab"
+                type="button"
+                id="hm-tab-ai"
+                data-tab="ai"
+                aria-selected="false"
+                aria-controls="hm-panel-ai"
+                tabindex="-1"
+            >{{ 'project.drawer.tab.ai'|trans }}</button>
+
+            <button
+                class="hm-cust-tab"
+                role="tab"
+                type="button"
+                id="hm-tab-export"
+                data-tab="export"
+                aria-selected="false"
+                aria-controls="hm-panel-export"
+                tabindex="-1"
+            >{{ 'project.drawer.tab.export'|trans }}</button>
+        </nav>
+
+        {# ── Tab panels ───────────────────────────────────────────────────── #}
+        <div class="hm-cust-drawer__body">
+
+            {# ── Tab: Thème ─────────────────────────────────────────── #}
+            <div
+                id="hm-panel-theme"
+                class="hm-cust-panel"
+                role="tabpanel"
+                aria-labelledby="hm-tab-theme"
+                data-panel="theme"
+            >
+                {% include 'project/_theme_preset_drawer.html.twig' with { project: project } %}
+                {% include 'project/_theme_customization_drawer.html.twig' with { project: project } %}
+            </div>
+
+            {# ── Tab: Animations ────────────────────────────────────── #}
+            <div
+                id="hm-panel-animations"
+                class="hm-cust-panel"
+                role="tabpanel"
+                aria-labelledby="hm-tab-animations"
+                data-panel="animations"
+                hidden
+            >
+                {% include 'project/_animation_control_drawer.html.twig' with { project: project } %}
+            </div>
+
+            {# ── Tab: IA ────────────────────────────────────────────── #}
+            <div
+                id="hm-panel-ai"
+                class="hm-cust-panel"
+                role="tabpanel"
+                aria-labelledby="hm-tab-ai"
+                data-panel="ai"
+                hidden
+            >
+                <section class="hm-cust-ai">
+                    <header class="hm-cust-ai__header">
+                        <span class="hm-badge">{{ 'project.drawer.ai.badge'|trans }}</span>
+                        <h2 class="hm-cust-ai__title">{{ 'project.drawer.ai.title'|trans }}</h2>
+                        <p class="hm-muted">{{ 'project.drawer.ai.subtitle'|trans }}</p>
+                    </header>
+
+                    <dl class="hm-cust-ai__stats">
+                        <div class="hm-cust-ai__stat">
+                            <dt>{{ 'project.drawer.ai.provider'|trans }}</dt>
+                            <dd>{{ project.providerLabelKey|trans }}</dd>
+                        </div>
+                        <div class="hm-cust-ai__stat">
+                            <dt>{{ 'project.drawer.ai.model'|trans }}</dt>
+                            <dd>{{ project.modelLabelKey|trans }}</dd>
+                        </div>
+                        <div class="hm-cust-ai__stat">
+                            <dt>{{ 'project.drawer.ai.cost'|trans }}</dt>
+                            <dd>{{ 'project.drawer.ai.cost.value'|trans({ '%amount%': aiCostUsd|number_format(4, '.', '') }) }}</dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+
+            {# ── Tab: Export ────────────────────────────────────────── #}
+            <div
+                id="hm-panel-export"
+                class="hm-cust-panel"
+                role="tabpanel"
+                aria-labelledby="hm-tab-export"
+                data-panel="export"
+                hidden
+                data-export-panel
+                data-project-id="{{ project.id }}"
+                data-csrf-token="{{ csrf_token('api_mutation') }}"
+                data-url-html="{{ path('app_export_html') }}"
+                data-url-pdf="{{ path('app_export_pdf') }}"
+                data-label-success-html="{{ 'project.drawer.export.html.success'|trans }}"
+                data-label-success-pdf="{{ 'project.drawer.export.pdf.success'|trans }}"
+                data-label-error="{{ 'project.drawer.export.error.generic'|trans }}"
+            >
+                <section class="hm-cust-export">
+                    <header class="hm-cust-export__header">
+                        <span class="hm-badge">{{ 'project.drawer.export.badge'|trans }}</span>
+                        <h2 class="hm-cust-export__title">{{ 'project.drawer.export.title'|trans }}</h2>
+                        <p class="hm-muted">{{ 'project.drawer.export.subtitle'|trans }}</p>
+                    </header>
+
+                    <div class="hm-cust-export__actions">
+                        <button
+                            class="hm-button"
+                            type="button"
+                            data-export-btn="html"
+                        >{{ 'project.drawer.export.html.button'|trans }}</button>
+
+                        <button
+                            class="hm-button"
+                            type="button"
+                            data-export-btn="pdf"
+                        >{{ 'project.drawer.export.pdf.button'|trans }}</button>
+                    </div>
+
+                    <div class="hm-alert hm-alert--success" data-export-success hidden></div>
+                    <div class="hm-alert hm-alert--danger" data-export-error hidden></div>
+                </section>
+            </div>
+
+        </div>{# /.hm-cust-drawer__body #}
+    </aside>
+</div>{# /.hm-cust-drawer #}
+
+<style>
+    /* ── Drawer overlay & panel ───────────────────────────────────────────── */
+    .hm-cust-drawer {
+        position: fixed;
+        inset: 0;
+        z-index: 400;
+        display: flex;
+        align-items: stretch;
+        justify-content: flex-end;
+    }
+
+    .hm-cust-drawer[hidden] {
+        display: none;
+    }
+
+    .hm-cust-drawer__overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.38);
+        cursor: pointer;
+    }
+
+    .hm-cust-drawer__panel {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        width: min(520px, 100vw);
+        height: 100%;
+        background: var(--hm-surface);
+        box-shadow: -8px 0 40px rgba(0, 0, 0, 0.18);
+        overflow-y: auto;
+        animation: hm-slide-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes hm-slide-in {
+        from { transform: translateX(100%); }
+        to   { transform: translateX(0); }
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    .hm-cust-drawer__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 20px 24px 0;
+        flex-shrink: 0;
+    }
+
+    .hm-cust-drawer__title {
+        margin: 0;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.2rem, 2vw, 1.5rem);
+    }
+
+    .hm-cust-drawer__close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--hm-border);
+        border-radius: 10px;
+        background: var(--hm-surface-strong);
+        color: var(--hm-ink-soft);
+        font-size: 1rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .hm-cust-drawer__close:hover {
+        background: var(--hm-accent-soft);
+        color: var(--hm-accent-primary);
+        border-color: var(--hm-accent-primary);
+    }
+
+    /* ── Tab bar ─────────────────────────────────────────────────────────── */
+    .hm-cust-drawer__tabs {
+        display: flex;
+        gap: 4px;
+        padding: 16px 24px 0;
+        flex-shrink: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .hm-cust-drawer__tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .hm-cust-tab {
+        padding: 8px 16px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--hm-ink-soft);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .hm-cust-tab:hover {
+        background: var(--hm-surface-strong);
+        color: var(--hm-ink);
+    }
+
+    .hm-cust-tab--active,
+    .hm-cust-tab[aria-selected="true"] {
+        background: var(--hm-accent-soft);
+        color: var(--hm-accent-primary);
+        border-color: rgba(124, 58, 237, 0.25);
+    }
+
+    /* ── Body / panels ───────────────────────────────────────────────────── */
+    .hm-cust-drawer__body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .hm-cust-panel[hidden] {
+        display: none;
+    }
+
+    /* ── AI panel ────────────────────────────────────────────────────────── */
+    .hm-cust-ai {
+        padding: 24px;
+        border-radius: 20px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-cust-ai__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-cust-ai__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.3rem, 2vw, 1.7rem);
+    }
+
+    .hm-cust-ai__stats {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+    }
+
+    .hm-cust-ai__stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: var(--hm-surface-strong);
+    }
+
+    .hm-cust-ai__stat dt {
+        font-size: 0.88rem;
+        color: var(--hm-ink-soft);
+        font-weight: 600;
+    }
+
+    .hm-cust-ai__stat dd {
+        margin: 0;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    /* ── Export panel ────────────────────────────────────────────────────── */
+    .hm-cust-export {
+        padding: 24px;
+        border-radius: 20px;
+        border: 1px solid rgba(124, 58, 237, 0.10);
+        background: var(--hm-surface);
+    }
+
+    .hm-cust-export__header {
+        margin-bottom: 20px;
+    }
+
+    .hm-cust-export__title {
+        margin: 10px 0 6px;
+        font-family: var(--hm-font-title);
+        font-size: clamp(1.3rem, 2vw, 1.7rem);
+    }
+
+    .hm-cust-export__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+</style>
+
+<script>
+    (() => {
+        const drawer = document.getElementById('hm-customization-drawer');
+        if (!drawer) return;
+
+        // ── Open / close ────────────────────────────────────────────────────
+        const openBtn  = document.querySelector('[data-drawer-open="hm-customization-drawer"]');
+        const closeEls = drawer.querySelectorAll('[data-drawer-close]');
+        const overlay  = drawer.querySelector('[data-drawer-overlay]');
+        const panel    = drawer.querySelector('.hm-cust-drawer__panel');
+
+        let previouslyFocused = null;
+
+        function openDrawer() {
+            previouslyFocused = document.activeElement;
+            drawer.hidden = false;
+            document.body.style.overflow = 'hidden';
+            panel.focus();
+        }
+
+        function closeDrawer() {
+            drawer.hidden = true;
+            document.body.style.overflow = '';
+            if (previouslyFocused instanceof HTMLElement) {
+                previouslyFocused.focus();
+            }
+        }
+
+        if (openBtn) {
+            openBtn.addEventListener('click', openDrawer);
+        }
+
+        closeEls.forEach(el => el.addEventListener('click', closeDrawer));
+
+        // Escape key closes the drawer
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !drawer.hidden) {
+                closeDrawer();
+            }
+        });
+
+        // ── Tab switching ───────────────────────────────────────────────────
+        const tabs   = drawer.querySelectorAll('[role="tab"]');
+        const panels = drawer.querySelectorAll('[role="tabpanel"]');
+
+        function activateTab(tab) {
+            const targetPanel = document.getElementById(tab.getAttribute('aria-controls'));
+
+            tabs.forEach(t => {
+                t.setAttribute('aria-selected', 'false');
+                t.classList.remove('hm-cust-tab--active');
+                t.tabIndex = -1;
+            });
+            panels.forEach(p => { p.hidden = true; });
+
+            tab.setAttribute('aria-selected', 'true');
+            tab.classList.add('hm-cust-tab--active');
+            tab.tabIndex = 0;
+            if (targetPanel) targetPanel.hidden = false;
+        }
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => activateTab(tab));
+
+            // Arrow key navigation within the tab list
+            tab.addEventListener('keydown', (e) => {
+                const tabsArr = Array.from(tabs);
+                const idx = tabsArr.indexOf(tab);
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    activateTab(tabsArr[(idx + 1) % tabsArr.length]);
+                    tabsArr[(idx + 1) % tabsArr.length].focus();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    activateTab(tabsArr[(idx - 1 + tabsArr.length) % tabsArr.length]);
+                    tabsArr[(idx - 1 + tabsArr.length) % tabsArr.length].focus();
+                }
+            });
+        });
+
+        // ── Export panel ────────────────────────────────────────────────────
+        const exportPanel   = drawer.querySelector('[data-export-panel]');
+        if (exportPanel) {
+            const projectId     = exportPanel.dataset.projectId;
+            const csrfToken     = exportPanel.dataset.csrfToken;
+            const urlHtml       = exportPanel.dataset.urlHtml;
+            const urlPdf        = exportPanel.dataset.urlPdf;
+            const labelHtmlOk   = exportPanel.dataset.labelSuccessHtml;
+            const labelPdfOk    = exportPanel.dataset.labelSuccessPdf;
+            const labelError    = exportPanel.dataset.labelError;
+            const successBox    = exportPanel.querySelector('[data-export-success]');
+            const errorBox      = exportPanel.querySelector('[data-export-error]');
+            const exportBtns    = exportPanel.querySelectorAll('[data-export-btn]');
+
+            async function triggerExport(format) {
+                successBox.hidden = true;
+                errorBox.hidden = true;
+                successBox.textContent = '';
+                errorBox.textContent = '';
+
+                const url = format === 'html' ? urlHtml : urlPdf;
+                const successMsg = format === 'html' ? labelHtmlOk : labelPdfOk;
+
+                const formData = new FormData();
+                formData.set('projectId', projectId);
+                formData.set('_csrf_token', csrfToken);
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw data;
+                    }
+                    successBox.textContent = successMsg;
+                    successBox.hidden = false;
+                } catch (err) {
+                    errorBox.textContent = (err && err.message) || labelError;
+                    errorBox.hidden = false;
+                }
+            }
+
+            exportBtns.forEach(btn => {
+                btn.addEventListener('click', () => triggerExport(btn.dataset.exportBtn));
+            });
+        }
+    })();
+</script>
+{% endif %}
