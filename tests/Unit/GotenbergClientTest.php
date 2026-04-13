@@ -21,20 +21,20 @@ final class GotenbergClientTest extends TestCase
 
     public function testTimeoutExceptionCarriesUrl(): void
     {
-        $ex = new GotenbergTimeoutException('http://gotenberg:3000/forms/chromium/convert/html');
-        self::assertStringContainsString('http://gotenberg:3000', $ex->getMessage());
+        $ex = new GotenbergTimeoutException();
+        self::assertStringContainsString('timed out', $ex->getMessage());
     }
 
     public function testTimeoutExceptionIsRuntimeException(): void
     {
-        $ex = new GotenbergTimeoutException('http://example.com');
+        $ex = new GotenbergTimeoutException();
         self::assertInstanceOf(\RuntimeException::class, $ex);
     }
 
     public function testTimeoutExceptionAcceptsPreviousThrowable(): void
     {
         $previous = new \RuntimeException('inner');
-        $ex       = new GotenbergTimeoutException('http://example.com', $previous);
+        $ex       = new GotenbergTimeoutException($previous);
         self::assertSame($previous, $ex->getPrevious());
     }
 
@@ -55,7 +55,7 @@ final class GotenbergClientTest extends TestCase
         $fakePdf = '%PDF-1.4 fake-pdf-content';
         $client  = $this->makeFakeClient($fakePdf);
 
-        $result = $client->convertHtmlToPdf('<html><body>Hello</body></html>');
+        $result = $client->convertHtmlToPdf('<html><body>Hello</body></html>', 'test.html');
 
         self::assertSame($fakePdf, $result);
     }
@@ -65,13 +65,13 @@ final class GotenbergClientTest extends TestCase
         $this->expectException(GotenbergTimeoutException::class);
 
         $client = new class() implements GotenbergClientInterface {
-            public function convertHtmlToPdf(string $html): string
+            public function convertHtmlToPdf(string $htmlContent, string $filename): string
             {
-                throw new GotenbergTimeoutException('http://gotenberg-test:3000/forms/chromium/convert/html');
+                throw new GotenbergTimeoutException();
             }
         };
 
-        $client->convertHtmlToPdf('<html></html>');
+        $client->convertHtmlToPdf('<html></html>', 'test.html');
     }
 
     public function testClientThrowsUnavailableOn503(): void
@@ -80,13 +80,13 @@ final class GotenbergClientTest extends TestCase
         $this->expectExceptionMessageMatches('/503/');
 
         $client = new class() implements GotenbergClientInterface {
-            public function convertHtmlToPdf(string $html): string
+            public function convertHtmlToPdf(string $htmlContent, string $filename): string
             {
                 throw new GotenbergUnavailableException(503);
             }
         };
 
-        $client->convertHtmlToPdf('<html></html>');
+        $client->convertHtmlToPdf('<html></html>', 'test.html');
     }
 
     public function testClientThrowsUnavailableOn500(): void
@@ -95,13 +95,13 @@ final class GotenbergClientTest extends TestCase
         $this->expectExceptionMessageMatches('/500/');
 
         $client = new class() implements GotenbergClientInterface {
-            public function convertHtmlToPdf(string $html): string
+            public function convertHtmlToPdf(string $htmlContent, string $filename): string
             {
                 throw new GotenbergUnavailableException(500);
             }
         };
 
-        $client->convertHtmlToPdf('<html></html>');
+        $client->convertHtmlToPdf('<html></html>', 'test.html');
     }
 
     public function testClientThrowsRuntimeExceptionOnNetworkError(): void
@@ -110,13 +110,13 @@ final class GotenbergClientTest extends TestCase
         $this->expectExceptionMessageMatches('/connection refused/');
 
         $client = new class() implements GotenbergClientInterface {
-            public function convertHtmlToPdf(string $html): string
+            public function convertHtmlToPdf(string $htmlContent, string $filename): string
             {
                 throw new \RuntimeException('Gotenberg HTTP request failed: connection refused');
             }
         };
 
-        $client->convertHtmlToPdf('<html></html>');
+        $client->convertHtmlToPdf('<html></html>', 'test.html');
     }
 
     private function makeFakeClient(string $simulatedPdfBinary): GotenbergClientInterface
@@ -126,7 +126,7 @@ final class GotenbergClientTest extends TestCase
             {
             }
 
-            public function convertHtmlToPdf(string $html): string
+            public function convertHtmlToPdf(string $htmlContent, string $filename): string
             {
                 return $this->pdfBinary;
             }
