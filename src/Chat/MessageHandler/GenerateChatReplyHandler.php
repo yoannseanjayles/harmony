@@ -95,8 +95,6 @@ final class GenerateChatReplyHandler
             $generationResult = $result->generationResult();
             $estimatedCostUsd = $this->orchestrator->calculateCostUsd($generationResult);
 
-            $this->chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
-
             $history = $this->chatMessageRepository->paginateProjectConversation(
                 $project,
                 1,
@@ -115,6 +113,10 @@ final class GenerateChatReplyHandler
                 'estimatedCostUsd' => number_format($estimatedCostUsd, 4, '.', ''),
                 'pendingConfirmation' => $this->buildPendingConfirmationPayload($generationResult->pendingConfirmation()),
             ]);
+
+            // Mark done only after the event is persisted so the SSE polling
+            // loop never observes status=done without the generation_done event.
+            $this->chatStreamSessionStore->markStatus($streamId, 'done', $assistantMessage->getId());
         } catch (\Throwable $e) {
             $isEmptyResponse = $e instanceof EmptyAIResponseException;
 

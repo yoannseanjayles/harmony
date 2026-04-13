@@ -1093,7 +1093,8 @@
                 }
             };
 
-            const openStream = (streamUrl) => {
+            const openStream = (streamUrl, retryCount = 0) => {
+                const maxRetries = 5;
                 streamCompleted = false;
                 isStreaming = true;
                 closeActiveEventSource();
@@ -1146,9 +1147,16 @@
                     }
 
                     closeActiveEventSource();
+
+                    if (retryCount >= maxRetries) {
+                        showError(streamError);
+                        finishStreaming();
+                        return;
+                    }
+
                     window.setTimeout(() => {
                         if (!streamCompleted) {
-                            openStream(streamUrl);
+                            openStream(streamUrl, retryCount + 1);
                         }
                     }, 1000);
                 };
@@ -1326,11 +1334,32 @@
                         slideHtmlMap.clear();
                         activeSlideId = null;
 
+                        // Repopulate slideHtmlMap with the rendered HTML returned by the server
+                        if (data.slidesHtmlMap && typeof data.slidesHtmlMap === 'object') {
+                            for (const [id, html] of Object.entries(data.slidesHtmlMap)) {
+                                slideHtmlMap.set(String(id), html);
+                            }
+                            // Upgrade text-only thumbnail placeholders to fully-rendered HTML
+                            if (thumbnailStrip) {
+                                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                                    const id = String(thumb.dataset.previewSlideId || '');
+                                    const html = slideHtmlMap.get(id);
+                                    if (html) {
+                                        const inner = thumb.querySelector('.hm-thumbnail__inner');
+                                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
+                                            inner.className = 'hm-thumbnail__inner';
+                                            inner.innerHTML = html;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
                         const firstThumb = thumbnailStrip ? thumbnailStrip.querySelector('[data-preview-slide]') : null;
                         if (firstThumb) {
                             firstThumb.classList.add('hm-thumbnail--active');
                             activeSlideId = String(firstThumb.dataset.previewSlideId || '');
-                            if (livePreviewContent) livePreviewContent.innerHTML = '';
+                            updateLivePreview(slideHtmlMap.get(activeSlideId) || null);
                             if (livePreviewStage) livePreviewStage.hidden = false;
                             if (livePreviewEmpty) livePreviewEmpty.hidden = true;
                         } else {

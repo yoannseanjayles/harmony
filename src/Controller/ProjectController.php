@@ -136,9 +136,12 @@ final class ProjectController extends AbstractController
      * internal scroll on each panel so the browser never shows a page-level scrollbar.
      */
     #[Route('/{id}/editor', name: 'app_project_editor', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, SlideBuilder $slideBuilder): Response
+    public function editor(int $id, ProjectRepository $projectRepository, ChatMessageRepository $chatMessageRepository, SlideBuilder $slideBuilder, ProjectGenerationMetricRepository $projectGenerationMetricRepository): Response
     {
         $project = $this->findOwnedProjectOr404($id, $projectRepository);
+
+        $costMap   = $projectGenerationMetricRepository->sumEstimatedCostCentsByProjects([$project]);
+        $aiCostUsd = round(((int) ($costMap[(int) $project->getId()] ?? 0)) / 100, 4);
 
         $slidesHtml = [];
         foreach ($project->getSlides() as $slide) {
@@ -153,6 +156,7 @@ final class ProjectController extends AbstractController
             'project' => $project,
             'chatHistory' => $chatMessageRepository->paginateProjectConversation($project, 1, self::CHAT_MESSAGES_PER_PAGE),
             'slidesHtml' => $slidesHtml,
+            'aiCostUsd'  => $aiCostUsd,
         ]);
     }
 

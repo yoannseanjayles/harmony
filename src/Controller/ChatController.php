@@ -13,6 +13,7 @@ use App\Chat\ChatStreamSessionStore;
 use App\Project\ProjectVersioning;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ProjectRepository;
+use App\Slide\SlideBuilder;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -229,6 +230,7 @@ final class ChatController extends AbstractController
         ChatEngine $chatEngine,
         ProjectVersioning $projectVersioning,
         EntityManagerInterface $entityManager,
+        SlideBuilder $slideBuilder,
     ): Response {
         $project = $this->findOwnedProjectOr404($projectId, $projectRepository);
         $token = (string) $request->request->get('_token');
@@ -270,12 +272,22 @@ final class ChatController extends AbstractController
         }
 
         if ($request->isXmlHttpRequest()) {
+            $slidesHtmlMap = [];
+            foreach ($project->getSlides() as $slide) {
+                try {
+                    $slidesHtmlMap[(string) $slide->getId()] = $slideBuilder->buildSlide($slide);
+                } catch (\Throwable) {
+                    // skip unrenderable slides
+                }
+            }
+
             return $this->json([
                 'decision' => $decision,
                 'pendingConfirmation' => null,
                 'previewHtml' => $this->renderView('project/_preview_list.html.twig', [
                     'slides' => $project->getSlides(),
                 ]),
+                'slidesHtmlMap' => $slidesHtmlMap,
                 'slidesCount' => $project->getSlidesCount(),
             ]);
         }

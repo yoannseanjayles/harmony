@@ -491,13 +491,12 @@
             >{{ 'project.editor.nav.history'|trans }}</a>
 
             {% if not project.isArchived %}
-                {# Theme drawer toggle #}
+                {# Customisation drawer toggle #}
                 <button
                     class="hm-editor-nav__btn hm-editor-nav__btn--ghost"
                     type="button"
-                    data-theme-drawer-toggle
-                    aria-expanded="false"
-                    aria-controls="theme-preset-drawer"
+                    data-drawer-open="hm-customization-drawer"
+                    aria-controls="hm-customization-drawer"
                 >{{ 'project.editor.nav.theme'|trans }}</button>
 
                 <span class="hm-editor-nav__divider" aria-hidden="true"></span>
@@ -547,18 +546,11 @@
         </div>
     </div>
 
-    {# ── Drawers (theme preset, customisation, animation) ──────── #}
+    {# ── Drawers (unified customisation) ───────────────────────────── #}
     {% if not project.isArchived %}
-        {% include 'project/_theme_preset_drawer.html.twig' with {
-            project: project
-        } %}
-
-        {% include 'project/_theme_customization_drawer.html.twig' with {
-            project: project
-        } %}
-
-        {% include 'project/_animation_control_drawer.html.twig' with {
-            project: project
+        {% include 'project/_customization_drawer.html.twig' with {
+            project: project,
+            aiCostUsd: aiCostUsd
         } %}
     {% endif %}
 
@@ -888,7 +880,8 @@
                 }
             };
 
-            const openStream = (streamUrl) => {
+            const openStream = (streamUrl, retryCount = 0) => {
+                const maxRetries = 5;
                 streamCompleted = false;
                 isStreaming = true;
                 closeActiveEventSource();
@@ -936,9 +929,16 @@
                     }
 
                     closeActiveEventSource();
+
+                    if (retryCount >= maxRetries) {
+                        showError(streamError);
+                        finishStreaming();
+                        return;
+                    }
+
                     window.setTimeout(() => {
                         if (!streamCompleted) {
-                            openStream(streamUrl);
+                            openStream(streamUrl, retryCount + 1);
                         }
                     }, 1000);
                 };
@@ -1099,11 +1099,32 @@
                         slideHtmlMap.clear();
                         activeSlideId = null;
 
+                        // Repopulate slideHtmlMap with the rendered HTML returned by the server
+                        if (data.slidesHtmlMap && typeof data.slidesHtmlMap === 'object') {
+                            for (const [id, html] of Object.entries(data.slidesHtmlMap)) {
+                                slideHtmlMap.set(String(id), html);
+                            }
+                            // Upgrade text-only thumbnail placeholders to fully-rendered HTML
+                            if (thumbnailStrip) {
+                                thumbnailStrip.querySelectorAll('[data-preview-slide]').forEach((thumb) => {
+                                    const id = String(thumb.dataset.previewSlideId || '');
+                                    const html = slideHtmlMap.get(id);
+                                    if (html) {
+                                        const inner = thumb.querySelector('.hm-thumbnail__inner');
+                                        if (inner && inner.classList.contains('hm-thumbnail__inner--text')) {
+                                            inner.className = 'hm-thumbnail__inner';
+                                            inner.innerHTML = html;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
                         const firstThumb = thumbnailStrip ? thumbnailStrip.querySelector('[data-preview-slide]') : null;
                         if (firstThumb) {
                             firstThumb.classList.add('hm-thumbnail--active');
                             activeSlideId = String(firstThumb.dataset.previewSlideId || '');
-                            if (livePreviewContent) livePreviewContent.innerHTML = '';
+                            updateLivePreview(slideHtmlMap.get(activeSlideId) || null);
                             if (livePreviewStage) livePreviewStage.hidden = false;
                             if (livePreviewEmpty) livePreviewEmpty.hidden = true;
                         } else {
@@ -1188,19 +1209,5 @@
             });
         })();
 
-        // ── Theme drawer toggle (T287) ────────────────────────────────────
-        (() => {
-            const toggle = document.querySelector('[data-theme-drawer-toggle]');
-            const drawer = document.getElementById('theme-preset-drawer');
-            if (!toggle || !drawer) {
-                return;
-            }
-
-            toggle.addEventListener('click', () => {
-                const expanded = toggle.getAttribute('aria-expanded') === 'true';
-                toggle.setAttribute('aria-expanded', String(!expanded));
-                drawer.hidden = expanded;
-            });
-        })();
     </script>
 {% endblock %}
